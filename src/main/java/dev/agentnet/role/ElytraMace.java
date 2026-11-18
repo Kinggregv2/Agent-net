@@ -16,7 +16,9 @@ import net.minecraft.world.item.Items;
  * open sky above. The warrior hands the fight to this while {@link #active()}.
  */
 final class ElytraMace {
-    private enum State { OFF, EQUIP, JUMP, OPEN, CLIMB, CRUISE, SWAP, FALL, REGLIDE, CONFIRM, DIVE }
+    private enum State { OFF, EQUIP, JUMP, OPEN, CLIMB, TOP, CRUISE, SWAP, FALL, REGLIDE, CONFIRM, DIVE }
+    /** The chestplate went on once at the top of this attack (the user's sequence): not again on a pull-up or a Wind Burst chain. */
+    private boolean topped;
 
     /** How high above the target before gliding over to it (fall damage of the smash). */
     private static final double HEIGHT = 14;
@@ -58,6 +60,7 @@ final class ElytraMace {
         total = 0;
         struck = false;
         confirmed = false;
+        topped = false;
         smashes = 0;
         lastFlat = 99;
         reglides = 0;
@@ -121,7 +124,7 @@ final class ElytraMace {
                 if (!a.gliding()) { abort(a, "landed"); return false; }
                 a.look(yaw, -80f);
                 // The rocket keeps pushing a moment after the nose comes down: stop climbing that much early.
-                if (a.y() - enemy.pos().y + Math.max(0, a.verticalSpeed()) * 2 >= want) { go(State.DIVE); return true; }
+                if (a.y() - enemy.pos().y + Math.max(0, a.verticalSpeed()) * 2 >= want) { go(topped || moving ? State.DIVE : State.TOP); return true; }
                 if (a.rocketLeft() <= 1) { if (slot(a, Items.FIREWORK_ROCKET) < 0) { go(State.CRUISE); return true; } rocket(a, yaw, -80f); }
                 if (timer > 20 * 12) go(State.CRUISE);
             }
@@ -163,6 +166,20 @@ final class ElytraMace {
                     go(State.CLIMB);
                     return true;
                 }
+            }
+            case TOP -> {
+                // The user's sequence: up on the firework, the chestplate on at the top (a plain fall starts), the elytra
+                // back on, down on a firework, then the chestplate and the mace.
+                tactic = "at the top: chestplate on, falling";
+                if (timer == 1) {
+                    topped = true;
+                    int c = chestplate(a);
+                    if (c >= 0) { hold(a, c); a.useItem(); }
+                    a.stopGliding();
+                    a.log(String.format("§7elytra mace: chestplate on %.0f blocks over %s, then the elytra again for the dive", a.y() - enemy.pos().y, enemy.name()));
+                }
+                if (!a.airborne()) { abort(a, "landed"); return false; }
+                if (timer >= 5) go(State.REGLIDE);
             }
             case CRUISE -> {
                 double up = a.y() - enemy.pos().y;
@@ -287,8 +304,11 @@ final class ElytraMace {
                     return true;
                 }
                 if (!a.startGliding()) { go(State.FALL); return true; }
-                a.look(yaw, -80f);
-                go(State.CLIMB);
+                // Already in the sky (after the top, or thrown up by Wind Burst): no climb, straight down at it on a firework.
+                topped = true;
+                a.lookAt(enemy.pos().x, enemy.pos().y + 0.9, enemy.pos().z);
+                if (a.y() - enemy.pos().y >= 4 && slot(a, Items.FIREWORK_ROCKET) >= 0) rocket(a, a.yaw(), a.pitch());
+                go(State.DIVE);
             }
             case CONFIRM -> {
                 tactic = "landed on " + enemy.name();
