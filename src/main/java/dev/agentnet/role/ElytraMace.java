@@ -272,7 +272,8 @@ final class ElytraMace {
                 // As late as it can: every block more of fall is damage, and after a Wind Burst bounce of 7 blocks the
                 // last 4 are over half of it. So: the last tick before it is down at the target (or lands).
                 boolean last = a.y() + a.verticalSpeed() <= enemy.pos().y + 1.0 || landsNext(a) || moving && enemy.distance() <= 3.0;
-                if (!struck && a.verticalSpeed() < 0 && last && (timer >= 3 || landsNext(a)) && enemy.distance() <= 4.0 && fallen > 1.6 && Sight.canHit(a, enemy)) { // 3 ticks since the elytra came off: the server has it closed
+                // Within real reach (3 blocks) is enough: at dive speed the "last tick" is one tick wide, and missing it is a fall to its death.
+                if (!struck && a.verticalSpeed() < 0 && (last || enemy.distance() <= 3.2) && (timer >= 3 || landsNext(a)) && enemy.distance() <= 4.0 && fallen > 1.6 && Sight.canHit(a, enemy)) { // 3 ticks since the elytra came off: the server has it closed
                     a.lookAt(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z);
                     int axe = Gear.bestTool(a.inventory(), "axe");
                     if (enemy.blocking() && axe >= 0 && axe < 9 && mace >= 0 && mace < 9) {
