@@ -41,12 +41,14 @@ final class Fight {
     private float hpBefore = Float.NaN;
 
     private boolean shieldUp;
-    private int blocks;
+    private int blocks, upAt;
+    private float prevHp = Float.NaN;
 
     private void raise(AgentHandle a) {
         if (shieldUp || !Gear.id(a.offhand()).equals("minecraft:shield")) return;
         a.useOffhand();
         shieldUp = true;
+        upAt = ticks;
         blocks++;
     }
 
@@ -99,6 +101,15 @@ final class Fight {
 
     void tick(AgentHandle a, Seen enemy) {
         ticks++;
+        // A hit that got through: was the shield up, for how long, and where was the enemy (a shield blocks the front half)?
+        float hpNow = a.health();
+        if (!Float.isNaN(hpNow) && !Float.isNaN(prevHp) && hpNow < prevHp - 0.01f) {
+            double toYaw = Math.toDegrees(Math.atan2(-(enemy.pos().x - a.x()), enemy.pos().z - a.z()));
+            double off = Math.abs(((toYaw - a.yaw()) % 360 + 540) % 360 - 180);
+            dev.agentnet.AgentNet.LOG.info("[{}] took {}: shield {}, {} is {} degrees off its facing, {} away, shield in off hand: {}", a.name(), String.format("%.1f", prevHp - hpNow),
+                    shieldUp ? "up for " + (ticks - upAt) + " ticks" : "down", enemy.name(), String.format("%.0f", off), String.format("%.1f", enemy.distance()), Gear.id(a.offhand()).equals("minecraft:shield"));
+        }
+        prevHp = hpNow;
         charge = Math.min(charge + 1, 100);
         if (enemy.id() != target) { target = enemy.id(); chasedTo = null; }
         // Did the last swing count? (The server's damage event names us as the source.)
