@@ -125,9 +125,13 @@ public final class Civ {
     /** A job for the speedrunner (top priority until the dragon is dead). */
     private static boolean runnerNeed(Need n) { return n.why().startsWith("the speedrunner needs ") && n.why().contains("iron"); }
 
+    private static final String HUNGRY = "hungry: ";
+    /** Agents starving with nobody making food: before the base. */
+    private static boolean hungerNeed(Need n) { return n.why().startsWith(HUNGRY); }
+
     /** The storage keeper and the base itself (its builder and its materials): before guards, gear and the rest. */
     private static boolean first(Need n) {
-        return n.role() == Role.SPEEDRUNNER || n.role() == Role.RESCUER || n.role() == Role.FALLOFF || runnerNeed(n) || n.role() == Role.KEEPER || n.role() == Role.BUILDER || n.role() == Role.MINER && n.why().startsWith("the base needs")
+        return n.role() == Role.SPEEDRUNNER || n.role() == Role.RESCUER || n.role() == Role.FALLOFF || runnerNeed(n) || hungerNeed(n) || n.role() == Role.KEEPER || n.role() == Role.BUILDER || n.role() == Role.MINER && n.why().startsWith("the base needs")
                 || n.role() == Role.DISTRIBUTOR && n.why().startsWith("the base is going up");
     }
 
@@ -243,6 +247,13 @@ public final class Civ {
         // a broken pickaxe at the bottom of a mine strands an agent from the first minutes on.
         if (roles.getOrDefault(Role.RESCUER, 0) < 1) needs.add(new Need(Role.RESCUER, null, "one to rescue those stranded underground without a pickaxe (from the start)"));
         if (roles.getOrDefault(Role.HUNTER, 0) < wantHunters) needs.add(new Need(Role.HUNTER, "hunt", "meat for " + warriors + " guards"));
+        // Hungry agents with no food and nobody making any (run 1118d: four runners, two falloffs, a rescuer, a distributor
+        // and a builder filled the cap of 10; the farmer waits for the base, so four agents starved and the distributor died
+        // asking itself for food): a hunter, before the base and everything after the speedrunners.
+        int hungry = 0;
+        for (Agent a : crew) if (a.food() < 10 && a.inventory().stream().noneMatch(dev.agentnet.role.Gear::isFood)) hungry++;
+        int feeders = roles.getOrDefault(Role.FARMER, 0) + roles.getOrDefault(Role.HUNTER, 0) + roles.getOrDefault(Role.FISHER, 0);
+        if (hungry >= 2 && feeders == 0) needs.add(new Need(Role.HUNTER, "hunt", HUNGRY + hungry + " agents with no food and nobody making any"));
         if (roles.getOrDefault(Role.DISTRIBUTOR, 0) > 0 && roles.getOrDefault(Role.DISTRIBUTOR, 0) < wantDistributors) needs.add(new Need(Role.DISTRIBUTOR, null, crew.size() + " agents to supply: " + wantDistributors + " distributors wanted"));
         // Gear: guards without iron armor want iron (24 each: a set and a sword), then diamonds (27 each).
         int noIron = 0, noDiamond = 0;
@@ -295,7 +306,7 @@ public final class Civ {
         List<Need> front = new ArrayList<>(), rest = new ArrayList<>();
         for (Need n : needs) if (first(n)) keeper.add(n);
         needs.removeAll(keeper);
-        keeper.sort(java.util.Comparator.comparingInt((Need n) -> n.role() == Role.SPEEDRUNNER ? -4 : n.role() == Role.RESCUER ? -3 : n.role() == Role.FALLOFF ? -2 : runnerNeed(n) ? -1 : n.role() == Role.KEEPER ? 0 : n.role() == Role.BUILDER ? 1 : n.role() == Role.DISTRIBUTOR ? 2 : 3));
+        keeper.sort(java.util.Comparator.comparingInt((Need n) -> n.role() == Role.SPEEDRUNNER ? -4 : n.role() == Role.RESCUER ? -3 : n.role() == Role.FALLOFF ? -2 : runnerNeed(n) || hungerNeed(n) ? -1 : n.role() == Role.KEEPER ? 0 : n.role() == Role.BUILDER ? 1 : n.role() == Role.DISTRIBUTOR ? 2 : 3));
         for (Need n : needs) (n.role() == Role.WARRIOR || n.role() == Role.DISTRIBUTOR ? front : rest).add(n);
         rest.sort(java.util.Comparator.comparingDouble((Need n) -> -CivLearning.score(n.role(), n.task())));
         needs.clear();
@@ -340,8 +351,9 @@ public final class Civ {
         }
         // The speedrunner's iron: any miner not already on iron, busy or not, else whoever's work can wait (the
         // builder last; never a guard, a speedrunner, a distributor, the keeper or a rescuer).
-        if (pick == null && runnerNeed(n)) {
-            List<Role> order = List.of(Role.MINER, Role.LOOTER, Role.HUNTER, Role.FISHER, Role.FARMER, Role.PICKUP, Role.BUILDER);
+        if (pick == null && (runnerNeed(n) || hungerNeed(n))) {
+            List<Role> order = hungerNeed(n) ? List.of(Role.LOOTER, Role.PICKUP, Role.MINER, Role.BUILDER)
+                    : List.of(Role.MINER, Role.LOOTER, Role.HUNTER, Role.FISHER, Role.FARMER, Role.PICKUP, Role.BUILDER);
             for (Role r : order) {
                 for (Agent a : crew) {
                     if (pickedThisRound.contains(a.name) || a.role() != r) continue;
