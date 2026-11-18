@@ -3577,6 +3577,9 @@ public final class SpeedrunnerModule implements RoleModule {
         if (stageTicks > 20 * 40) { go(a, Stage.LIGHT); return; }
         boolean there = (int) Math.floor(a.x()) == in.getX() && (int) Math.floor(a.z()) == in.getZ() && Math.abs(a.y() - in.getY()) < 1.2;
         if (there) { if (a.isNavigating()) a.stopNavigation(); return; }
+        // Still not in after 5 s of stepping: the path finder takes it in (run 1118d: back from a death it stood a block
+        // higher than the portal's floor, its head hit the frame's top on every step, and the server put it back for minutes).
+        if (stageTicks > 100) { if (!a.isNavigating() && stageTicks % 20 == 1) a.navigate(in.getX(), in.getY(), in.getZ(), 0); return; }
         // Off the block in front of it and down into the frame: one step, the drop does the rest.
         if (Math.hypot(a.x() - (in.getX() + 0.5), a.z() - (in.getZ() + 0.5)) < 1.6) { if (a.isNavigating()) a.stopNavigation(); a.stepToward(in.getX() + 0.5, in.getZ() + 0.5); return; }
         BlockPos front = c(1, 1, 1);
