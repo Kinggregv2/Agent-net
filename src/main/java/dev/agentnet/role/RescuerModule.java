@@ -39,8 +39,15 @@ final class RescuerModule implements RoleModule {
         if (!h.isOnline() || h.role() == Role.RESCUER || h.airborne()) return false;
         if (h.dimension() == null || !h.dimension().endsWith("overworld")) return false;
         if (pickaxes(h) > 0) return false;
+        // A speedrunner without one, anywhere, until the dragon is dead: it comes first (run 1118d: the main died, lost its
+        // pickaxe, and spent its time hunting logs in treeless snowy mountains while the rescuer sat on three spares).
+        if (runner(h)) return true;
         // Deep down, or under rock at any height (a tunnel into a mountain: run 1118d's spawn is mountains at y 90-110).
         return h.y() <= UNDERGROUND_Y || roofed(h);
+    }
+
+    private static boolean runner(AgentHandle h) {
+        return (h.role() == Role.SPEEDRUNNER || h.role() == Role.FALLOFF) && SpeedrunnerModule.priorityRunner() != null;
     }
 
     /** Solid rock over its head (not a tree): it is in a tunnel or a cave, whatever the height. */
@@ -104,15 +111,17 @@ final class RescuerModule implements RoleModule {
         for (AgentHandle h : AgentBus.agents.get()) {
             if (h == a || !stranded(h) || !AgentHandle.sameDim(h.dimension(), a.dimension())) continue;
             Long t = helped.get(h.name());
-            if (t != null && now - t < 5 * 60_000) continue;
+            if (t != null && now - t < (runner(h) ? 60_000 : 5 * 60_000)) continue;
             double d = AgentBus.distSq(a, h);
+            // The main speedrunner first, then its helpers, then everyone else (nearest first within each).
+            if (runner(h)) d -= h.name().equalsIgnoreCase(SpeedrunnerModule.priorityRunner()) ? 2e6 : 1e6;
             if (d < bd) { bd = d; best = h; }
         }
         if (best == null) return;
         patient = best.name();
         rescueTicks = 0;
         navTicks = 0;
-        a.log("§e" + patient + " is stuck at y=" + (int) best.y() + " without a pickaxe: going to bring it one");
+        a.log(runner(best) ? "§e" + patient + " (speedrun) has no pickaxe: bringing it one first" : "§e" + patient + " is stuck at y=" + (int) best.y() + " without a pickaxe: going to bring it one");
     }
 
     /** Spare pickaxes: crafted from its own cobblestone and sticks, or asked for. */
