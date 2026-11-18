@@ -3243,8 +3243,15 @@ public final class SpeedrunnerModule implements RoleModule {
             return false;
         }
         // Nothing under its feet (the pillar block it just dug out): it drops first. Walking off from mid-air got it kicked.
-        BlockState footing = w.get((int) Math.floor(a.x()), (int) Math.floor(a.y() - 0.05), (int) Math.floor(a.z()));
-        if (footing == null || open(footing)) { if (a.isNavigating()) a.stopNavigation(); return false; }
+        // Any block under its body (0.6 wide), not just under its middle: standing on an edge at x=223.00 over air at 223 it
+        // "dropped first" for three minutes while held up by the block at 222 (run 1118d, the portal cast).
+        boolean held = false;
+        int fy = (int) Math.floor(a.y() - 0.05);
+        for (double ox : new double[] { -0.299, 0.299 }) for (double oz : new double[] { -0.299, 0.299 }) {
+            BlockState f = w.get((int) Math.floor(a.x() + ox), fy, (int) Math.floor(a.z() + oz));
+            if (f != null && !open(f)) held = true;
+        }
+        if (!held) { if (a.isNavigating()) a.stopNavigation(); return false; }
         if (!atXZ) {
             if (Math.hypot(a.x() - cx, a.z() - cz) < 0.7 && Math.abs(a.y() - gy) < 0.1) { if (a.isNavigating()) a.stopNavigation(); a.stepToward(cx, cz); } // only within its own block: never across a gap
             else if (gap(a, w, feet)) { if (a.isNavigating()) a.stopNavigation(); status = "jumping the hole"; }
