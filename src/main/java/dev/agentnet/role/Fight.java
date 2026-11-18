@@ -133,6 +133,61 @@ final class Fight {
         return new double[]{(lo + hi) / 2, ticks};
     }
 
+    // ------------------------------------------------------------------ step 6: creepers
+    //
+    // Vanilla (SwellGoal, Creeper): the fuse starts when the creeper is within 3 blocks of its target and sees it, runs
+    // 30 ticks, and stops when the target is more than 7 blocks off (or out of sight). The blast reaches about 6 blocks;
+    // a raised shield blocks it from the front.
+    //  - With a bow: shot from over 8 blocks (step 5); when it gets within 6, back to 10 blocks and shoot again.
+    //  - With a blade that kills it in two critical hits (20 health: 7 damage and up): fought like anything else. Two
+    //    full-charge swings take about 21 ticks from when it comes into reach, inside the 30 of its fuse.
+    //  - Otherwise: one hit, and when it hisses, away past 7 blocks until the fuse is out, then in again.
+    //  - Caught beside a hissing one: the shield up toward it.
+
+    private boolean creeperBack;
+    private int fleeAt = -100;
+
+    private boolean creeper(AgentHandle a, Seen c) {
+        double d = c.distance();
+        List<ItemStack> inv = a.inventory();
+        boolean hasBow = false, hasArrow = false;
+        for (int i = 0; i < inv.size() && i < 36; i++) { if (inv.get(i).getItem() == net.minecraft.world.item.Items.BOW) hasBow = true; if (inv.get(i).getItem() instanceof net.minecraft.world.item.ArrowItem) hasArrow = true; }
+        boolean archer = hasBow && hasArrow;
+        int w = bestWeapon(a);
+        double crit = (w >= 0 ? damage(inv.get(w)) : 1.0) * 1.5;
+        float hp = a.healthOf(c.id());
+        boolean twoHits = crit * 2 >= (Float.isNaN(hp) ? 20 : hp), oneHit = crit >= (Float.isNaN(hp) ? 20 : hp);
+        if (creeperBack && (archer ? d >= 10 : d >= 8 && !c.swelling())) { creeperBack = false; if (a.isNavigating()) a.stopNavigation(); }
+        if (!creeperBack) {
+            if (archer && d < 6) creeperBack = true;
+            else if (!archer && c.swelling() && !twoHits && !oneHit) creeperBack = true;
+            if (creeperBack) a.log(String.format("§ea creeper %.0f blocks off%s: backing away", d, c.swelling() ? ", hissing" : ""));
+        }
+        if (!creeperBack) return false; // the bow (far off) or the blade deal with it
+        if (drawing >= 0) { a.releaseUse(); drawing = -1; }
+        if (c.swelling() && d < 4.5) raise(a); else lower(a);
+        a.faceWhileMoving(c.pos().x, c.pos().y + 1.0, c.pos().z);
+        tactic = c.swelling() ? "away from a hissing creeper" : "getting distance from a creeper";
+        if (ticks - fleeAt >= 10 || !a.isNavigating()) { fleeAt = ticks; away(a, c, 12); }
+        return true;
+    }
+
+    /** A trip about this many blocks straight away from it, or the nearest direction to that with ground to stand on. */
+    private static void away(AgentHandle a, Seen from, int blocks) {
+        var w = a.openWorld();
+        double back = Math.atan2(a.z() - from.pos().z, a.x() - from.pos().x);
+        for (int k = 0; k < 9; k++) {
+            double ang = back + (k == 0 ? 0 : (k % 2 == 1 ? 1 : -1) * ((k + 1) / 2) * Math.PI / 6);
+            int gx = (int) Math.floor(a.x() + Math.cos(ang) * blocks), gz = (int) Math.floor(a.z() + Math.sin(ang) * blocks), y = (int) Math.floor(a.y() + 0.2);
+            if (w == null) { a.navigate(gx, y, gz, 2); return; }
+            for (int dy = 0; dy <= 5; dy++) for (int s : dy == 0 ? new int[]{0} : new int[]{dy, -dy}) {
+                var ground = w.get(gx, y + s - 1, gz); var feet = w.get(gx, y + s, gz); var head = w.get(gx, y + s + 1, gz);
+                if (ground == null || feet == null || head == null) continue;
+                if (Tunnel.solid(ground) && Tunnel.passable(feet) && Tunnel.passable(head)) { a.navigate(gx, y + s, gz, 2); return; }
+            }
+        }
+    }
+
     private boolean shieldUp;
     private int blocks, upAt;
     private float prevHp = Float.NaN;
@@ -215,6 +270,7 @@ final class Fight {
             checkAt = -1;
         }
 
+        if (enemy.name().equals("creeper") && creeper(a, enemy)) return; // step 6
         if (bow(a, enemy)) return; // step 5: arrows while it is far off
 
         // The best thing to hit with: by the damage a full swing does a second (a sword beats an axe beats a fist).
