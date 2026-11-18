@@ -40,6 +40,22 @@ final class Fight {
     private int jumpedAt = -100, crits;
     private float hpBefore = Float.NaN;
 
+    private boolean shieldUp;
+    private int blocks;
+
+    private void raise(AgentHandle a) {
+        if (shieldUp || !Gear.id(a.offhand()).equals("minecraft:shield")) return;
+        a.useOffhand();
+        shieldUp = true;
+        blocks++;
+    }
+
+    private void lower(AgentHandle a) {
+        if (!shieldUp) return;
+        a.releaseUse();
+        shieldUp = false;
+    }
+
     private static boolean inWater(AgentHandle a) {
         var w = a.openWorld();
         if (w == null) return false;
@@ -74,6 +90,7 @@ final class Fight {
     // ------------------------------------------------------------------ the fight
 
     void idle(AgentHandle a) {
+        lower(a);
         charge = Math.min(charge + 1, 100);
         tactic = "";
         if (swings > 0) { a.log(String.format("fight over: %d of %d swings landed, %d critical", landed, swings, crits)); swings = 0; landed = 0; crits = 0; }
@@ -113,6 +130,8 @@ final class Fight {
             // Facing it as it walks, never a look of its own: a look is a move packet, and only one goes out a tick, so
             // looking every tick swallowed every step (it stood "closing in" for 40 s in the first test).
             a.faceWhileMoving(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z);
+            // Step 3: the shield up on the way in, against arrows from any distance and against a melee enemy about to reach it.
+            if (enemy.aiming() || reach <= 4.5) raise(a); else lower(a);
             chase(a, enemy, walled ? 0 : 1);
             return;
         }
@@ -125,6 +144,7 @@ final class Fight {
         int left = (int) Math.ceil(full) - charge;
         boolean canJump = !a.airborne() && !a.riding() && !inWater(a);
         if (left > 0) {
+            raise(a); // between its swings: the shield (it blocks from 5 ticks after it goes up, vanilla's block delay)
             if (canJump && left <= JUMP_LEAD && ticks - jumpedAt > 14) { a.jump(); jumpedAt = ticks; tactic = "jumping for a critical hit on " + enemy.name(); return; }
             tactic = a.airborne() ? "in the air over " + enemy.name() : "in reach of " + enemy.name() + ", charging the swing";
             return;
@@ -138,6 +158,7 @@ final class Fight {
         boolean falling = a.airborne() && a.verticalSpeed() < -0.1;
         if (!falling && ticks - jumpedAt <= 12 && (a.airborne() || ticks - jumpedAt <= 3)) { tactic = "in the air over " + enemy.name(); return; }
         boolean crit = falling;
+        lower(a); // no swinging with the shield up
         hpBefore = a.healthOf(enemy.id());
         a.attack(enemy.id());
         if (crit) crits++;
