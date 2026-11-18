@@ -117,13 +117,13 @@ final class Fight {
             return;
         }
         // In reach: stand and wait for the full charge, then swing. A swing before that does a fraction and starts the wait over.
-        if (a.isNavigating() && reach < REACH - 0.6) a.stopNavigation();
+        if (a.isNavigating()) a.stopNavigation(); // in reach: it stands (and jumps) here; out of reach again, it walks again
         if (!a.isNavigating() && !a.airborne()) a.lookAt(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z); else a.faceWhileMoving(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z);
         // Step 2, critical hits. Vanilla (Player.canCriticalAttack): falling, off the ground, not climbing, not in water,
         // not riding, not sprinting, and the swing charged past 90%: 1.5 times the damage. A jump rises for 6 ticks, so it
         // jumps 7 ticks before the charge is full and swings on the way down.
         int left = (int) Math.ceil(full) - charge;
-        boolean canJump = !a.airborne() && !a.riding() && !a.isNavigating() && !inWater(a);
+        boolean canJump = !a.airborne() && !a.riding() && !inWater(a);
         if (left > 0) {
             if (canJump && left <= JUMP_LEAD && ticks - jumpedAt > 14) { a.jump(); jumpedAt = ticks; tactic = "jumping for a critical hit on " + enemy.name(); return; }
             tactic = a.airborne() ? "in the air over " + enemy.name() : "in reach of " + enemy.name() + ", charging the swing";
@@ -131,9 +131,13 @@ final class Fight {
         }
         // Charged. On the ground with no jump under way (it just got here): the jump first, the hit on the way down.
         if (canJump && ticks - jumpedAt > 14) { a.jump(); jumpedAt = ticks; tactic = "jumping for a critical hit on " + enemy.name(); return; }
-        // Rising: wait for the fall (at most the 6 ticks of the jump). Jump did nothing (a low roof): a plain swing.
-        if (a.airborne() && a.verticalSpeed() >= 0 && ticks - jumpedAt <= 8) { tactic = "in the air over " + enemy.name(); return; }
-        boolean crit = a.airborne() && a.verticalSpeed() < 0;
+        // After the jump: the swing only on the way DOWN (the user: "he's supposed to hit when falling down not jumping
+        // up"), and a tick into the fall, so the server has a falling move from us before the hit (its fall distance must
+        // be over 0). Leaving the ground takes a tick, so "not in the air yet" right after a jump is waited out too.
+        // Only when the jump is over and it stands again (a low roof, a ledge) does it swing from the ground.
+        boolean falling = a.airborne() && a.verticalSpeed() < -0.1;
+        if (!falling && ticks - jumpedAt <= 12 && (a.airborne() || ticks - jumpedAt <= 3)) { tactic = "in the air over " + enemy.name(); return; }
+        boolean crit = falling;
         hpBefore = a.healthOf(enemy.id());
         a.attack(enemy.id());
         if (crit) crits++;
