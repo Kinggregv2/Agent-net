@@ -242,7 +242,9 @@ final class Fight {
         tactic = "backing off from " + enemy.name();
         a.faceWhileMoving(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z);
         if (ticks - fleeAt >= 10 || !a.isNavigating()) { fleeAt = ticks; away(a, enemy, 12); }
-        if (enemy.distance() > 6 || enemy.name().equals("creeper")) {
+        // Out of its reach is enough (a zombie reaches about 2 blocks, and walks slower than an agent): waiting for 6 blocks,
+        // it never got to eat with three husks behind it.
+        if (enemy.distance() > 3.5) {
             lower(a);
             int f = -1;
             for (int i = 0; i < inv.size() && i < 36; i++) if (Gear.isFood(inv.get(i)) && (f < 0 || Gear.nutrition(inv.get(i)) > Gear.nutrition(inv.get(f)))) f = i;
