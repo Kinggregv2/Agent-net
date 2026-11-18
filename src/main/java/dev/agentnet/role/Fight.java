@@ -200,6 +200,64 @@ final class Fight {
     int targetId() { return target; }
     boolean blocksClutch(AgentHandle a) { return air.active() && air.blocksClutch(a); }
 
+    // ------------------------------------------------------------------ step 8: healing and backing off
+    //
+    // Vanilla: eating or drinking takes 32 ticks, and nothing can be swung or blocked with meanwhile; a golden apple gives
+    // 4 absorption and Regeneration II for 5 s (4 health back); a splash potion works the moment it lands.
+    //  - potions (Potions.fightTick): healing when hurt, the buffs as a fight starts;
+    //  - under half health: a golden apple, where it stands;
+    //  - under 30% with nothing to heal with: away from the enemy, shield toward it, ordinary food once it is 6 blocks
+    //    off; back into the fight at 60% (or after 20 s).
+
+    private int busyTicks, retreatAt = -1000;
+    private boolean retreating;
+
+    private boolean heal(AgentHandle a, Seen enemy) {
+        if (busyTicks > 0) {
+            busyTicks--;
+            a.faceWhileMoving(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z);
+            if (retreating && (ticks - fleeAt >= 10 || !a.isNavigating())) { fleeAt = ticks; away(a, enemy, 12); }
+            charge = 0;
+            return true;
+        }
+        if (a.airborne()) return false;
+        float hp = a.health(), max = Math.max(1f, a.maxHealth());
+        if (Float.isNaN(hp)) return false;
+        int wait = Potions.fightTick(a, enemy.distance(), false);
+        if (wait > 0) { lower(a); if (drawing >= 0) { a.releaseUse(); drawing = -1; } busyTicks = wait; tactic = "a potion"; return true; }
+        List<ItemStack> inv = a.inventory();
+        if (hp / max < 0.5f) {
+            int g = -1;
+            for (int i = 0; i < inv.size() && i < 36; i++) { String id = Gear.id(inv.get(i)); if (id.equals("minecraft:enchanted_golden_apple") || id.equals("minecraft:golden_apple") && g < 0) g = i; }
+            if (g >= 0) { eat(a, g); a.log(String.format("§e%.0f of %.0f health: a golden apple", hp, max)); tactic = "eating a golden apple"; return true; }
+        }
+        if (!retreating && hp / max < 0.3f) { retreating = true; retreatAt = ticks; a.log(String.format("§e%.0f of %.0f health and nothing to heal with: backing off from %s", hp, max, enemy.name())); }
+        if (!retreating) return false;
+        if (hp / max >= 0.6f || ticks - retreatAt > 400) { retreating = false; if (a.isNavigating()) a.stopNavigation(); a.log(String.format("back into the fight at %.0f health", hp)); return false; }
+        if (drawing >= 0) { a.releaseUse(); drawing = -1; }
+        tactic = "backing off from " + enemy.name();
+        a.faceWhileMoving(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z);
+        if (ticks - fleeAt >= 10 || !a.isNavigating()) { fleeAt = ticks; away(a, enemy, 12); }
+        if (enemy.distance() > 6 || enemy.name().equals("creeper")) {
+            lower(a);
+            int f = -1;
+            for (int i = 0; i < inv.size() && i < 36; i++) if (Gear.isFood(inv.get(i)) && (f < 0 || Gear.nutrition(inv.get(i)) > Gear.nutrition(inv.get(f)))) f = i;
+            if (f >= 0 && a.food() < 20) { eat(a, f); tactic = "eating, away from " + enemy.name(); }
+        } else raise(a);
+        return true;
+    }
+
+    private void eat(AgentHandle a, int slot) {
+        lower(a);
+        if (drawing >= 0) { a.releaseUse(); drawing = -1; }
+        int hb = slot < 9 ? slot : 7;
+        if (slot >= 9) a.moveToHotbar(slot, hb);
+        a.selectHotbar(hb);
+        a.useItem();
+        busyTicks = 34;
+        charge = 0;
+    }
+
     private boolean shieldUp;
     private int blocks, upAt;
     private float prevHp = Float.NaN;
@@ -253,6 +311,7 @@ final class Fight {
 
     void idle(AgentHandle a) {
         lower(a);
+        retreating = false; busyTicks = 0;
         if (drawing >= 0) { a.releaseUse(); drawing = -1; }
         if (shots > 0) { a.log(shots + " arrow(s) shot"); shots = 0; }
         charge = Math.min(charge + 1, 100);
@@ -281,6 +340,8 @@ final class Fight {
             if (!Float.isNaN(hpBefore) && !Float.isNaN(now)) dev.agentnet.AgentNet.LOG.info("[{}] that swing took {} off {} ({} -> {})", a.name(), String.format("%.1f", hpBefore - now), enemy.name(), String.format("%.1f", hpBefore), String.format("%.1f", now));
             checkAt = -1;
         }
+
+        if (!air.active() && heal(a, enemy)) return; // step 8
 
         // Step 7, the mace from the air. Vanilla (MaceItem): a smash needs a fall of over 1.5 blocks and no gliding; it adds
         // 4 a block for the first 3 blocks fallen, 2 a block up to 8, 1 a block after. A jump is 1.25 blocks, so on the
