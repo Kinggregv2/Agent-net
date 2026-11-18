@@ -193,6 +193,13 @@ final class Fight {
         }
     }
 
+    private final ElytraMace air = new ElytraMace();
+
+    /** In the middle of a move that must not be cut short (the elytra mace): the warrior keeps its hands off and keeps the target. */
+    boolean busy() { return air.active(); }
+    int targetId() { return target; }
+    boolean blocksClutch(AgentHandle a) { return air.active() && air.blocksClutch(a); }
+
     private boolean shieldUp;
     private int blocks, upAt;
     private float prevHp = Float.NaN;
@@ -275,6 +282,21 @@ final class Fight {
             checkAt = -1;
         }
 
+        // Step 7, the mace from the air. Vanilla (MaceItem): a smash needs a fall of over 1.5 blocks and no gliding; it adds
+        // 4 a block for the first 3 blocks fallen, 2 a block up to 8, 1 a block after. A jump is 1.25 blocks, so on the
+        // ground a mace is only a slow club: its use is from the elytra (ElytraMace: up on a firework, chestplate on at
+        // the top, elytra again, down on a firework, chestplate and mace).
+        if (air.cooldown > 0) air.cooldown--;
+        if (air.active()) { tactic = air.tactic; if (air.tick(a, enemy)) return; }
+        float myHp = a.health(), myMax = Math.max(1f, a.maxHealth());
+        if ((enemy.player() || CombatSettings.aerialOnMobs && enemy.distance() >= 8) && enemy.distance() <= 40 && air.cooldown == 0 && !a.airborne()
+                && (Float.isNaN(myHp) || myHp / myMax > 0.5f) && ElytraMace.ready(a) && ElytraMace.openAbove(a, enemy.pos())) {
+            lower(a);
+            if (drawing >= 0) { a.releaseUse(); drawing = -1; }
+            air.start(a);
+            charge = 0;
+            return;
+        }
         if (enemy.name().equals("creeper") && creeper(a, enemy)) return; // step 6
         if (bow(a, enemy)) return; // step 5: arrows while it is far off
 

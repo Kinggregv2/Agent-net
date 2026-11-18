@@ -111,7 +111,9 @@ final class WarriorModule implements RoleModule {
             if (lastHp >= 0 && a.health() < lastHp - 0.01f) dev.agentnet.AgentNet.LOG.info("[{}] hurt: {} -> {} HP", a.name(), Math.round(lastHp * 10) / 10f, Math.round(a.health() * 10) / 10f);
             lastHp = a.health();
         }
-        if (clutch(a)) return;
+        // No water or boat clutch while it glides or is about to land a mace smash (that hit cancels the fall).
+        if (!engine.blocksClutch(a) && clutch(a)) return;
+        if (engine.busy()) { fight(a); return; } // mid-move: nothing else touches the hands
         if (equipCooldown > 0) { equipCooldown--; return; }
         if (pickup.tick(a)) return;
         if (ticks % 10 == 0 && equip(a)) { equipCooldown = 5; return; }
@@ -148,6 +150,14 @@ final class WarriorModule implements RoleModule {
 
     private void fight(AgentHandle a) {
         if (ticks % 5 == 0 || enemy != null) pickEnemy(a);
+        // In the middle of an elytra mace: flown out against its target, looked up far out (up in the air it is beyond the
+        // normal fighting range).
+        if (engine.busy()) {
+            Seen t = null;
+            for (Seen s : a.entitiesNear(160)) if (s.id() == engine.targetId()) { t = s; break; }
+            if (t == null) t = enemy;
+            if (t != null) { engine.tick(a, t); tactic = engine.tactic; if (!tactic.equals(lastTactic)) { dev.agentnet.AgentNet.LOG.info("[{}] tactic: {}", a.name(), tactic); lastTactic = tactic; } return; }
+        }
         // Nothing to fight and nobody calling for help: wait inside the base, not out in the open.
         if (enemy == null) { engine.idle(a); tactic = ""; if (!goRescue(a) && rescues.isEmpty()) HomeBase.goHome(a, ticks); return; }
         engine.tick(a, enemy);
