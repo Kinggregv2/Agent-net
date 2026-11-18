@@ -137,6 +137,7 @@ public final class Gear {
     public static boolean matches(ItemStack s, String wanted) {
         if (s.isEmpty()) return false;
         if (wanted.equals("food")) return isFood(s);
+        if (wanted.equals("logs")) { String i = id(s); return (i.endsWith("_log") || i.endsWith("_stem")) && !i.contains("stripped"); } // any wood: a request for "logs"
         if (id(s).equals(wanted)) return true;
         String type = toolType(s);
         return type != null && type.equals(toolType(new ItemStack(

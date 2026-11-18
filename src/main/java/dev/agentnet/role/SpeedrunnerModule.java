@@ -432,6 +432,7 @@ public final class SpeedrunnerModule implements RoleModule {
         mainNeedsFlint = count(a, "minecraft:flint_and_steel") == 0 && count(a, "minecraft:flint") == 0;
         mainNeedsFuel = stage.ordinal() <= Stage.SMELT.ordinal() && count(a, "minecraft:raw_iron") > 0 && !MakerModule.hasFuel(a);
         askCrewForIron(a);
+        askCrewForWood(a);
         if (netherPortal != null) mainNetherPortal = netherPortal;
         switch (stage) {
             case IRON -> {
@@ -2608,6 +2609,20 @@ public final class SpeedrunnerModule implements RoleModule {
     public static String priorityRunner() { return MAIN == null || beaten() ? null : MAIN; }
 
     private int ironAskedAt = -10000;
+
+    private int woodAskedAt = -10000;
+
+    /** Wood running short (sticks, tables, the shield, boats, fuel): the crew is asked for logs of any kind, once a minute.
+     * In snowy mountains with no tree in 64 blocks it walked off to look for them and the run stood still. */
+    private void askCrewForWood(AgentHandle a) {
+        if (stage.ordinal() > Stage.POOL.ordinal() || nether(a) || ticks - woodAskedAt < 1200) return;
+        int wood = 0;
+        for (ItemStack s : a.inventory()) { String id = Gear.id(s); if (id.endsWith("_planks")) wood += s.getCount(); else if ((id.endsWith("_log") || id.endsWith("_stem")) && !id.contains("stripped")) wood += 4 * s.getCount(); }
+        if (wood >= 12) return;
+        woodAskedAt = ticks;
+        BuilderModule.requestMaterial(a, "logs", 4);
+        a.log("[speedrun] asked the crew for logs (" + wood + " planks' worth of wood left)");
+    }
 
     /** The main short of iron: the distributors are asked for it (ingots, and raw iron), once a minute. */
     private void askCrewForIron(AgentHandle a) {
