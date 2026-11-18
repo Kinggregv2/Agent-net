@@ -514,8 +514,16 @@ public final class Agent implements AgentHandle {
             case DIG -> {
                 // Something on top of it already: the fight goes first (tickThreats), the burrow is dropped.
                 for (dev.agentnet.role.Seen s : entitiesNear(3.2)) if (!s.player() && s.hostile() && !HARMLESS.contains(s.name()) && !s.name().equals("phantom")) { endBurrow(30_000); return false; } // a phantom passing over is why it digs: keep digging
-                if (burrowTicks > 20 * 25) { log("§ecouldn't dig in here: back to work"); endBurrow(30_000); return false; }
-                if (isDigging() || airVel != null) return true;
+                if (burrowTicks > 20 * 25) { log("§ecouldn't dig in here: back to work"); endBurrow(10_000); return false; }
+                if (airVel != null) { burrowTicks--; return true; } // knocked back: not counted against the dig
+                if (isDigging()) return true;
+                // Knocked off its column (a phantom's swoop, run 1118d: the rescuer was pushed about for 25 s, gave up, and died):
+                // dig where it stands now if it hasn't started down yet, else step back over the hole.
+                int cx = (int) Math.floor(me.x), cz = (int) Math.floor(me.z);
+                if (cx != burrowX || cz != burrowZ) {
+                    if (feet >= burrowY && burrowable(w, cx, feet, cz)) { burrowX = cx; burrowZ = cz; burrowY = feet; burrowDigs = 0; }
+                    else { stepToward(burrowX + 0.5, burrowZ + 0.5); return true; }
+                }
                 if (feet <= burrowY - 3) { burrow = Burrow.ROOF; burrowTicks = 0; return true; }
                 BlockState under = w.get(burrowX, feet - 1, burrowZ);
                 if (under == null) return true;
