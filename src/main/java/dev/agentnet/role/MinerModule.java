@@ -589,7 +589,10 @@ final class MinerModule extends GathererModule {
         // there), so a common block like stone near spawn doesn't use up the whole result.
         // For the base: search around the base, not around itself (the closest matches to it may all be elsewhere).
         int sx = near != null ? near.getX() : fx, sz = near != null ? near.getZ() : fz;
-        List<BlockPos> found = view.findAll(sx, sz, SEARCH_RADIUS, s -> targets.contains(s.getBlock()), SEARCH_LIMIT,
+        // Trees: as far as the chunks it has go (about 128 blocks): in treeless snowy mountains (run 1118d) the whole crew
+        // hunted for logs in hops while trees stood 80-120 blocks off in chunks it already had.
+        boolean woodJob = targets.stream().anyMatch(b -> BuiltInRegistries.BLOCK.getKey(b).getPath().endsWith("_log"));
+        List<BlockPos> found = view.findAll(sx, sz, woodJob ? 128 : SEARCH_RADIUS, s -> targets.contains(s.getBlock()), SEARCH_LIMIT,
                 (x, z) -> { if (a.spawnProtected(x, z)) { prot[0]++; return true; } return false; });
         int protectedSeen = prot[0];
         boolean wood = targets.stream().anyMatch(b -> BuiltInRegistries.BLOCK.getKey(b).getPath().endsWith("_log"));
