@@ -111,20 +111,7 @@ final class WarriorModule implements RoleModule {
             if (lastHp >= 0 && a.health() < lastHp - 0.01f) dev.agentnet.AgentNet.LOG.info("[{}] hurt: {} -> {} HP", a.name(), Math.round(lastHp * 10) / 10f, Math.round(a.health() * 10) / 10f);
             lastHp = a.health();
         }
-        // No water or boat clutch while it glides or is about to land a mace smash (that hit cancels the fall).
-        if (!(elytra.active() && elytra.blocksClutch(a)) && clutch(a)) return;
-        // The one thing that may touch the hands mid-move: the next totem into the off hand after one popped. Mace1
-        // fell to its death in the middle of an elytra mace with two totems left in its inventory.
-        if (elytra.active() && ticks % 4 == 0 && a.offhand().getItem() != Items.TOTEM_OF_UNDYING) {
-            List<ItemStack> inv = a.inventory();
-            for (int i = 0; i < inv.size(); i++) if (inv.get(i).getItem() == Items.TOTEM_OF_UNDYING) {
-                int back = a.selectedSlot();
-                hold(a, i); a.swapOffhand();
-                if (back >= 0 && back < 9 && back != i) a.selectHotbar(back);
-                break;
-            }
-        }
-        if (elytra.active() || cart.active()) { fight(a); return; } // mid-move: nothing else touches the hands
+        if (clutch(a)) return;
         if (equipCooldown > 0) { equipCooldown--; return; }
         if (pickup.tick(a)) return;
         if (ticks % 10 == 0 && equip(a)) { equipCooldown = 5; return; }
@@ -139,257 +126,33 @@ final class WarriorModule implements RoleModule {
         fight(a);
     }
 
-    // ------------------------------------------------------------------ fighting
+    // ------------------------------------------------------------------ fighting: the new engine (Fight.java)
+    // The old fight code (melee, shield, bow, creepers, boat trap, wind charge, elytra mace, cart) was scrapped on
+    // 2026-11-18 at the user's request (git tag old-fight-engine) and is rebuilt move by move, each tested alone.
 
     /** Players on the hitlist (or the kill target) are chased this far; hostile mobs this far. */
     private static final double PLAYER_RANGE = 32, MOB_RANGE = 12;
-    /** Server melee reach is 3 blocks from the eyes; stay a little inside it. */
-    private static final double HIT_RANGE = 2.9;
     /** Even in retreat mode, anything this close gets fought off. */
     private static final double SELF_DEFENSE = 6;
-    private static final float EAT_BELOW = 0.5f, FLEE_BELOW = 0.3f;
-    /** Creepers: shoot them from here; closer than SAFE and it backs off first. */
-    private static final double CREEPER_SHOOT = 14, CREEPER_SAFE = 6;
-    /** A bow is fully drawn after 20 ticks. */
-    private static final int BOW_DRAW = 21;
-    /** A raised shield only protects after 5 ticks; keep it up at least this long. */
-    private static final int SHIELD_MIN = 6;
-
+    private static final double CREEPER_SHOOT = 14;
     /** "Monsters" that only fight back when hit, often as a group: leave them alone (angry endermen excepted). */
     private static final java.util.Set<String> NEUTRAL = java.util.Set.of("zombified_piglin", "enderman", "piglin", "spider_jockey", "piglin_brute");
 
     private Seen enemy;
-    private int cooldown, eatTicks, navTicks, hits;
+    private int navTicks, hits;
     private net.minecraft.world.phys.Vec3 chasedTo;
-    private int bowTicks = -1;       // drawing a bow: ticks so far (-1 = not drawing)
-    private int shieldTicks = -1;    // holding the shield up: ticks so far (-1 = lowered)
-    /** Jump for a crit when the next swing is this many ticks away (a jump peaks after ~6). */
-    private static final int CRIT_JUMP_AT = 7;
-    private int boatCooldown, smashCooldown, potionWait;
-    private final ElytraMace elytra = new ElytraMace();
-    private final CartPvp cart = new CartPvp();
-    private Seen elytraTarget;
+    private boolean creeperRun;
+    private volatile float lastHp = -1;
+    private final Fight engine = new Fight();
     private String tactic = "", lastTactic = "";
 
-    /**
-     * Every tick: pick the enemy (the kill target or anyone on the hitlist first, then hostile
-     * mobs close by, and endermen only once they're angry; never whitelisted players or other
-     * agents), then fight it the way that suits it:
-     * <ul>
-     *   <li><b>Creepers</b>: never in melee if it can help it. With a bow and arrows it keeps
-     *       6-14 blocks away and shoots; without, it hits and steps back, and runs from a
-     *       creeper that's started to hiss.</li>
-     *   <li><b>Angry endermen</b>: with a boat, it puts the boat down between them; an enderman
-     *       that walks into it is stuck (can't teleport out) and gets hit until it dies.</li>
-     *   <li><b>Everyone else</b>: melee with the best weapon, raising the shield between hits
-     *       and against anyone drawing a bow; switches to an axe to break a raised shield;
-     *       with a mace it picks Breach against armored players and smashes from the air
-     *       with Density after a wind charge launch. A fleeing enemy gets shot if it has a bow.</li>
-     * </ul>
-     * Also: eats a golden apple under half health, backs off under 30% with none left.
-     */
-    /**
-     * The target of a move in progress, fresh this tick: looked up by id far out (high in the air it's
-     * out of the normal fighting range, and a stale position would send the smash to where it was).
-     */
-    private static Seen track(AgentHandle a, Seen target, Seen picked) {
-        if (target == null) return picked;
-        for (Seen s : a.entitiesNear(160)) if (s.id() == target.id()) return s;
-        return target;
-    }
-
     private void fight(AgentHandle a) {
-        if (cooldown > 0) cooldown--;
-        if (boatCooldown > 0) boatCooldown--;
-        if (smashCooldown > 0) smashCooldown--;
-        if (lungeCooldown > 0) lungeCooldown--;
-        if (elytra.cooldown > 0) elytra.cooldown--;
-        if (eatTicks > 0) { eatTicks--; return; }
         if (ticks % 5 == 0 || enemy != null) pickEnemy(a);
-        // In the middle of an elytra mace: it flies the move out (the last target, if it's out of sight a moment).
-        if (elytra.active()) {
-            elytraTarget = track(a, elytraTarget, enemy);
-            tactic = elytra.tactic;
-            if (elytraTarget != null && elytra.tick(a, elytraTarget)) { if (!tactic.equals(lastTactic)) { dev.agentnet.AgentNet.LOG.info("[{}] tactic: {}", a.name(), tactic); lastTactic = tactic; } return; }
-        }
-        if (cart.cooldown > 0) cart.cooldown--;
-        if (cart.active()) {
-            elytraTarget = track(a, elytraTarget, enemy);
-            tactic = cart.tactic;
-            if (elytraTarget != null && cart.tick(a, elytraTarget)) { if (!tactic.equals(lastTactic)) { dev.agentnet.AgentNet.LOG.info("[{}] tactic: {}", a.name(), tactic); lastTactic = tactic; } return; }
-        }
-        if (potionWait > 0) { potionWait--; return; } // drinking
-        // Nothing to fight and nobody calling for help: wait inside the base (the storage room), not out in the open.
-        if (enemy == null) { hits = 0; stopBow(a); lowerShield(a); if (!goRescue(a) && rescues.isEmpty()) HomeBase.goHome(a, ticks); return; }
-
-        float hp = a.health(), max = Math.max(1f, a.maxHealth());
-        // Potions: healing when hurt, buffs (strength, speed, resistance) as a fight starts.
-        if (!a.airborne()) { int w = Potions.fightTick(a, enemy.distance(), false); if (w > 0) { potionWait = w; stopBow(a); lowerShield(a); return; } }
-        if (!Float.isNaN(hp) && hp / max < EAT_BELOW && !a.airborne()) {
-            stopBow(a);
-            lowerShield(a);
-            if (eatGapple(a)) return;
-        }
-        if (!Float.isNaN(hp) && hp / max < FLEE_BELOW && !a.airborne()) { stopBow(a); flee(a, 12); return; }
-
+        // Nothing to fight and nobody calling for help: wait inside the base, not out in the open.
+        if (enemy == null) { engine.idle(a); tactic = ""; if (!goRescue(a) && rescues.isEmpty()) HomeBase.goHome(a, ticks); return; }
+        engine.tick(a, enemy);
+        tactic = engine.tactic;
         if (!tactic.equals(lastTactic)) { dev.agentnet.AgentNet.LOG.info("[{}] tactic: {}", a.name(), tactic); lastTactic = tactic; }
-        if (a.airborne()) { airborne(a); return; }
-        if (enemy.name().equals("creeper")) { creeper(a); return; }
-        if (enemy.name().equals("enderman") && enemy.vehicle() < 0 && boatTrap(a)) return;
-        melee(a);
-    }
-
-    // ---- creepers
-
-    /** Running from a creeper: keep going until it's at least this far, then turn and shoot. */
-    private static final double CREEPER_CLEAR = 12;
-    private static final int CREEPER_RUN = 16;
-    private boolean creeperRun, shieldLogged;
-    private volatile float lastHp = -1;
-
-    private void creeper(AgentHandle a) {
-        double d = enemy.distance();
-        boolean bow = hasBowAndArrows(a);
-        if (enemy.swelling() && d < 7 || d < CREEPER_SAFE && bow) creeperRun = true;
-        if (creeperRun && d >= CREEPER_CLEAR) { creeperRun = false; if (a.isNavigating()) a.stopNavigation(); }
-        if (creeperRun) {
-            stopBow(a);
-            tactic = enemy.swelling() ? "running far from a hissing creeper" : "getting distance from a creeper";
-            // Caught right next to a hissing one: a raised shield blocks most of the blast.
-            if (enemy.swelling() && d < 3.5) raiseShield(a); else lowerShield(a);
-            flee(a, CREEPER_RUN);
-            return;
-        }
-        lowerShield(a);
-        if (bow) {
-            if (d > CREEPER_SHOOT) { tactic = "closing in on a creeper"; chase(a, 10); return; }
-            if (a.isNavigating()) a.stopNavigation();
-            tactic = "shooting a creeper";
-            shoot(a);
-            return;
-        }
-        // No bow: one hit (knockback resets the fuse), then run far before it can follow up.
-        tactic = "hitting a creeper, then running";
-        if (d > HIT_RANGE) { chase(a, 2); return; }
-        swing(a, false);
-        creeperRun = true;
-    }
-
-    // ---- endermen
-
-    /** Put a boat down between us and an angry enderman. True while busy with that. */
-    private boolean boatTrap(AgentHandle a) {
-        if (!enemy.angry() || boatCooldown > 0) return false;
-        int boat = boatSlot(a);
-        if (boat < 0) return false;
-        double d = enemy.distance();
-        if (d > 7 || d < 2) return false;
-        var w = a.openWorld();
-        if (w == null) return false;
-        // The block on the line toward it, ~1.5 blocks from us, with ground under it.
-        double dx = enemy.pos().x - a.x(), dz = enemy.pos().z - a.z(), len = Math.max(0.1, Math.sqrt(dx * dx + dz * dz));
-        int bx = (int) Math.floor(a.x() + dx / len * 1.6), bz = (int) Math.floor(a.z() + dz / len * 1.6);
-        int by = (int) Math.floor(a.y() + 0.2);
-        var ground = w.get(bx, by - 1, bz);
-        var at = w.get(bx, by, bz);
-        if (ground == null || at == null || !Tunnel.solid(ground) || !Tunnel.passable(at)) return false;
-        lowerShield(a);
-        stopBow(a);
-        if (a.isNavigating()) a.stopNavigation();
-        hold(a, boat);
-        a.lookAt(bx + 0.5, by, bz + 0.5);
-        a.useItemOn(bx, by - 1, bz, net.minecraft.core.Direction.UP);
-        boatCooldown = 20 * 8;
-        tactic = "boat-trapping an enderman";
-        a.log("put a boat down to trap " + enemy.name());
-        return true;
-    }
-
-    private static int boatSlot(AgentHandle a) {
-        List<ItemStack> inv = a.inventory();
-        for (int i = 0; i < inv.size(); i++) {
-            String id = Gear.id(inv.get(i));
-            if (id.endsWith("_boat") || id.endsWith("_raft")) return i;
-        }
-        return -1;
-    }
-
-    // ---- melee, shields, axes, maces
-
-    private void melee(AgentHandle a) {
-        double d = enemy.distance();
-        // Far and running: a few arrows on the way, if it has a bow.
-        if (d > 8 && enemy.player() && hasBowAndArrows(a) && d < 24) { lowerShield(a); tactic = "shooting " + enemy.name(); shoot(a); chase(a, 2); return; }
-        stopBow(a);
-        // Players get the special moves (mobs are fought in melee): a TNT minecart set off with a burning arrow...
-        // ...a cart someone of the crew left lying that the enemy is standing at now: just the shot.
-        if (enemy.player() && cart.cooldown == 0) {
-            net.minecraft.core.BlockPos lying = CartPvp.liveNear(a, enemy);
-            if (lying != null) { stopBow(a); lowerShield(a); elytraTarget = enemy; cart.startShot(a, lying); return; }
-        }
-        if (enemy.player() && d <= 20 && cart.cooldown == 0 && CartPvp.ready(a)) { stopBow(a); lowerShield(a); elytraTarget = enemy; cart.start(a); return; }
-        // Elytra mace from a distance: fly up, glide over, drop the elytra, smash from high up.
-        float hpNow = a.health(), hpMax = Math.max(1f, a.maxHealth());
-        if ((enemy.player() || CombatSettings.aerialOnMobs && d >= 8) && d <= 40 && elytra.cooldown == 0 && (Float.isNaN(hpNow) || hpNow / hpMax > 0.5f) && ElytraMace.ready(a) && ElytraMace.openAbove(a, enemy.pos())) {
-            lowerShield(a); elytraTarget = enemy; elytra.start(a); return;
-        }
-        // Mace + wind charge: launch when a few blocks out, smash on the way down.
-        if (enemy.player() && d > 2.5 && d < 7 && smashCooldown == 0 && maceSlot(a, false) >= 0 && windCharge(a) >= 0) { windLaunch(a); return; }
-        // Close enough but a block is in the way (a wall, a corner, a floor): no swinging through it, go around.
-        boolean walled = d <= HIT_RANGE && !Sight.canHit(a, enemy);
-        if (d > HIT_RANGE || walled) {
-            tactic = walled ? "getting around the wall to " + enemy.name() : "chasing " + enemy.name();
-            if (!walled && lunge(a)) return;
-            // Arrows coming: shield up while closing in.
-            if (enemy.aiming()) raiseShield(a); else lowerShield(a);
-            chase(a, walled ? 0 : 2);
-            return;
-        }
-        if (cooldown > 0) {
-            // Critical hit: jump just before the swing is ready; the hit lands on the way down (x1.5).
-            if (cooldown <= CRIT_JUMP_AT && !enemy.blocking() && !a.airborne() && !a.riding()) { lowerShield(a); tactic = "jumping for a critical hit"; a.jump(); return; }
-            // Between our hits: shield up against theirs.
-            tactic = "blocking";
-            raiseShield(a);
-            return;
-        }
-        if (shieldTicks >= 0 && shieldTicks < SHIELD_MIN) { shieldTicks++; return; } // let the block finish
-        lowerShield(a);
-        // Their shield is up: an axe hit disables it for 5 seconds.
-        boolean axe = enemy.blocking() && Gear.bestTool(a.inventory(), "axe") >= 0;
-        tactic = axe ? "breaking " + enemy.name() + "'s shield" : "hitting " + enemy.name();
-        swing(a, axe);
-    }
-
-    private void swing(AgentHandle a, boolean axe) {
-        List<ItemStack> inv = a.inventory();
-        int base = Gear.bestTool(inv, "sword");
-        // Attribute swap: switch to the axe (shield-breaking) or the Breach mace (armor-piercing)
-        // just for the hit and straight back, all in one tick. The server still has the sword's
-        // attack speed and damage loaded, so it's a sword hit with the other item's effect,
-        // and the next hit comes on the sword's fast cooldown.
-        int swap = -1;
-        String how = null;
-        if (axe) { swap = Gear.bestTool(inv, "axe"); how = "axe swap"; }
-        else if (enemy.player() && enemy.armorCount() >= 2) {
-            int m = maceSlot(a, true);
-            if (m >= 0 && Gear.level(inv.get(m), net.minecraft.world.item.enchantment.Enchantments.BREACH) > 0) { swap = m; how = "breach swap"; }
-        }
-        a.lookAt(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z);
-        if (base >= 0 && base < 9 && swap >= 0 && swap < 9 && swap != base) {
-            hold(a, base);
-            a.selectHotbar(swap);
-            a.attack(enemy.id());
-            a.selectHotbar(base);
-            hits++;
-            cooldown = attackTicks(inv.get(base));
-            tactic = how + " on " + enemy.name();
-            return;
-        }
-        if (axe) holdBest(a, "axe"); else holdWeapon(a, enemy);
-        a.attack(enemy.id());
-        hits++;
-        cooldown = attackTicks(a.inventory().get(a.selectedSlot()));
     }
 
     // ---- hotbar: a fixed layout so swaps are a single slot change
@@ -448,7 +211,6 @@ final class WarriorModule implements RoleModule {
         if (!a.airborne() || a.verticalSpeed() >= 0) return false;
         if (a.flying() && a.gliding()) return false; // on an elytra trip: gliding, not falling
         // Mace smash coming: the hit itself cancels the fall, and a clutch would waste it.
-        if (enemy != null && cooldown == 0 && enemy.distance() < HIT_RANGE + 2 && maceSlot(a, false) >= 0) return false;
         var w = a.openWorld();
         if (w == null) return false;
         int x = (int) Math.floor(a.x()), z = (int) Math.floor(a.z());
@@ -470,8 +232,6 @@ final class WarriorModule implements RoleModule {
         // Boat: like a player, click the ground at the last moment (the tick before touching down).
         // Water goes down as soon as the ground is in reach.
         // (Boat too: placed as soon as the ground is in reach, then right-clicked every tick until we sit in it.)
-        stopBow(a);
-        lowerShield(a);
         a.look(a.yaw(), 90f);
         clutchAt = new int[]{x, gy + 1, z};
         clutchTicks = 0;
@@ -568,149 +328,21 @@ final class WarriorModule implements RoleModule {
         return best;
     }
 
+    private static int boatSlot(AgentHandle a) {
+        List<ItemStack> inv = a.inventory();
+        for (int i = 0; i < inv.size(); i++) { String id = Gear.id(inv.get(i)); if (id.endsWith("_boat") || id.endsWith("_raft")) return i; }
+        return -1;
+    }
+
+    private static void holdBest(AgentHandle a, String type) {
+        int i = Gear.bestTool(a.inventory(), type);
+        if (i >= 0) hold(a, i);
+    }
+
     private static int findItem(AgentHandle a, net.minecraft.world.item.Item item) {
         List<ItemStack> inv = a.inventory();
         for (int i = 0; i < inv.size() && i < 36; i++) if (inv.get(i).getItem() == item) return i;
         return -1;
-    }
-
-    // ---- lunge: a Lunge spear jab throws us forward; swap to it, jab, swap back to keep chasing
-
-    private int lungeCooldown;
-
-    /** Dash at a target that's getting away (on the ground, a few blocks out). True if it lunged. */
-    private boolean lunge(AgentHandle a) {
-        double d = enemy.distance();
-        if (d < 6 || d > 14) return false;
-        if (!lungeToward(a, enemy.pos().x - a.x(), enemy.pos().z - a.z())) return false;
-        tactic = "lunge swap toward " + enemy.name();
-        return true;
-    }
-
-    /** Swap to the Lunge spear, jab along (dx,dz), swap back. Used for chasing and for running away. */
-    private boolean lungeToward(AgentHandle a, double dx, double dz) {
-        if (lungeCooldown > 0 || a.airborne() || a.riding() || a.food() <= 6) return false; // each jab burns ~1 food per level
-        List<ItemStack> inv = a.inventory();
-        int spear = -1, lvl = 0;
-        for (int i = 0; i < 9; i++) {
-            int l = Gear.id(inv.get(i)).endsWith("_spear") ? Gear.level(inv.get(i), net.minecraft.world.item.enchantment.Enchantments.LUNGE) : 0;
-            if (l > lvl) { lvl = l; spear = i; }
-        }
-        if (spear < 0) return false;
-        int back = a.selectedSlot();
-        a.look((float) Math.toDegrees(Math.atan2(-dx, dz)), 0f);   // the push goes where we look, flat
-        a.selectHotbar(spear);
-        a.stab();
-        a.swingArm();
-        a.selectHotbar(back);
-        lungeCooldown = 20;
-        return true;
-    }
-
-    private void raiseShield(AgentHandle a) {
-        if (a.offhand().getItem() != net.minecraft.world.item.Items.SHIELD) return;
-        if (shieldTicks < 0) { a.useOffhand(); shieldTicks = 0; if (!shieldLogged) { shieldLogged = true; dev.agentnet.AgentNet.LOG.info("[{}] shield up", a.name()); } }
-        else shieldTicks++;
-    }
-
-    private void lowerShield(AgentHandle a) {
-        if (shieldTicks >= 0) { a.releaseUse(); shieldTicks = -1; }
-    }
-
-    // ---- bow
-
-    private boolean hasBowAndArrows(AgentHandle a) {
-        List<ItemStack> inv = a.inventory();
-        boolean bow = false, arrows = false;
-        for (ItemStack s : inv) {
-            if (s.getItem() == net.minecraft.world.item.Items.BOW) bow = true;
-            if (s.getItem() instanceof net.minecraft.world.item.ArrowItem) arrows = true;
-        }
-        return bow && arrows;
-    }
-
-    /** Draw the bow, keep aiming (arrows drop: aim higher the further it is), let go when full. */
-    private void shoot(AgentHandle a) {
-        double d = enemy.distance();
-        double lift = 1.2 + d * d * 0.0045;
-        a.lookAt(enemy.pos().x, enemy.pos().y + lift, enemy.pos().z);
-        if (bowTicks < 0) {
-            int bow = -1;
-            List<ItemStack> inv = a.inventory();
-            for (int i = 0; i < inv.size(); i++) if (inv.get(i).getItem() == net.minecraft.world.item.Items.BOW) { bow = i; break; }
-            if (bow < 0) return;
-            hold(a, bow);
-            a.useItem();
-            bowTicks = 0;
-            return;
-        }
-        if (++bowTicks >= BOW_DRAW) {
-            a.releaseUse();
-            bowTicks = -1;
-            hits++;
-        }
-    }
-
-    private void stopBow(AgentHandle a) {
-        if (bowTicks >= 0) { a.releaseUse(); bowTicks = -1; }
-    }
-
-    // ---- mace
-
-    /** Best mace: with breach=true the one with the most Breach (armored targets), else most Density. */
-    private static int maceSlot(AgentHandle a, boolean breach) {
-        List<ItemStack> inv = a.inventory();
-        int best = -1, bestLevel = -1;
-        var key = breach ? net.minecraft.world.item.enchantment.Enchantments.BREACH : net.minecraft.world.item.enchantment.Enchantments.DENSITY;
-        for (int i = 0; i < inv.size(); i++) {
-            if (inv.get(i).getItem() != net.minecraft.world.item.Items.MACE) continue;
-            int lvl = Gear.level(inv.get(i), key);
-            if (lvl > bestLevel) { bestLevel = lvl; best = i; }
-        }
-        return best;
-    }
-
-    private static int windCharge(AgentHandle a) {
-        List<ItemStack> inv = a.inventory();
-        for (int i = 0; i < inv.size(); i++) if (inv.get(i).getItem() == net.minecraft.world.item.Items.WIND_CHARGE) return i;
-        return -1;
-    }
-
-    /** Throw a wind charge straight down: it launches us up; the smash happens on the way down. */
-    private void windLaunch(AgentHandle a) {
-        lowerShield(a);
-        if (a.isNavigating()) a.stopNavigation();
-        hold(a, windCharge(a));
-        a.look(a.yaw(), 90f);
-        a.useItem();
-        smashCooldown = 20 * 4;
-        tactic = "wind-charge jump at " + enemy.name();
-        a.log("§cmace smash at " + enemy.name());
-    }
-
-    /** In the air: drift toward the enemy, and hit it on the way down (fall distance = mace damage). */
-    private void airborne(AgentHandle a) {
-        double dx = enemy.pos().x - a.x(), dz = enemy.pos().z - a.z();
-        boolean smash = smashCooldown > 0 && maceSlot(a, false) >= 0;   // up from our own wind charge
-        if (!enemy.name().equals("creeper")) a.steer(dx, dz);
-        else a.steer(-dx, -dz);
-        if (smash) {
-            hold(a, maceSlot(a, false));
-            if (a.verticalSpeed() < 0 && enemy.distance() <= HIT_RANGE + 0.5 && cooldown == 0 && Sight.canHit(a, enemy)) {
-                a.lookAt(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z);
-                a.attack(enemy.id());
-                hits++;
-                cooldown = 20;
-                a.log("§csmash!");
-            }
-            return;
-        }
-        // Lunging or knocked back: a normal hit if it comes in reach (falling = a critical hit).
-        // On the way down only: that's a critical hit (x1.5).
-        if (enemy.distance() <= HIT_RANGE && cooldown == 0 && a.verticalSpeed() < 0 && !enemy.name().equals("creeper")) {
-            swing(a, enemy.blocking() && Gear.bestTool(a.inventory(), "axe") >= 0);
-            if (tactic.startsWith("hitting") || tactic.startsWith("jumping")) tactic = "critical hit on " + enemy.name();
-        }
     }
 
     // ---- choosing, moving
@@ -764,90 +396,6 @@ final class WarriorModule implements RoleModule {
             a.navigate((int) Math.floor(enemy.pos().x), (int) Math.floor(enemy.pos().y), (int) Math.floor(enemy.pos().z), radius);
         }
     }
-
-    /** Sword 1.6 attacks/s -> 13 ticks, axe ~1 -> 20, mace 0.6 -> 34, anything else: a fast jab. */
-    private static int attackTicks(ItemStack held) {
-        if (held.getItem() == net.minecraft.world.item.Items.MACE) return 34;
-        String t = Gear.toolType(held);
-        if ("sword".equals(t)) return 13;
-        if ("axe".equals(t)) return 20;
-        return 6;
-    }
-
-    /** Breach mace against an armored player, else sword, else axe, else any mace. */
-    private static void holdWeapon(AgentHandle a, Seen enemy) {
-        List<ItemStack> inv = a.inventory();
-        int i = -1;
-        if (enemy != null && enemy.player() && enemy.armorCount() >= 2) {
-            int m = maceSlot(a, true);
-            if (m >= 0 && Gear.level(inv.get(m), net.minecraft.world.item.enchantment.Enchantments.BREACH) > 0) i = m;
-        }
-        if (i < 0) i = Gear.bestTool(inv, "sword");
-        if (i < 0) i = Gear.bestTool(inv, "axe");
-        if (i < 0) i = maceSlot(a, false);
-        if (i < 0) return;
-        hold(a, i);
-    }
-
-    private static void holdBest(AgentHandle a, String type) {
-        int i = Gear.bestTool(a.inventory(), type);
-        if (i >= 0) hold(a, i);
-    }
-
-    private boolean eatGapple(AgentHandle a) {
-        List<ItemStack> inv = a.inventory();
-        int g = -1;
-        for (int i = 0; i < inv.size(); i++) {
-            String id = Gear.id(inv.get(i));
-            if (id.equals("minecraft:enchanted_golden_apple") || id.equals("minecraft:golden_apple")) { g = i; break; }
-        }
-        if (g < 0) return false;
-        hold(a, g);
-        a.useItem(); // the server finishes eating by itself (32 ticks) unless we let go
-        eatTicks = 34;
-        a.log("eating a golden apple (" + Math.round(a.health()) + " HP)");
-        return true;
-    }
-
-    /** Run the other way, about this many blocks. */
-    private int fleeRetry;
-
-    /** Run away, about this many blocks: straight away from the enemy if there's ground there, else the nearest direction that has some. */
-    private void flee(AgentHandle a, int blocks) {
-        // Running: a Lunge spear jab away from it is faster than any sprint.
-        lungeToward(a, a.x() - enemy.pos().x, a.z() - enemy.pos().z);
-        if (a.isNavigating() && chasedTo == null) return;
-        if (fleeRetry > 0) { fleeRetry--; return; }
-        double away = Math.atan2(a.z() - enemy.pos().z, a.x() - enemy.pos().x);
-        var w = a.openWorld();
-        int[] goal = null;
-        for (int k = 0; k < 9 && goal == null; k++) {
-            double ang = away + (k == 0 ? 0 : (k % 2 == 1 ? 1 : -1) * ((k + 1) / 2) * Math.PI / 6); // 0, ±30°, ±60°, ±90°, ±120°
-            int gx = (int) Math.floor(a.x() + Math.cos(ang) * blocks), gz = (int) Math.floor(a.z() + Math.sin(ang) * blocks);
-            int gy = w == null ? (int) Math.floor(a.y()) : standY(w, gx, (int) Math.floor(a.y()), gz);
-            if (gy != Integer.MIN_VALUE) goal = new int[]{gx, gy, gz};
-        }
-        if (goal == null) { fleeRetry = 10; return; }
-        chasedTo = null;
-        if (blocks == 12) a.log("§elow on health, backing off from " + enemy.name());
-        a.navigate(goal[0], goal[1], goal[2], 3);
-        fleeRetry = 5; // a failed path gets a different try soon, not every tick
-    }
-
-    /** Feet height of a spot to stand on near y in this column, or MIN_VALUE. */
-    private static int standY(dev.agentnet.pathing.BlockSource w, int x, int y, int z) {
-        for (int dy = 0; dy <= 6; dy++) {
-            for (int s : dy == 0 ? new int[]{0} : new int[]{dy, -dy}) {
-                var ground = w.get(x, y + s - 1, z);
-                var feet = w.get(x, y + s, z);
-                var head = w.get(x, y + s + 1, z);
-                if (ground == null || feet == null || head == null) continue;
-                if (Tunnel.solid(ground) && Tunnel.passable(feet) && Tunnel.passable(head)) return y + s;
-            }
-        }
-        return Integer.MIN_VALUE;
-    }
-
 
     /** Wear the best armor it has (right-click equips it, or swaps it with the worn piece), shield to the offhand. */
     private boolean equip(AgentHandle a) {
