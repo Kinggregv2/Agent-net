@@ -144,7 +144,8 @@ final class Fight {
     //  - Otherwise: one hit, and when it hisses, away past 7 blocks until the fuse is out, then in again.
     //  - Caught beside a hissing one: the shield up toward it.
 
-    private boolean creeperBack;
+    private boolean creeperBack, plainHits;
+    private int swingsAtApproach;
     private int fleeAt = -100;
 
     private boolean creeper(AgentHandle a, Seen c) {
@@ -157,10 +158,14 @@ final class Fight {
         double crit = (w >= 0 ? damage(inv.get(w)) : 1.0) * 1.5;
         float hp = a.healthOf(c.id());
         boolean twoHits = crit * 2 >= (Float.isNaN(hp) ? 20 : hp), oneHit = crit >= (Float.isNaN(hp) ? 20 : hp);
-        if (creeperBack && (archer ? d >= 10 : d >= 8 && !c.swelling())) { creeperBack = false; if (a.isNavigating()) a.stopNavigation(); }
+        if (creeperBack && (archer ? d >= 10 : d >= 8 && !c.swelling())) { creeperBack = false; swingsAtApproach = swings; if (a.isNavigating()) a.stopNavigation(); }
+        plainHits = !oneHit && crit < (Float.isNaN(hp) ? 20 : hp); // no jump against a creeper unless that hit kills: the 7 ticks of a jump are a quarter of its fuse
         if (!creeperBack) {
             if (archer && d < 6) creeperBack = true;
-            else if (!archer && c.swelling() && !twoHits && !oneHit) creeperBack = true;
+            // Hissing and not dead after the hit just made: away, whatever the blade. (The plan to land two critical hits inside
+            // the fuse failed in the test: the first one knocks it out of reach and the second comes too late.) One swing
+            // is allowed first: when it kills, or when none has been made on this approach yet and it is ready now.
+            else if (!archer && c.swelling() && !(oneHit || swings == swingsAtApproach && charge >= Math.ceil(w >= 0 ? chargeTicks(inv.get(w)) : 5) - 1 && eyeToBox(a, c) <= REACH)) creeperBack = true;
             if (creeperBack) a.log(String.format("§ea creeper %.0f blocks off%s: backing away", d, c.swelling() ? ", hissing" : ""));
         }
         if (!creeperBack) return false; // the bow (far off) or the blade deal with it
@@ -261,7 +266,7 @@ final class Fight {
         }
         prevHp = hpNow;
         charge = Math.min(charge + 1, 100);
-        if (enemy.id() != target) { target = enemy.id(); chasedTo = null; }
+        if (enemy.id() != target) { target = enemy.id(); chasedTo = null; swingsAtApproach = swings; creeperBack = false; }
         // Did the last swing count? (The server's damage event names us as the source.)
         if (checkAt >= 0 && ticks >= checkAt) {
             if (a.hitRecently(enemy.id(), 600)) landed++;
@@ -328,7 +333,7 @@ final class Fight {
         // not riding, not sprinting, and the swing charged past 90%: 1.5 times the damage. A jump rises for 6 ticks, so it
         // jumps 7 ticks before the charge is full and swings on the way down.
         int left = (int) Math.ceil(full) - charge;
-        boolean canJump = !a.airborne() && !a.riding() && !inWater(a);
+        boolean canJump = !a.airborne() && !a.riding() && !inWater(a) && !(plainHits && enemy.name().equals("creeper"));
         if (left > 0) {
             raise(a); // between its swings: the shield (it blocks from 5 ticks after it goes up, vanilla's block delay)
             if (canJump && left <= JUMP_LEAD && ticks - jumpedAt > 14) { a.jump(); jumpedAt = ticks; tactic = "jumping for a critical hit on " + enemy.name(); return; }
