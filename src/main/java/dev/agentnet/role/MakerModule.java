@@ -828,7 +828,9 @@ final class MakerModule implements RoleModule {
         if (a.containerOpen()) a.closeContainer();
         if (problem != null) warn(a, problem);
         else { lastWarning = null; if (job != null) a.log("made " + (job.brewIngredient != null ? "potions with " + job.brewIngredient : job.item)); }
-        if (job != null && job.item.equals(tableFor) && problem == null) tableFor = null;
+        // Done or failed, the job the table was made for is over: a later one may make a table again. Cleared only on
+        // success, one failed shield (5 planks after the table) kept every later shield from getting a table (run 1118d).
+        if (job != null && job.item.equals(tableFor)) tableFor = null;
         job = null;
         placedTable = false;
         if (jobs.isEmpty() && pickupNext(a)) return; // all done: take its own stations back
