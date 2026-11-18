@@ -209,7 +209,7 @@ final class Fight {
     //  - under 30% with nothing to heal with: away from the enemy, shield toward it, ordinary food once it is 6 blocks
     //    off; back into the fight at 60% (or after 20 s).
 
-    private int busyTicks, retreatAt = -1000, appleAt = -1000;
+    private int busyTicks, retreatAt = -1000, appleAt = -1000, ate;
     private boolean retreating;
 
     private boolean heal(AgentHandle a, Seen enemy) {
@@ -218,7 +218,7 @@ final class Fight {
             a.faceWhileMoving(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z);
             // Eating on the move, away from it: standing still to eat among three husks, it took 9 damage a second and died
             // with the apple in its mouth. (The server does not slow an eating agent down.)
-            if ((retreating || enemy.distance() < 7) && (ticks - fleeAt >= 10 || !a.isNavigating())) { fleeAt = ticks; away(a, enemy, 12); }
+            if ((retreating || enemy.distance() < 7) && (ticks - fleeAt >= 40 || !a.isNavigating())) { fleeAt = ticks; away(a, enemy, 14); }
             charge = 0;
             return true;
         }
@@ -237,18 +237,23 @@ final class Fight {
         }
         if (!retreating && hp / max < 0.3f) { retreating = true; retreatAt = ticks; a.log(String.format("§e%.0f of %.0f health and nothing to heal with: backing off from %s", hp, max, enemy.name())); }
         if (!retreating) return false;
-        if (hp / max >= 0.6f || ticks - retreatAt > 400) { retreating = false; if (a.isNavigating()) a.stopNavigation(); a.log(String.format("back into the fight at %.0f health", hp)); return false; }
+        if (hp / max >= 0.6f || ticks - retreatAt > 400) { retreating = false; if (a.isNavigating()) a.stopNavigation(); a.log(String.format("back into the fight at %.0f health (ate %d time(s))", hp, ate)); ate = 0; return false; }
         if (drawing >= 0) { a.releaseUse(); drawing = -1; }
         tactic = "backing off from " + enemy.name();
         a.faceWhileMoving(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z);
-        if (ticks - fleeAt >= 10 || !a.isNavigating()) { fleeAt = ticks; away(a, enemy, 12); }
+        // One trip, walked to its end: planned afresh every half second, it stopped and started and was hit from behind.
+        // A new one when it has arrived, or every 2 s (the enemy has moved).
+        if (ticks - fleeAt >= 40 || !a.isNavigating()) { fleeAt = ticks; away(a, enemy, 14); }
         // Out of its reach is enough (a zombie reaches about 2 blocks, and walks slower than an agent): waiting for 6 blocks,
         // it never got to eat with three husks behind it.
         if (enemy.distance() > 3.5) {
             lower(a);
             int f = -1;
             for (int i = 0; i < inv.size() && i < 36; i++) if (Gear.isFood(inv.get(i)) && (f < 0 || Gear.nutrition(inv.get(i)) > Gear.nutrition(inv.get(f)))) f = i;
-            if (f >= 0 && a.food() < 20) { eat(a, f); tactic = "eating, away from " + enemy.name(); }
+            // Vanilla: nothing but a golden apple can be eaten on a full hunger bar. Then the health comes back by itself
+            // (1 every half second while the bar is full and has saturation): it only has to stay out of reach.
+            if (f >= 0 && a.food() < 20) { eat(a, f); ate++; tactic = "eating, away from " + enemy.name(); }
+            else tactic = "out of reach of " + enemy.name() + ", healing";
         } else raise(a);
         return true;
     }
