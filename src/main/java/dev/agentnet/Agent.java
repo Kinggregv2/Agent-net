@@ -467,15 +467,19 @@ public final class Agent implements AgentHandle {
     private boolean tickBurrow() {
         if (burrow == Burrow.NONE) {
             if (++burrowCheck % 10 != 0 || System.currentTimeMillis() < burrowAgainAt || !night()) return false;
+            // A phantom about: under a roof, whoever it is. It flies and swoops faster than anything runs, and a fighter swinging
+            // at it as it passes loses (itsCyber ran, turned, and died at 1 health, run 1118d). A roof stops it.
+            boolean phantom = false;
+            for (dev.agentnet.role.Seen s : entitiesNear(24)) if (s.name().equals("phantom")) { phantom = true; break; }
             // Fighters fight, when they have something to fight with and the health for it. Fresh from a death with empty
             // hands, the speedrunner "fought" a spider with its fists and died again within a minute of coming back.
             boolean fighter = role != null && role.needs.contains(Role.Capability.COMBAT);
-            if (fighter) {
+            if (fighter && !phantom) {
                 var inv = inventory();
                 boolean armed = dev.agentnet.role.Gear.bestTool(inv, "sword") >= 0 || dev.agentnet.role.Gear.bestTool(inv, "axe") >= 0;
                 float hp = health();
                 if (role == Role.WARRIOR || armed && (Float.isNaN(hp) || hp >= 10)) return false;
-            } else if (module != null && module.fighting()) return false;
+            } else if (!phantom && module != null && module.fighting()) return false;
             if (!String.valueOf(dimension()).endsWith("overworld") || airVel != null || underwaterTicks > 0 || myVehicle >= 0) return false;
             var w = openWorld();
             if (w == null) return false;
@@ -490,7 +494,7 @@ public final class Agent implements AgentHandle {
             // Fresh from a death at night with nothing: in the ground at once, before anything comes. Waiting for a mob to
             // show first, the speedrunner died five times in three minutes at its spawn (skeletons, zombies, spiders).
             boolean fresh = System.currentTimeMillis() - diedAt < 120_000;
-            if (near == null ? !fresh : near.distance() < 4) return false;
+            if (!phantom && (near == null ? !fresh : near.distance() < 4)) return false;
             int x = (int) Math.floor(me.x), y = (int) Math.floor(me.y + 0.01), z = (int) Math.floor(me.z);
             if (!burrowable(w, x, y, z)) { burrowAgainAt = System.currentTimeMillis() + 15_000; return false; }
             burrow = Burrow.DIG; burrowX = x; burrowY = y; burrowZ = z; burrowTicks = 0; burrowDigs = 0;
@@ -498,7 +502,7 @@ public final class Agent implements AgentHandle {
             pendingGoal = null; // and no trip waiting to start either: one did, its "boxed in" dug it back out of its hole and a zombie killed it
             if (navigator.busy()) navigator.stop();
             escapeGoal = null; escapeStep = null; escapeMoves.clear();
-            log(near == null ? "§ejust back from a death, at night, with nothing: digging in until morning" : "§enight, and a " + near.name() + " is coming: digging in until morning");
+            log(phantom ? "§ephantoms about: digging in under a roof until morning" : near == null ? "§ejust back from a death, at night, with nothing: digging in until morning" : "§enight, and a " + near.name() + " is coming: digging in until morning");
             return true;
         }
         burrowTicks++;
@@ -509,7 +513,7 @@ public final class Agent implements AgentHandle {
         switch (burrow) {
             case DIG -> {
                 // Something on top of it already: the fight goes first (tickThreats), the burrow is dropped.
-                for (dev.agentnet.role.Seen s : entitiesNear(3.2)) if (!s.player() && s.hostile() && !HARMLESS.contains(s.name())) { endBurrow(30_000); return false; }
+                for (dev.agentnet.role.Seen s : entitiesNear(3.2)) if (!s.player() && s.hostile() && !HARMLESS.contains(s.name()) && !s.name().equals("phantom")) { endBurrow(30_000); return false; } // a phantom passing over is why it digs: keep digging
                 if (burrowTicks > 20 * 25) { log("§ecouldn't dig in here: back to work"); endBurrow(30_000); return false; }
                 if (isDigging() || airVel != null) return true;
                 if (feet <= burrowY - 3) { burrow = Burrow.ROOF; burrowTicks = 0; return true; }
