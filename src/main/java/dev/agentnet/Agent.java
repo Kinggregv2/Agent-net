@@ -239,7 +239,7 @@ public final class Agent implements AgentHandle {
     public void selectHotbar(int slot) {
         if (slot < 0 || slot > 8 || slot == selectedSlot) return;
         selectedSlot = slot;
-        send(new ServerboundSetCarriedItemPacket(slot));
+        sendInOrder(new ServerboundSetCarriedItemPacket(slot));
     }
 
     @Override
@@ -975,12 +975,25 @@ public final class Agent implements AgentHandle {
 
     @Override
     public void useOffhand() {
-        send(new ServerboundUseItemPacket(net.minecraft.world.InteractionHand.OFF_HAND, ++useSequence, pos.yRot(), pos.xRot()));
+        sendInOrder(new ServerboundUseItemPacket(net.minecraft.world.InteractionHand.OFF_HAND, ++useSequence, pos.yRot(), pos.xRot()));
     }
 
     @Override
     public void releaseUse() {
-        send(new ServerboundPlayerActionPacket(ServerboundPlayerActionPacket.Action.RELEASE_USE_ITEM, BlockPos.ZERO, Direction.DOWN, 0));
+        sendInOrder(new ServerboundPlayerActionPacket(ServerboundPlayerActionPacket.Action.RELEASE_USE_ITEM, BlockPos.ZERO, Direction.DOWN, 0));
+    }
+
+    /**
+     * Sent now, unless a swing is still waiting behind a queued move: then behind that too, so the server gets them in
+     * the order they were made. (Its shield went back up a tick after an axe swing that was still waiting; the server
+     * got "shield up" first, and an attacker using an item does not knock a shield out: vanilla's getActiveItem.)
+     */
+    private void sendInOrder(Packet<?> p) {
+        synchronized (this) {
+            ServerboundMovePlayerPacket last = moveQueue.peekLast();
+            if (last != null && !afterMove.isEmpty()) { afterMove.computeIfAbsent(last, k -> new java.util.ArrayList<>()).add(p); return; }
+        }
+        send(p);
     }
 
     // ---- flying: a wind charge (or explosion) pushes the agent; agents have no physics of
