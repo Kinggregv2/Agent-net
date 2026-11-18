@@ -89,15 +89,18 @@ final class Fight {
         double full = chargeTicks(hand);
         double reach = eyeToBox(a, enemy);
 
-        a.lookAt(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z);
         boolean walled = reach <= REACH && !Sight.canHit(a, enemy);
         if (reach > REACH || walled) {
             tactic = walled ? "getting around a wall to " + enemy.name() : "closing in on " + enemy.name();
+            // Facing it as it walks, never a look of its own: a look is a move packet, and only one goes out a tick, so
+            // looking every tick swallowed every step (it stood "closing in" for 40 s in the first test).
+            a.faceWhileMoving(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z);
             chase(a, enemy, walled ? 0 : 1);
             return;
         }
         // In reach: stand and wait for the full charge, then swing. A swing before that does a fraction and starts the wait over.
         if (a.isNavigating() && reach < REACH - 0.6) a.stopNavigation();
+        if (!a.isNavigating()) a.lookAt(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z); else a.faceWhileMoving(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z);
         if (charge < Math.ceil(full)) { tactic = "in reach of " + enemy.name() + ", charging the swing"; return; }
         a.attack(enemy.id());
         swings++;
