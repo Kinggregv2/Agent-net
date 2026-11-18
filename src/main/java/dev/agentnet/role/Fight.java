@@ -115,7 +115,12 @@ final class Fight {
         if (--navTicks <= 0 || !a.isNavigating() || chasedTo == null || chasedTo.distanceTo(enemy.pos()) > 1.5) {
             navTicks = 10;
             chasedTo = enemy.pos();
-            a.navigate((int) Math.floor(enemy.pos().x), (int) Math.floor(enemy.pos().y + 0.2), (int) Math.floor(enemy.pos().z), radius);
+            // To the ground under it, not to where it is: an enemy in the air (a jump, a knock-back, a test husk without
+            // gravity two blocks over a ledge) is no place to walk to, and the trip failed for 40 s.
+            int gx = (int) Math.floor(enemy.pos().x), gy = (int) Math.floor(enemy.pos().y + 0.2), gz = (int) Math.floor(enemy.pos().z);
+            var w = a.openWorld();
+            if (w != null) for (int d = 0; d <= 6; d++) { var under = w.get(gx, gy - d - 1, gz); if (under == null) break; if (Tunnel.solid(under)) { gy -= d; break; } }
+            a.navigate(gx, gy, gz, radius);
         }
     }
 
