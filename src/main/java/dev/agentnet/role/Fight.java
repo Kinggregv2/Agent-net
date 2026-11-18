@@ -35,6 +35,17 @@ final class Fight {
     private int charge = 100;
     private int held = -1, navTicks, swings, landed, target = -1, checkAt = -1, ticks;
     private net.minecraft.world.phys.Vec3 chasedTo;
+    /** A jump rises for about 6 ticks: it leaves the ground this many ticks before the swing is charged. */
+    private static final int JUMP_LEAD = 7;
+    private int jumpedAt = -100, crits;
+    private float hpBefore = Float.NaN;
+
+    private static boolean inWater(AgentHandle a) {
+        var w = a.openWorld();
+        if (w == null) return false;
+        var s = w.get((int) Math.floor(a.x()), (int) Math.floor(a.y() + 0.01), (int) Math.floor(a.z()));
+        return s != null && !s.getFluidState().isEmpty();
+    }
 
     // ------------------------------------------------------------------ vanilla's numbers
 
@@ -65,7 +76,7 @@ final class Fight {
     void idle(AgentHandle a) {
         charge = Math.min(charge + 1, 100);
         tactic = "";
-        if (swings > 0) { a.log(String.format("fight over: %d of %d swings landed", landed, swings)); swings = 0; landed = 0; }
+        if (swings > 0) { a.log(String.format("fight over: %d of %d swings landed, %d critical", landed, swings, crits)); swings = 0; landed = 0; crits = 0; }
         target = -1;
     }
 
@@ -74,7 +85,12 @@ final class Fight {
         charge = Math.min(charge + 1, 100);
         if (enemy.id() != target) { target = enemy.id(); chasedTo = null; }
         // Did the last swing count? (The server's damage event names us as the source.)
-        if (checkAt >= 0 && ticks >= checkAt) { if (a.hitRecently(enemy.id(), 600)) landed++; checkAt = -1; }
+        if (checkAt >= 0 && ticks >= checkAt) {
+            if (a.hitRecently(enemy.id(), 600)) landed++;
+            float now = a.healthOf(enemy.id());
+            if (!Float.isNaN(hpBefore) && !Float.isNaN(now)) dev.agentnet.AgentNet.LOG.info("[{}] that swing took {} off {} ({} -> {})", a.name(), String.format("%.1f", hpBefore - now), enemy.name(), String.format("%.1f", hpBefore), String.format("%.1f", now));
+            checkAt = -1;
+        }
 
         // The best thing to hit with: by the damage a full swing does a second (a sword beats an axe beats a fist).
         int w = bestWeapon(a);
@@ -90,6 +106,8 @@ final class Fight {
         double reach = eyeToBox(a, enemy);
 
         boolean walled = reach <= REACH && !Sight.canHit(a, enemy);
+        // In the air (its own jump, a knock-back): no new trip from up there; it swings if it comes into reach, else lands first.
+        if (a.airborne() && (reach > REACH || walled)) { a.faceWhileMoving(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z); tactic = "in the air by " + enemy.name(); return; }
         if (reach > REACH || walled) {
             tactic = walled ? "getting around a wall to " + enemy.name() : "closing in on " + enemy.name();
             // Facing it as it walks, never a look of its own: a look is a move packet, and only one goes out a tick, so
@@ -100,12 +118,28 @@ final class Fight {
         }
         // In reach: stand and wait for the full charge, then swing. A swing before that does a fraction and starts the wait over.
         if (a.isNavigating() && reach < REACH - 0.6) a.stopNavigation();
-        if (!a.isNavigating()) a.lookAt(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z); else a.faceWhileMoving(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z);
-        if (charge < Math.ceil(full)) { tactic = "in reach of " + enemy.name() + ", charging the swing"; return; }
+        if (!a.isNavigating() && !a.airborne()) a.lookAt(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z); else a.faceWhileMoving(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z);
+        // Step 2, critical hits. Vanilla (Player.canCriticalAttack): falling, off the ground, not climbing, not in water,
+        // not riding, not sprinting, and the swing charged past 90%: 1.5 times the damage. A jump rises for 6 ticks, so it
+        // jumps 7 ticks before the charge is full and swings on the way down.
+        int left = (int) Math.ceil(full) - charge;
+        boolean canJump = !a.airborne() && !a.riding() && !a.isNavigating() && !inWater(a);
+        if (left > 0) {
+            if (canJump && left <= JUMP_LEAD && ticks - jumpedAt > 14) { a.jump(); jumpedAt = ticks; tactic = "jumping for a critical hit on " + enemy.name(); return; }
+            tactic = a.airborne() ? "in the air over " + enemy.name() : "in reach of " + enemy.name() + ", charging the swing";
+            return;
+        }
+        // Charged. On the ground with no jump under way (it just got here): the jump first, the hit on the way down.
+        if (canJump && ticks - jumpedAt > 14) { a.jump(); jumpedAt = ticks; tactic = "jumping for a critical hit on " + enemy.name(); return; }
+        // Rising: wait for the fall (at most the 6 ticks of the jump). Jump did nothing (a low roof): a plain swing.
+        if (a.airborne() && a.verticalSpeed() >= 0 && ticks - jumpedAt <= 8) { tactic = "in the air over " + enemy.name(); return; }
+        boolean crit = a.airborne() && a.verticalSpeed() < 0;
+        hpBefore = a.healthOf(enemy.id());
         a.attack(enemy.id());
+        if (crit) crits++;
         swings++;
         checkAt = ticks + 8;
-        dev.agentnet.AgentNet.LOG.info("[{}] swing {} at {}: {} from its eyes, charge {} of {} ticks, {} ({} damage)", a.name(), swings, enemy.name(),
+        dev.agentnet.AgentNet.LOG.info("[{}] swing {} at {}{}: {} from its eyes, charge {} of {} ticks, {} ({} damage)", a.name(), swings, enemy.name(), crit ? " (falling: a critical hit)" : " (on the ground)",
                 String.format("%.2f", reach), charge, String.format("%.1f", full), Gear.id(hand).replace("minecraft:", ""), String.format("%.0f", damage(hand)));
         charge = 0;
         tactic = "hitting " + enemy.name();
