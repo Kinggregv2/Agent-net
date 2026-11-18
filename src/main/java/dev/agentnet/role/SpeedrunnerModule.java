@@ -487,7 +487,10 @@ public final class SpeedrunnerModule implements RoleModule {
                     if (id.endsWith("_planks")) wood += s.getCount();
                     else if (id.endsWith("_log") && !id.contains("stripped")) wood += 4 * s.getCount();
                 }
-                if (wood < 6) {
+                // Plus a crafting table's 4 when it carries none (run 1118d: 9 planks' worth, 4 into a table, 5 left, and the
+                // shield "missing ingredients" for four minutes after every restart).
+                int woodNeed = count(a, "minecraft:crafting_table") > 0 ? 6 : 10;
+                if (wood < woodNeed) {
                     status = "getting wood for a shield";
                     if (minerJob != null && miner.idle() && miner.status().startsWith("done") && ticks - jobRestart > 100) { minerJob = null; jobRestart = ticks; }
                     mine(a, "mine 3 logs");
