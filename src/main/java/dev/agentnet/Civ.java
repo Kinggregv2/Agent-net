@@ -251,7 +251,7 @@ public final class Civ {
         // and a builder filled the cap of 10; the farmer waits for the base, so four agents starved and the distributor died
         // asking itself for food): a hunter, before the base and everything after the speedrunners.
         int hungry = 0;
-        for (Agent a : crew) if (a.food() < 10 && a.inventory().stream().noneMatch(dev.agentnet.role.Gear::isFood)) hungry++;
+        for (Agent a : crew) if (a.food() < 18 && a.inventory().stream().noneMatch(dev.agentnet.role.Gear::isFood)) hungry++;
         int feeders = roles.getOrDefault(Role.FARMER, 0) + roles.getOrDefault(Role.HUNTER, 0) + roles.getOrDefault(Role.FISHER, 0);
         if (hungry >= 2 && feeders == 0) needs.add(new Need(Role.HUNTER, "hunt", HUNGRY + hungry + " agents with no food and nobody making any"));
         if (roles.getOrDefault(Role.DISTRIBUTOR, 0) > 0 && roles.getOrDefault(Role.DISTRIBUTOR, 0) < wantDistributors) needs.add(new Need(Role.DISTRIBUTOR, null, crew.size() + " agents to supply: " + wantDistributors + " distributors wanted"));
