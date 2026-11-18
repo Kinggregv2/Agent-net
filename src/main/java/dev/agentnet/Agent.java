@@ -1353,9 +1353,20 @@ public final class Agent implements AgentHandle {
                 return;
             }
         }
+        // In order with its moves: positions wait in a queue (one a tick, up to 4 behind), and an attack sent at once
+        // reached the server while it still had the agent ticks back. In an elytra dive (2 blocks a tick) that was 6-8
+        // blocks up, out of reach: the mace smash was dropped every time and the fall killed the agent.
+        synchronized (this) {
+            ServerboundMovePlayerPacket last = moveQueue.peekLast();
+            if (last != null) { afterMove.computeIfAbsent(last, k -> new java.util.ArrayList<>()).add(new ServerboundAttackPacket(entityId)); afterMove.get(last).add(net.minecraft.network.protocol.game.ServerboundPunchPacket.INSTANCE); return; }
+        }
         send(new ServerboundAttackPacket(entityId));
         swingArm();
     }
+
+    /** Packets that go out right after this queued move (an attack made at that position). */
+    private final java.util.Map<ServerboundMovePlayerPacket, java.util.List<Packet<?>>> afterMove = new java.util.IdentityHashMap<>();
+    private void sendAfter(ServerboundMovePlayerPacket m) { java.util.List<Packet<?>> l = afterMove.remove(m); if (l != null) for (Packet<?> p : l) send(p); }
 
     /** 26.3's arm swing: shows the swing to everyone and resets the attack charge, like a real click. */
     @Override public void swingArm() {
@@ -1629,7 +1640,7 @@ public final class Agent implements AgentHandle {
         // edge, and the server put the agent back (hundreds of times an hour, agents re-planning until they gave up).
         // One per server tick, in order; only a long backlog loses its oldest.
         moveQueue.add(p);
-        while (moveQueue.size() > 4) moveQueue.poll();
+        while (moveQueue.size() > 4) sendAfter(moveQueue.poll());
         flushMoves();
     }
 
@@ -1656,6 +1667,7 @@ public final class Agent implements AgentHandle {
         if (next.hasPosition()) posSinceTickEnd = true;
         sentGround = next.isOnGround();
         send(next);
+        sendAfter(next);
     }
 
     /** A move the server would kick us for (NaN etc.): drop it and say where it came from. */
@@ -2909,7 +2921,7 @@ public final class Agent implements AgentHandle {
                             String.format("%.2f", was.x), String.format("%.2f", was.y), String.format("%.2f", was.z),
                             String.format("%.2f", v.x), String.format("%.2f", v.y), String.format("%.2f", v.z), String.format("%.2f", was.distanceTo(v)), lastSent);
                 }
-                synchronized (this) { moveQueue.clear(); movedThisTick = false; lastMoveNs = 0; } // moves from before the correction are stale
+                synchronized (this) { moveQueue.clear(); afterMove.clear(); movedThisTick = false; lastMoveNs = 0; } // moves from before the correction are stale
                 send(new ServerboundAcceptTeleportationPacket(p.id(), v.x, v.y, v.z, pos.yRot(), pos.xRot()));
                 // onGround=true so the server's anti-fly check never kicks a hovering agent.
                 if (Double.isFinite(v.x) && Double.isFinite(v.y) && Double.isFinite(v.z) && Float.isFinite(pos.yRot()) && Float.isFinite(pos.xRot()))
