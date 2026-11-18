@@ -23,6 +23,14 @@ public final class Spare {
         List<ItemStack> inv = h.inventory();
         int have = 0;
         ItemStack sample = ItemStack.EMPTY;
+        // "logs": any kind of log (a speedrunner asking for wood), each kind kept back as itself.
+        if (item.equals("logs")) {
+            java.util.Map<String, Integer> kinds = new java.util.HashMap<>(); java.util.Map<String, ItemStack> samples = new java.util.HashMap<>();
+            for (ItemStack s : inv) if (Gear.matches(s, item)) { kinds.merge(Gear.id(s), s.getCount(), Integer::sum); samples.put(Gear.id(s), s); }
+            int n = 0;
+            for (var e : kinds.entrySet()) n += Math.max(0, e.getValue() - keep(role, e.getKey(), samples.get(e.getKey())));
+            return n;
+        }
         for (ItemStack s : inv) if (!s.isEmpty() && Gear.id(s).equals(item)) { have += s.getCount(); sample = s; }
         if (have == 0) return 0;
         return Math.max(0, have - keep(role, item, sample));

@@ -407,7 +407,7 @@ public final class Agent implements AgentHandle {
         List<ItemStack> inv = inventory();
         for (int i = 0; i < inv.size() && i < 36; i++) {
             ItemStack s = inv.get(i);
-            if (s.isEmpty() || !dev.agentnet.role.Gear.id(s).equals(handItem)) continue;
+            if (s.isEmpty() || !(handItem.equals("logs") ? dev.agentnet.role.Gear.matches(s, handItem) : dev.agentnet.role.Gear.id(s).equals(handItem))) continue;
             if (s.getCount() <= handLeft) { handLeft -= s.getCount(); dropStack(i); }
             else { handLeft--; dropOne(i); }
             return true;
