@@ -196,7 +196,7 @@ final class Fight {
     private final ElytraMace air = new ElytraMace();
 
     /** In the middle of a move that must not be cut short (the elytra mace): the warrior keeps its hands off and keeps the target. */
-    boolean busy() { return air.active(); }
+    boolean busy() { return air.active() || cart.active(); }
     int targetId() { return target; }
     boolean blocksClutch(AgentHandle a) { return air.active() && air.blocksClutch(a); }
 
@@ -337,6 +337,74 @@ final class Fight {
         } catch (RuntimeException e) { return "(" + e + ")"; }
     }
 
+    private final CartPvp cart = new CartPvp();
+
+    // ------------------------------------------------------------------ step 9b: the boat trap
+    //
+    // Vanilla: an enderman sitting in a boat cannot teleport out of it, and walks into one put in its way. So: a boat
+    // on the ground between it and us while it comes; then it is hit like anything else, and it stays put.
+
+    private int boatAt = -1000;
+
+    private boolean boatTrap(AgentHandle a, Seen e) {
+        if (!e.angry() || ticks - boatAt < 160 || a.airborne()) return false;
+        List<ItemStack> inv = a.inventory();
+        int boat = -1;
+        for (int i = 0; i < inv.size() && i < 36 && boat < 0; i++) { String id = Gear.id(inv.get(i)); if (id.endsWith("_boat") || id.endsWith("_raft")) boat = i; }
+        double d = e.distance();
+        var w = a.openWorld();
+        if (boat < 0 || d > 7 || d < 2 || w == null) return false;
+        double dx = e.pos().x - a.x(), dz = e.pos().z - a.z(), len = Math.max(0.1, Math.hypot(dx, dz));
+        int bx = (int) Math.floor(a.x() + dx / len * 1.6), bz = (int) Math.floor(a.z() + dz / len * 1.6), by = (int) Math.floor(a.y() + 0.2);
+        var ground = w.get(bx, by - 1, bz); var at = w.get(bx, by, bz);
+        if (ground == null || at == null || !Tunnel.solid(ground) || !Tunnel.passable(at)) return false;
+        lower(a);
+        if (a.isNavigating()) a.stopNavigation();
+        int hb = boat < 9 ? boat : 8;
+        if (boat >= 9) a.moveToHotbar(boat, hb);
+        a.selectHotbar(hb);
+        a.lookAt(bx + 0.5, by, bz + 0.5);
+        a.useItemOn(bx, by - 1, bz, net.minecraft.core.Direction.UP);
+        boatAt = ticks;
+        charge = 0;
+        tactic = "a boat in the enderman's way";
+        a.log("put a boat down between it and the " + e.name());
+        return true;
+    }
+
+    // ------------------------------------------------------------------ step 9c: the Lunge spear
+    //
+    // A jab with a spear that has Lunge throws its holder forward along where it looks (and costs hunger). Swapped to
+    // for the jab and straight back: a dash at an enemy 6 to 14 blocks off that is being chased.
+
+    private int lungeAt = -1000;
+
+    private boolean lunge(AgentHandle a, Seen e) {
+        double d = e.distance();
+        if (d < 6 || d > 14 || ticks - lungeAt < 20 || a.airborne() || a.riding() || a.food() <= 6) return false;
+        List<ItemStack> inv = a.inventory();
+        int spear = -1, lvl = 0;
+        for (int i = 0; i < 9; i++) {
+            int l = Gear.id(inv.get(i)).endsWith("_spear") ? Gear.level(inv.get(i), net.minecraft.world.item.enchantment.Enchantments.LUNGE) : 0;
+            if (l > lvl) { lvl = l; spear = i; }
+        }
+        if (spear < 0) return false;
+        lower(a);
+        int back = a.selectedSlot();
+        a.look((float) Math.toDegrees(Math.atan2(-(e.pos().x - a.x()), e.pos().z - a.z())), 0f); // the push goes where it looks, flat
+        a.selectHotbar(spear);
+        a.stab();
+        a.swingArm();
+        a.selectHotbar(back);
+        lungeAt = ticks;
+        charge = 0;
+        lunges++;
+        tactic = "a lunge at " + e.name();
+        dev.agentnet.AgentNet.LOG.info("[{}] lunge {} at {} from {} blocks", a.name(), lunges, e.name(), String.format("%.1f", d));
+        return true;
+    }
+    private int lunges;
+
     private boolean shieldUp;
     private int blocks, upAt;
     private float prevHp = Float.NaN;
@@ -437,7 +505,18 @@ final class Fight {
             charge = 0;
             return;
         }
+        // Step 9d, the TNT minecart (CartPvp: rail, cart, a burning bolt): against players, with the whole kit in the pack.
+        if (cart.cooldown > 0) cart.cooldown--;
+        if (cart.active()) { tactic = cart.tactic; if (cart.tick(a, enemy)) return; }
+        if (enemy.player() && cart.cooldown == 0 && !a.airborne() && !air.active() && enemy.distance() <= 20 && CartPvp.ready(a)) {
+            lower(a);
+            if (drawing >= 0) { a.releaseUse(); drawing = -1; }
+            cart.start(a);
+            charge = 0;
+            return;
+        }
         if (windSmash(a, enemy)) return; // step 9a
+        if (enemy.name().equals("enderman") && enemy.vehicle() < 0 && boatTrap(a, enemy)) return; // step 9b
         if (enemy.name().equals("creeper") && creeper(a, enemy)) return; // step 6
         if (bow(a, enemy)) return; // step 5: arrows while it is far off
 
@@ -459,6 +538,7 @@ final class Fight {
         if (a.airborne() && (reach > REACH || walled)) { a.faceWhileMoving(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z); tactic = "in the air by " + enemy.name(); return; }
         if (reach > REACH || walled) {
             tactic = walled ? "getting around a wall to " + enemy.name() : "closing in on " + enemy.name();
+            if (!walled && lunge(a, enemy)) return; // step 9c
             // Facing it as it walks, never a look of its own: a look is a move packet, and only one goes out a tick, so
             // looking every tick swallowed every step (it stood "closing in" for 40 s in the first test).
             a.faceWhileMoving(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z);
