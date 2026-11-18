@@ -269,6 +269,63 @@ final class Fight {
         charge = 0;
     }
 
+    // ------------------------------------------------------------------ step 9a: wind charge and mace
+    //
+    // A wind charge thrown straight down at its own feet throws it up (the server sends the push; the agent's air
+    // physics fly it). From the top of that, the fall is well over the 1.5 blocks a mace smash needs. Vanilla also
+    // forgives the fall damage of a wind-charge jump down to the height it started from, so a miss costs nothing.
+    // Without an elytra this is how the mace gets used: a few blocks from the enemy, up, over it, down on it.
+
+    private int windAt = -1000, windCd, windSmashes;
+    private boolean windStruck;
+
+    private boolean windSmash(AgentHandle a, Seen enemy) {
+        if (windCd > 0) windCd--;
+        List<ItemStack> inv = a.inventory();
+        int mace = -1, wind = -1;
+        for (int i = 0; i < inv.size() && i < 36; i++) { if (inv.get(i).getItem() == net.minecraft.world.item.Items.MACE && mace < 0) mace = i; if (inv.get(i).getItem() == net.minecraft.world.item.Items.WIND_CHARGE && wind < 0) wind = i; }
+        if (ticks - windAt < 100) { // in the move
+            if (!a.airborne()) {
+                if (ticks - windAt <= 8) return true; // the push is on its way
+                dev.agentnet.AgentNet.LOG.info("[{}] wind-charge jump over: {}", a.name(), windStruck ? "the smash was swung" : "no swing (it never came into reach on the way down)");
+                windAt = -1000;
+                return false;
+            }
+            a.steer(enemy.pos().x - a.x(), enemy.pos().z - a.z());
+            a.faceWhileMoving(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z);
+            if (mace >= 0 && mace < 9) a.selectHotbar(mace);
+            double fallen = a.airPeakY() - a.y();
+            tactic = String.format("wind-charge jump over %s (%.1f up)", enemy.name(), a.y() - enemy.pos().y);
+            if (!windStruck && mace >= 0 && a.verticalSpeed() < -0.1 && fallen > 1.6 && eyeToBox(a, enemy) <= REACH && Sight.canHit(a, enemy)) {
+                a.attack(enemy.id());
+                windStruck = true;
+                windSmashes++;
+                swings++;
+                checkAt = ticks + 8;
+                hpBefore = a.healthOf(enemy.id());
+                charge = 0;
+                dev.agentnet.AgentNet.LOG.info("[{}] wind-charge smash on {} after {} blocks of fall", a.name(), enemy.name(), String.format("%.1f", fallen));
+            }
+            return true;
+        }
+        double d = enemy.distance();
+        if (mace < 0 || wind < 0 || windCd > 0 || a.airborne() || a.riding() || air.active() || ElytraMace.ready(a)) return false;
+        if (!(enemy.player() || CombatSettings.aerialOnMobs) || enemy.name().equals("creeper") || d < 2.0 || d > 6.0 || !ElytraMace.openAbove(a, enemy.pos())) return false;
+        lower(a);
+        if (drawing >= 0) { a.releaseUse(); drawing = -1; }
+        if (a.isNavigating()) a.stopNavigation();
+        if (mace >= 9) { a.moveToHotbar(mace, 2); }
+        int hb = wind < 9 ? wind : 6;
+        if (wind >= 9) a.moveToHotbar(wind, hb);
+        a.selectHotbar(hb);
+        a.look(a.yaw(), 90f); // straight down at its own feet
+        a.useItem();
+        windAt = ticks; windCd = 60; windStruck = false;
+        a.log("§cwind charge at its feet: up and over " + enemy.name() + " with the mace");
+        tactic = "wind-charge jump at " + enemy.name();
+        return true;
+    }
+
     private boolean shieldUp;
     private int blocks, upAt;
     private float prevHp = Float.NaN;
@@ -369,6 +426,7 @@ final class Fight {
             charge = 0;
             return;
         }
+        if (windSmash(a, enemy)) return; // step 9a
         if (enemy.name().equals("creeper") && creeper(a, enemy)) return; // step 6
         if (bow(a, enemy)) return; // step 5: arrows while it is far off
 
