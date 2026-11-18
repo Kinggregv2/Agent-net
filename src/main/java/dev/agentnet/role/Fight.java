@@ -55,6 +55,84 @@ final class Fight {
         return best;
     }
 
+    // ------------------------------------------------------------------ step 5: the bow
+    //
+    // Vanilla (BowItem.getPowerForTime, AbstractArrow.tick): the draw is full after 20 ticks; a full-draw arrow leaves
+    // at 3 blocks a tick from just under the eyes, along where the archer looks when it lets go; every tick it moves
+    // by its speed, then the speed is times 0.99 and 0.05 comes off its upward part. So: the angle is worked out by
+    // flying the arrow in the head, aimed at where the enemy will be when it gets there.
+    // Used while the enemy is far and not itself drawing a bow at us (against an archer the shield and the sword are
+    // better: step 3 took no arrow at all that way).
+
+    private int drawing = -1, shots, bowTarget = -1;
+    private net.minecraft.world.phys.Vec3 lastSeen;
+    private double evx, evy, evz;
+
+    private boolean bow(AgentHandle a, Seen enemy) {
+        // How the enemy moves, blocks a tick (smoothed), for the lead.
+        if (bowTarget == enemy.id() && lastSeen != null) {
+            evx += (enemy.pos().x - lastSeen.x - evx) * 0.3; evy += (enemy.pos().y - lastSeen.y - evy) * 0.3; evz += (enemy.pos().z - lastSeen.z - evz) * 0.3;
+        } else { evx = 0; evy = 0; evz = 0; }
+        bowTarget = enemy.id(); lastSeen = enemy.pos();
+        double d = enemy.distance();
+        int bowAt = -1, arrows = 0;
+        List<ItemStack> inv = a.inventory();
+        for (int i = 0; i < inv.size() && i < 36; i++) {
+            if (inv.get(i).getItem() == net.minecraft.world.item.Items.BOW && bowAt < 0) bowAt = i;
+            if (inv.get(i).getItem() instanceof net.minecraft.world.item.ArrowItem) arrows += inv.get(i).getCount();
+        }
+        var w = a.openWorld();
+        boolean sight = w == null || Sight.clear(w, a.x(), a.y() + 1.52, a.z(), enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z);
+        boolean want = bowAt >= 0 && arrows > 0 && !enemy.aiming() && !a.airborne() && sight && d <= 40 && (drawing >= 0 ? d > 5 : d > 8);
+        if (!want) { if (drawing >= 0) { a.releaseUse(); drawing = -1; charge = 0; } return false; }
+        lower(a);
+        if (a.isNavigating()) a.stopNavigation();
+        if (drawing < 0) {
+            int hb = bowAt < 9 ? bowAt : 5;
+            if (bowAt >= 9) a.moveToHotbar(bowAt, hb);
+            a.selectHotbar(hb);
+            a.useItem();
+            drawing = 0;
+        }
+        // Where it will be when the arrow gets there (two rounds: the flight time depends on the aim point).
+        double ax = enemy.pos().x, ay = enemy.pos().y + 1.0, az = enemy.pos().z;
+        double sy = a.y() + 1.52;
+        int flight = 0;
+        double[] shot = null;
+        for (int k = 0; k < 2; k++) {
+            shot = aim(Math.hypot(ax - a.x(), az - a.z()), ay - sy);
+            flight = (int) shot[1];
+            ax = enemy.pos().x + evx * flight; ay = enemy.pos().y + 1.0 + Math.max(-0.2, Math.min(0.2, evy)) * flight; az = enemy.pos().z + evz * flight;
+        }
+        float yaw = (float) Math.toDegrees(Math.atan2(-(ax - a.x()), az - a.z()));
+        a.look(yaw, (float) -Math.toDegrees(shot[0]));
+        tactic = "drawing the bow at " + enemy.name();
+        if (++drawing >= 21) {
+            a.releaseUse();
+            drawing = -1;
+            shots++;
+            charge = 0;
+            dev.agentnet.AgentNet.LOG.info("[{}] arrow {} at {}: {} blocks, {} degrees up, {} ticks of flight, led by {} blocks", a.name(), shots, enemy.name(),
+                    String.format("%.1f", d), String.format("%.1f", Math.toDegrees(shot[0])), flight, String.format("%.1f", Math.hypot(evx, evz) * flight));
+        }
+        return true;
+    }
+
+    /** The angle up (radians) a full-draw arrow needs to pass through a point this far off and this much higher, and its flight time in ticks. */
+    static double[] aim(double dist, double rise) {
+        double lo = -1.2, hi = 0.9;
+        int ticks = 1;
+        for (int k = 0; k < 22; k++) {
+            double mid = (lo + hi) / 2, vx = 3.0 * Math.cos(mid), vy = 3.0 * Math.sin(mid), x = 0, y = 0;
+            int t = 0;
+            while (x + vx < dist && t < 200) { x += vx; y += vy; vx *= 0.99; vy = vy * 0.99 - 0.05; t++; }
+            y += vy * (dist - x) / Math.max(0.01, vx); // the last part of a tick
+            ticks = t + 1;
+            if (y < rise) lo = mid; else hi = mid;
+        }
+        return new double[]{(lo + hi) / 2, ticks};
+    }
+
     private boolean shieldUp;
     private int blocks, upAt;
     private float prevHp = Float.NaN;
@@ -108,6 +186,8 @@ final class Fight {
 
     void idle(AgentHandle a) {
         lower(a);
+        if (drawing >= 0) { a.releaseUse(); drawing = -1; }
+        if (shots > 0) { a.log(shots + " arrow(s) shot"); shots = 0; }
         charge = Math.min(charge + 1, 100);
         tactic = "";
         if (swings > 0) { a.log(String.format("fight over: %d of %d swings landed, %d critical, %d shield breaks", landed, swings, crits, breaks)); swings = 0; landed = 0; crits = 0; breaks = 0; shieldOutUntil = -1; }
@@ -134,6 +214,8 @@ final class Fight {
             if (!Float.isNaN(hpBefore) && !Float.isNaN(now)) dev.agentnet.AgentNet.LOG.info("[{}] that swing took {} off {} ({} -> {})", a.name(), String.format("%.1f", hpBefore - now), enemy.name(), String.format("%.1f", hpBefore), String.format("%.1f", now));
             checkAt = -1;
         }
+
+        if (bow(a, enemy)) return; // step 5: arrows while it is far off
 
         // The best thing to hit with: by the damage a full swing does a second (a sword beats an axe beats a fist).
         int w = bestWeapon(a);
