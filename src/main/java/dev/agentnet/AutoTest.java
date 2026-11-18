@@ -206,6 +206,7 @@ final class AutoTest {
             }
             case "tpagents" -> { for (Agent a : AgentNetClient.AGENTS.values()) command(mc, "tp " + a.name + " " + p[1]); }
             case "forgetagents" -> { for (Agent a : AgentNetClient.AGENTS.values()) Roster.forget(dev.agentnet.map.Servers.current(), a.name); }
+            case "block" -> { String[] q = p[1].split("\s+"); Agent ag = AgentNetClient.AGENTS.get(q[0].toLowerCase()); if (ag != null) ag.holdShield((int) (Double.parseDouble(q[1]) * 20)); } // block <agent> <seconds>: it holds its shield up
             case "launch" -> { String[] q = p[1].split("\s+"); Agent ag = AgentNetClient.AGENTS.get(q[0].toLowerCase()); if (ag != null) { net.minecraft.world.phys.Vec3 v = new net.minecraft.world.phys.Vec3(Double.parseDouble(q[1]), Double.parseDouble(q[2]), Double.parseDouble(q[3])); mc.execute(() -> ag.launch(v)); } else AgentNet.LOG.warn("[AutoTest] no agent {}", q[0]); }
             case "locate" -> { // locate <structure> <agent> [dimension]: put the agent on the surface above the nearest one
                 String[] q = p[1].split("\\s+");

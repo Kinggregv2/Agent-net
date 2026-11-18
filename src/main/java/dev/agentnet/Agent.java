@@ -862,6 +862,7 @@ public final class Agent implements AgentHandle {
     }
 
     private void tickModule() {
+        if (shieldHold > 0 && --shieldHold % 10 == 0) { if (shieldHold == 0) releaseUse(); else useOffhand(); }
         if (++baseGuardTicks % 20 == 0) guardBase();
         if (role != Role.WARRIOR && clutch.tick(this)) return; // falling: water bucket or leave clutch (warriors have their own)
         if (tickHandOver()) return;
@@ -1363,6 +1364,23 @@ public final class Agent implements AgentHandle {
         send(new ServerboundAttackPacket(entityId));
         swingArm();
     }
+
+    /** A swing with another hotbar item, and straight back to the one in hand: all four packets in order behind the queued moves. */
+    @Override public void attackWith(int entityId, int hotbarSlot) {
+        int back = selectedSlot;
+        if (hotbarSlot == back || hotbarSlot < 0 || hotbarSlot > 8) { attack(entityId); return; }
+        java.util.List<Packet<?>> ps = java.util.List.of(new ServerboundSetCarriedItemPacket(hotbarSlot), new ServerboundAttackPacket(entityId),
+                net.minecraft.network.protocol.game.ServerboundPunchPacket.INSTANCE, new ServerboundSetCarriedItemPacket(back));
+        synchronized (this) {
+            ServerboundMovePlayerPacket last = moveQueue.peekLast();
+            if (last != null) { afterMove.computeIfAbsent(last, k -> new java.util.ArrayList<>()).addAll(ps); return; }
+        }
+        for (Packet<?> p : ps) send(p);
+    }
+
+    /** Tests only: holds its shield up for this many ticks (raised again every half second: a disabled shield comes back up). */
+    public void holdShield(int ticks) { shieldHold = ticks; }
+    private int shieldHold;
 
     /** Packets that go out right after this queued move (an attack made at that position). */
     private final java.util.Map<ServerboundMovePlayerPacket, java.util.List<Packet<?>>> afterMove = new java.util.IdentityHashMap<>();

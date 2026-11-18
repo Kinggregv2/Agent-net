@@ -40,6 +40,21 @@ final class Fight {
     private int jumpedAt = -100, crits;
     private float hpBefore = Float.NaN;
 
+    private int shieldOutUntil = -1, breaks;
+
+    /** The hotbar slot of what knocks a shield out for longest (an axe), -1 if nothing it carries does. Moved to hotbar slot 1 if it sits in the pack. */
+    private static int breaker(AgentHandle a) {
+        List<ItemStack> inv = a.inventory();
+        int best = -1;
+        float secs = 0;
+        for (int i = 0; i < inv.size() && i < 36; i++) {
+            var w = inv.get(i).get(DataComponents.WEAPON);
+            if (w != null && w.disableBlockingForSeconds() > secs) { secs = w.disableBlockingForSeconds(); best = i; }
+        }
+        if (best >= 9) { int hb = a.selectedSlot() == 1 ? 2 : 1; a.moveToHotbar(best, hb); return hb; }
+        return best;
+    }
+
     private boolean shieldUp;
     private int blocks, upAt;
     private float prevHp = Float.NaN;
@@ -95,7 +110,7 @@ final class Fight {
         lower(a);
         charge = Math.min(charge + 1, 100);
         tactic = "";
-        if (swings > 0) { a.log(String.format("fight over: %d of %d swings landed, %d critical", landed, swings, crits)); swings = 0; landed = 0; crits = 0; }
+        if (swings > 0) { a.log(String.format("fight over: %d of %d swings landed, %d critical, %d shield breaks", landed, swings, crits, breaks)); swings = 0; landed = 0; crits = 0; breaks = 0; shieldOutUntil = -1; }
         target = -1;
     }
 
@@ -149,6 +164,24 @@ final class Fight {
         // In reach: stand and wait for the full charge, then swing. A swing before that does a fraction and starts the wait over.
         if (a.isNavigating()) a.stopNavigation(); // in reach: it stands (and jumps) here; out of reach again, it walks again
         if (!a.isNavigating() && !a.airborne()) a.lookAt(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z); else a.faceWhileMoving(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z);
+        // Step 4, a raised shield. Vanilla (LivingEntity.blockedByItem, the weapon's disableBlockingForSeconds: an axe's is 5):
+        // a hit that is blocked by a shield knocks that shield out for that long, whatever the swing's charge. So: the
+        // axe at once, one swing, the sword straight back in hand, and critical hits while the shield is down.
+        if (enemy.blocking() && ticks >= shieldOutUntil) {
+            int ax = breaker(a);
+            if (ax >= 0) {
+                lower(a);
+                float secs = a.inventory().get(ax).get(DataComponents.WEAPON).disableBlockingForSeconds();
+                a.attackWith(enemy.id(), ax);
+                charge = 0; // the item changed twice: vanilla starts the charge again
+                shieldOutUntil = ticks + (int) (secs * 20) - 4;
+                breaks++;
+                dev.agentnet.AgentNet.LOG.info("[{}] {} has its shield up: one swing with the {} ({} s without a shield), then the {} again", a.name(), enemy.name(),
+                        Gear.id(a.inventory().get(ax)).replace("minecraft:", ""), secs, Gear.id(hand).replace("minecraft:", ""));
+                tactic = "breaking " + enemy.name() + "'s shield";
+                return;
+            }
+        }
         // Step 2, critical hits. Vanilla (Player.canCriticalAttack): falling, off the ground, not climbing, not in water,
         // not riding, not sprinting, and the swing charged past 90%: 1.5 times the damage. A jump rises for 6 ticks, so it
         // jumps 7 ticks before the charge is full and swings on the way down.

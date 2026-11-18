@@ -233,6 +233,8 @@ public interface AgentHandle {
     boolean hitRecently(int entityId, long ms);
     /** Hit an entity with the held item (and swing the arm). */
     void attack(int entityId);
+    /** One swing with the item in this hotbar slot, then back to the one in hand (an axe against a raised shield). */
+    default void attackWith(int entityId, int hotbarSlot) { attack(entityId); }
     /** Swing the arm (26.3 punch): the animation everyone sees, and it resets the attack charge. */
     void swingArm();
     /** On the hitlist (and not whitelisted, not one of ours). */
