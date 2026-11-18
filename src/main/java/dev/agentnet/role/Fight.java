@@ -304,7 +304,7 @@ final class Fight {
                 checkAt = ticks + 8;
                 hpBefore = a.healthOf(enemy.id());
                 charge = 0;
-                dev.agentnet.AgentNet.LOG.info("[{}] wind-charge smash on {} after {} blocks of fall", a.name(), enemy.name(), String.format("%.1f", fallen));
+                dev.agentnet.AgentNet.LOG.info("[{}] wind-charge smash on {} after {} blocks of fall, falling {} a tick; the server has: {}", a.name(), enemy.name(), String.format("%.1f", fallen), String.format("%.2f", a.verticalSpeed()), serverSide(a));
             }
             return true;
         }
@@ -324,6 +324,17 @@ final class Fight {
         a.log("§cwind charge at its feet: up and over " + enemy.name() + " with the mace");
         tactic = "wind-charge jump at " + enemy.name();
         return true;
+    }
+
+    /** On your own world: what the server itself has for this agent right now (fall distance, height, on the ground). For the logs of a test. */
+    static String serverSide(AgentHandle a) {
+        try {
+            var srv = net.minecraft.client.Minecraft.getInstance().getSingleplayerServer();
+            if (srv == null) return "(not your own world)";
+            var p = srv.getPlayerList().getPlayerByName(a.name());
+            if (p == null) return "(no such player)";
+            return String.format("fall distance %.2f, y %.2f (ours %.2f), on ground %s, gliding %s, holding %s", p.fallDistance, p.getY(), a.y(), p.onGround(), p.isFallFlying(), Gear.id(p.getMainHandItem()).replace("minecraft:", ""));
+        } catch (RuntimeException e) { return "(" + e + ")"; }
     }
 
     private boolean shieldUp;
