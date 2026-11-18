@@ -40,7 +40,7 @@ final class Fight {
     private int jumpedAt = -100, crits;
     private float hpBefore = Float.NaN;
 
-    private int shieldOutUntil = -1, breaks;
+    private int shieldOutUntil = -1, breaks, breakAt = -100;
 
     /** The hotbar slot of what knocks a shield out for longest (an axe), -1 if nothing it carries does. Moved to hotbar slot 1 if it sits in the pack. */
     private static int breaker(AgentHandle a) {
@@ -167,6 +167,9 @@ final class Fight {
         // Step 4, a raised shield. Vanilla (LivingEntity.blockedByItem, the weapon's disableBlockingForSeconds: an axe's is 5):
         // a hit that is blocked by a shield knocks that shield out for that long, whatever the swing's charge. So: the
         // axe at once, one swing, the sword straight back in hand, and critical hits while the shield is down.
+        // Its shield is up again though the axe just went in: that swing was not blocked (a shield only blocks from 5 ticks
+        // after it is raised, so the axe did plain damage and knocked nothing out). Not waiting out 5 s: the axe again.
+        if (enemy.blocking() && ticks < shieldOutUntil && ticks - breakAt > 8) shieldOutUntil = ticks;
         if (enemy.blocking() && ticks >= shieldOutUntil) {
             int ax = breaker(a);
             if (ax >= 0) {
@@ -176,6 +179,7 @@ final class Fight {
                 charge = 0; // the item changed twice: vanilla starts the charge again
                 shieldOutUntil = ticks + (int) (secs * 20) - 4;
                 breaks++;
+                breakAt = ticks;
                 dev.agentnet.AgentNet.LOG.info("[{}] {} has its shield up: one swing with the {} ({} s without a shield), then the {} again", a.name(), enemy.name(),
                         Gear.id(a.inventory().get(ax)).replace("minecraft:", ""), secs, Gear.id(hand).replace("minecraft:", ""));
                 tactic = "breaking " + enemy.name() + "'s shield";
