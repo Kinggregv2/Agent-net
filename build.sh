@@ -29,3 +29,12 @@ cp -r src/main/resources/* build/classes/
 sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" build/classes/fabric.mod.json
 (cd build/classes && jar --create --file ../agentnet-$VERSION.jar .)
 echo "Built build/agentnet-$VERSION.jar"
+
+# Every successful build is a saved version: committed, and pushed when a GitHub remote ("origin") is set up.
+if [ -d .git ]; then
+  git add -A
+  if ! git diff --cached --quiet; then
+    git commit -q -m "build $(date '+%Y-%m-%d %H:%M')" && echo "Saved version $(git rev-parse --short HEAD)"
+  fi
+  if git remote | grep -q '^origin$'; then git push -q origin main 2>/dev/null && echo "Pushed to GitHub" || echo "Push to GitHub failed (still saved locally)"; fi
+fi
