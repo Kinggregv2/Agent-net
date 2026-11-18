@@ -1670,8 +1670,18 @@ public final class Agent implements AgentHandle {
         // agents kicked, while dropping some merged "step up, then across" into one diagonal that clipped the block
         // edge, and the server put the agent back (hundreds of times an hour, agents re-planning until they gave up).
         // One per server tick, in order; only a long backlog loses its oldest.
+        // A look on top of a look still waiting: the newer one takes its place (nothing rides on a plain look). A fighter
+        // looking at its enemy every tick filled the queue to its limit and kept it there: the server ran 4 ticks behind,
+        // and a wind-charge mace smash was taken for a plain hit (its fall, on the server, had only just begun).
+        ServerboundMovePlayerPacket tail = moveQueue.peekLast();
+        if (tail != null && !p.hasPosition() && !tail.hasPosition() && !afterMove.containsKey(tail)) moveQueue.pollLast();
         moveQueue.add(p);
-        while (moveQueue.size() > 4) sendAfter(moveQueue.poll());
+        // Too long: the oldest that nothing waits behind goes (a swing that waits behind a move needs that move sent first).
+        while (moveQueue.size() > 4) {
+            ServerboundMovePlayerPacket drop = null;
+            for (ServerboundMovePlayerPacket m : moveQueue) if (!afterMove.containsKey(m)) { drop = m; break; }
+            if (drop != null) moveQueue.remove(drop); else sendAfter(moveQueue.poll());
+        }
         flushMoves();
     }
 
@@ -1692,7 +1702,10 @@ public final class Agent implements AgentHandle {
         // correction), a position could get onto the wire ahead of a tick end sent just before it, and the server kicks.
         if (moveQueue.isEmpty() || posSinceTickEnd || !mc.isSameThread()) return;
         long now = System.nanoTime();
-        if (now - lastMoveNs < 48_000_000L) return;
+        // 20 ms, not 48: ticks come 50 ms apart give or take, and every tick that fell under 48 left one more move waiting
+        // for good (one goes out a tick at most, so the queue never emptied again). The tick-end rule above is what the
+        // server checks; this only spreads out a burst of ticks after a freeze.
+        if (now - lastMoveNs < 20_000_000L) return;
         lastMoveNs = now;
         ServerboundMovePlayerPacket next = moveQueue.poll();
         if (next.hasPosition()) posSinceTickEnd = true;
