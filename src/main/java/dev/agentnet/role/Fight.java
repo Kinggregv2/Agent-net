@@ -209,14 +209,16 @@ final class Fight {
     //  - under 30% with nothing to heal with: away from the enemy, shield toward it, ordinary food once it is 6 blocks
     //    off; back into the fight at 60% (or after 20 s).
 
-    private int busyTicks, retreatAt = -1000;
+    private int busyTicks, retreatAt = -1000, appleAt = -1000;
     private boolean retreating;
 
     private boolean heal(AgentHandle a, Seen enemy) {
         if (busyTicks > 0) {
             busyTicks--;
             a.faceWhileMoving(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z);
-            if (retreating && (ticks - fleeAt >= 10 || !a.isNavigating())) { fleeAt = ticks; away(a, enemy, 12); }
+            // Eating on the move, away from it: standing still to eat among three husks, it took 9 damage a second and died
+            // with the apple in its mouth. (The server does not slow an eating agent down.)
+            if ((retreating || enemy.distance() < 7) && (ticks - fleeAt >= 10 || !a.isNavigating())) { fleeAt = ticks; away(a, enemy, 12); }
             charge = 0;
             return true;
         }
@@ -229,7 +231,9 @@ final class Fight {
         if (hp / max < 0.5f) {
             int g = -1;
             for (int i = 0; i < inv.size() && i < 36; i++) { String id = Gear.id(inv.get(i)); if (id.equals("minecraft:enchanted_golden_apple") || id.equals("minecraft:golden_apple") && g < 0) g = i; }
-            if (g >= 0) { eat(a, g); a.log(String.format("§e%.0f of %.0f health: a golden apple", hp, max)); tactic = "eating a golden apple"; return true; }
+            // Not on top of the last one: its Regeneration II runs 5 s. (It ate four in six seconds.) Unless it is nearly dead.
+            if (g >= 0 && ticks - appleAt < 110 && hp / max >= 0.2f) g = -1;
+            if (g >= 0) { appleAt = ticks; eat(a, g); a.log(String.format("§e%.0f of %.0f health: a golden apple", hp, max)); tactic = "eating a golden apple"; return true; }
         }
         if (!retreating && hp / max < 0.3f) { retreating = true; retreatAt = ticks; a.log(String.format("§e%.0f of %.0f health and nothing to heal with: backing off from %s", hp, max, enemy.name())); }
         if (!retreating) return false;
