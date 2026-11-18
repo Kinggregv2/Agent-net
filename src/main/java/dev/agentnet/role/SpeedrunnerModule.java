@@ -3422,7 +3422,18 @@ public final class SpeedrunnerModule implements RoleModule {
             return;
         }
         if (s.kind() == 'W' && count(a, "minecraft:water_bucket") == 0) { status = "no water bucket for step " + (step + 1); if (stepTicks > 20 * 20) fail(a, "it has no water bucket"); return; }
-        if (!standAt(a, w, c(s.sx(), 1, s.sz()), s.h())) { settled = 0; if (!status.startsWith("out of")) status = "getting into place for step " + (step + 1); return; }
+        if (!standAt(a, w, c(s.sx(), 1, s.sz()), s.h())) {
+            settled = 0;
+            if (!status.startsWith("out of")) status = "getting into place for step " + (step + 1);
+            if (stepTicks % 600 == 300) { // why it isn't there: once every 30 s
+                BlockPos f = c(s.sx(), 1, s.sz());
+                StringBuilder col = new StringBuilder();
+                for (int y = f.getY() - 2; y <= f.getY() + 2; y++) { BlockState bs = w.get(f.getX(), y, f.getZ()); col.append(y).append('=').append(bs == null ? "?" : net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(bs.getBlock()).getPath()).append(' '); }
+                a.log(String.format("[speedrun] not in place for step %d: at %.2f %.2f %.2f, wants %d %d %d (+%d up), navigating=%s, pillarAt=%s, travel: %s; its spot: %s",
+                        step + 1, a.x(), a.y(), a.z(), f.getX(), f.getY(), f.getZ(), s.h(), a.isNavigating(), pillarAt, a.navStatus(), col));
+            }
+            return;
+        }
         // A bucket goes where the server thinks it is looking from: its last steps are still on their way there for a
         // moment after it stops (they are sent one per tick), and a bucket used in that moment was aimed from the
         // spot before (the water went on top of the cobblestone and flooded the pool).
