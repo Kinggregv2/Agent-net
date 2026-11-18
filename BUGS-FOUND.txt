@@ -1,0 +1,70 @@
+AGENTNET BUG TEST RESULTS (2026-11-16, nothing fixed, only observed)
+=====================================================================
+Test run: potions, Wind Burst elytra mace, cart PvP, then 9 minutes of autopilot
+(cap 12, fresh crew at spawn). Most important first. "Seen" = in the log.
+
+--- BUGS (broke or went wrong in the test) --------------------------------------
+
+1. DISTRIBUTOR CRASHES (NullPointerException on dimension()).
+   Seen twice: "distributor module crashed", role removed. Happens right after an agent is
+   made a distributor, while its dimension is still unknown (just joined). Every crash
+   costs a distributor, which is the logistics backbone.
+
+2. AUTOPILOT HIRES A KEEPER EVERY ROUND AND ENDS UP WITH EXTRA DISTRIBUTORS.
+   Seen at 01:12, 01:13, 01:14: "the base's storage has no keeper -> a new keeper joins".
+   Final crew: 3 distributors, 0 keepers. Cause: the autopilot counts the old test base at
+   -1563 70 1805 as built, but it is ~660 blocks away; the keeper checks "built near me",
+   finds nothing and works as a distributor. The two checks disagree.
+
+3. FARMERS SIT IDLE FOREVER.
+   Seen: "no free farm and no spot to make one within 40 blocks" for both farmers, and
+   they just stood at spawn. The autopilot counted 2 farm areas (set up earlier, far away),
+   hired 2 farmers for them, they can't use them (over 256 blocks) and found no water or
+   flat ground at spawn to make one. Needs: walk looking for a spot instead of waiting,
+   and the autopilot must ignore farm areas that are too far away.
+
+4. FISHERMEN NEVER GET HIRED: the autopilot waits for a spare fishing rod and nothing
+   in the crew ever makes one ("no spare fishing rod in the crew or chests"). Fishers now
+   find their own water, so the missing rod is the only thing stopping them.
+
+5. HEALING POTIONS ARE NOT USED.
+   A warrior at 8/20 HP with two splash healing and two drinkable healing potions never
+   used one: it ate instead ("eating to heal up"). Strength splash worked. Cause not found.
+
+6. MANY STUCK AGENTS (about 280 dig-out starts and 400 route failures in 9 minutes).
+   Examples: an explorer trying again and again toward the same far chunks
+   ("explorer gave up on chunk ..." in a row), a miner and two distributors with
+   "no way from ... (60000 spots searched)", a miner "boxed in" 4 times in a row.
+   This is the biggest drain on the crew: stuck agents produce nothing.
+
+7. A KILL ORDER FAR AWAY DOES NOTHING.
+   "/agent kill X Dum1" with Dum1 about 56 blocks away: the warrior stayed put. Warriors
+   only react to players within 32 blocks. (This also meant the Wind Burst and cart tests
+   below never started.)
+
+8. A "kill" TASK STAYS AFTER THE ROLE CHANGES: an agent switched from warrior to miner
+   still showed task "kill Dum1" and "waiting for /agent mine".
+
+9. THE LEFTOVER 64 GOLDEN APPLES: the potion test warrior ended up carrying 64 golden
+   apples that the test never gave it (unexplained; probably a distributor request
+   arriving from an earlier run). Low importance.
+
+--- NOT PROPERLY TESTED (test setup was wrong, run again) ------------------------
+
+10. WIND BURST ELYTRA MACE: not tested (target too far, see 7). Still unverified.
+11. CART PVP: not tested for the same reason. In its earlier test it also never started.
+
+--- WORKED --------------------------------------------------------------------
+
+- Autopilot rounds: base builder, workers scaled with guards, 3 guards joined, learning
+  lines judged jobs ("coal failed", "distributor worked") and showed in the status.
+- Strength splash potion, critical-hit jumps, no kicks, no "invalid move" errors, no
+  travel reconnects in this run (the earlier reconnect problem didn't show up).
+
+--- POLISH ---------------------------------------------------------------------
+
+12. Autopilot cap: with cap 12 and 9 workers it only got 3 guards; for a real army the
+    cap has to be much higher than the worker count (the log says so each round).
+13. Explorer is hired at 4 crew members but then gives up on most chunks (item 6).
+14. The learning check judged the coal miner after 5 minutes while it was still
+    walking to its ore (coal 0 -> 0); longer waits for it would be fairer.

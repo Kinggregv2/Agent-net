@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "package": "dev.agentnet.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "MinecraftAccessor",
+    "ProfileKeysMixin",
+    "ClientChunkCacheMixin",
+    "PlayerNameMixin",
+    "IntegratedServerMixin",
+    "RegistrySyncMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

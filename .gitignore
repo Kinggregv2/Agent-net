@@ -1,0 +1,5 @@
+build/
+logs/
+*.bak
+*.bak[0-9]*
+src.bak-*/

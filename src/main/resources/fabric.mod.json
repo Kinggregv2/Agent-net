@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "agentnet",
+  "version": "0.9.0",
+  "name": "AgentNet",
+  "description": "Run a team of offline-mode (cracked) agent players from one client. /agent join, /agent leave, /agent role, /agent control.",
+  "license": "LGPL-3.0-or-later",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["dev.agentnet.AgentNetClient"]
+  },
+  "mixins": ["agentnet.mixins.json"],
+  "depends": {
+    "minecraft": "26.3",
+    "fabricloader": ">=0.20.0",
+    "fabric-api": "*",
+    "java": ">=25"
+  },
+  "recommends": {
+    "xaerominimap": "*",
+    "xaeroworldmap": "*"
+  }
+}
