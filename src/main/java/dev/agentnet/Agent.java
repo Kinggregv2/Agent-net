@@ -3582,6 +3582,17 @@ public final class Agent implements AgentHandle {
     private record DeathSpot(String dim, int x, int y, int z, long at) {}
     private static final java.util.List<DeathSpot> DEATH_SPOTS = new java.util.concurrent.CopyOnWriteArrayList<>();
 
+    /** One of the crew died to mobs within r blocks of here in the last ten minutes (same dimension). */
+    @Override public boolean nearDeathSpot(int x, int y, int z, int r) {
+        long now = System.currentTimeMillis();
+        String dim = String.valueOf(dimension());
+        for (DeathSpot d : DEATH_SPOTS) {
+            if (now - d.at() > 600_000 || !d.dim().equals(dim)) continue;
+            if (Math.abs(d.x() - x) <= r && Math.abs(d.z() - z) <= r && Math.abs(d.y() - y) <= r) return true;
+        }
+        return false;
+    }
+
     private void noteDeathSpot() {
         if (died) return; // the health packet and the kill packet both come: once
         Vec3 p = pos.position();

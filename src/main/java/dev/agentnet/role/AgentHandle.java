@@ -224,6 +224,8 @@ public interface AgentHandle {
     /** One of our own active effects ("strength", "minecraft:speed"...). */
     /** Stop digging its way out (the role has a better way on: a bridge). */
     default void cancelEscape() {}
+    /** One of the crew died to mobs near this spot in the last ten minutes. */
+    default boolean nearDeathSpot(int x, int y, int z, int r) { return false; }
     boolean hasEffect(String id);
     /** Its level (Strength II = 2); 0 without it. */
     default int effectLevel(String id) { return hasEffect(id) ? 1 : 0; }

@@ -180,6 +180,7 @@ final class MinerModule extends GathererModule {
     private final java.util.LinkedHashSet<BlockPos> floors = new java.util.LinkedHashSet<>();
     private int toolWaits;
     private long lastSkipLog;
+    private int deathSkipped;
     /** Skips in a row with nothing mined between, and the place where six of them happened: left alone for two minutes. */
     private int skipRun, badUntil;
     private BlockPos badSpot;
@@ -604,6 +605,9 @@ final class MinerModule extends GathererModule {
         boolean obsidian = targets.contains(net.minecraft.world.level.block.Blocks.OBSIDIAN);
         for (BlockPos p : found) {
             if (isSkipped(p)) continue;
+            // Not where one of the crew was just killed: a dark cave with the iron in it took eight of them in fifteen
+            // minutes, each one back to the same ore as soon as it respawned (run 1119c). Ten minutes, then again.
+            if (a.nearDeathSpot(p.getX(), p.getY(), p.getZ(), 20)) { deathSkipped++; continue; }
             // Six in a row out of reach round here (stone under a beach, all of it under water: run 1118d, 65 failed path
             // searches in six minutes on one spot): nothing within 28 blocks of there for a while, so it goes to look elsewhere.
             if (badSpot != null && ticks < badUntil && (p.getX() - badSpot.getX()) * (p.getX() - badSpot.getX()) + (p.getZ() - badSpot.getZ()) * (p.getZ() - badSpot.getZ()) < 28 * 28) continue;
