@@ -2575,7 +2575,7 @@ public final class Agent implements AgentHandle {
 
     /** Until then an escape may dig through the base too (see the stuck steps). */
     private volatile long baseBreakUntil;
-    private long diagAt, baseDigSaidAt;
+    private long diagAt, baseDigSaidAt, effectOddAt;
 
     private boolean escapeDiggable(BlockState s, int x, int y, int z) {
         if (natural(s)) return true;
@@ -3522,7 +3522,8 @@ public final class Agent implements AgentHandle {
                     AgentNet.LOG.info("[{}] hit entity #{}", name, p.entityId());
                 }
             } else if (packet instanceof net.minecraft.network.protocol.game.ClientboundUpdateMobEffectPacket p) {
-                if (p.getEntityId() == myEntityId) p.getEffect().unwrapKey().ifPresent(k -> effectLevels.put(k.identifier().toString(), p.getEffectAmplifier() + 1));
+                if (p.getEntityId() == myEntityId) p.getEffect().unwrapKey().ifPresent(k -> { if (effectLevels.put(k.identifier().toString(), p.getEffectAmplifier() + 1) == null) AgentNet.LOG.info("[{}] has the effect {} (level {})", name, k.identifier(), p.getEffectAmplifier() + 1); });
+                else if (role == Role.WARRIOR && System.currentTimeMillis() - effectOddAt > 60_000) { effectOddAt = System.currentTimeMillis(); AgentNet.LOG.info("[{}] an effect packet for entity {} (its own id is {})", name, p.getEntityId(), myEntityId); }
                 if (p.getEntityId() == myEntityId) p.getEffect().unwrapKey().ifPresent(k -> effects.put(k.identifier().toString(), System.currentTimeMillis() + (p.getEffectDurationTicks() < 0 ? 3_600_000L : p.getEffectDurationTicks() * 50L)));
             } else if (packet instanceof net.minecraft.network.protocol.game.ClientboundRemoveMobEffectPacket p) {
                 if (p.entityId() == myEntityId) p.effect().unwrapKey().ifPresent(k -> effects.remove(k.identifier().toString()));
