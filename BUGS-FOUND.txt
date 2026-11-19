@@ -15,6 +15,7 @@ O3. "PUT BACK BY THE SERVER" LOOPS: the main cause was found 19:05 (391 put-back
     A boxed-in agent was told to start from "a standing spot next to it", and that could be a
     diagonal one behind a solid corner: it walked into the corner, was put back, planned the
     same again. Fixed in the planner 19:06; not yet seen working. (F3 and F4 were lesser causes.)
+O4. MINERS TRY ORE THEY CANNOT REACH for minutes ("skipping iron_ore: every way there is
     blocked", 75 times in 10 minutes for one agent) before moving on.
 O5. BUILDER "can't get within reach" of its own block 42 times in 10 minutes.
 O6. BOTS SOMETIMES MINE THE BASE (a hunter dug a hole through its own house). Low priority
