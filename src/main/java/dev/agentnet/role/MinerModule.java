@@ -1468,7 +1468,7 @@ final class MinerModule extends GathererModule {
     private void skip(AgentHandle a, String why) {
         if (target != null) skipped.put(target, ticks);
         if (why != null && ++skipRun >= 6) {
-            skipRun = 0; badSpot = BlockPos.containing(a.x(), a.y(), a.z()); badUntil = ticks + 20 * 120;
+            skipRun = 0; badSpot = target != null ? target : BlockPos.containing(a.x(), a.y(), a.z()); badUntil = ticks + 20 * 120;
             a.log("§esix " + targetName + " in a row out of reach here: looking somewhere else");
         }
         if (why != null) {

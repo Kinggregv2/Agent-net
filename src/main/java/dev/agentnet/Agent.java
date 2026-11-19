@@ -2239,7 +2239,10 @@ public final class Agent implements AgentHandle {
 
     private void startEscape(PathFinder.Node goal, int radius) {
         if (burrow != Burrow.NONE && burrow != Burrow.OUT) return; // digging in for the night: it is meant to be in a hole
-        if (goal != null && goal.y() < pos.position().y - 1 && !navBody.hasPickaxe()) return; // no pickaxe: never digging deeper down
+        // No pickaxe: never digging deeper down. But out of where it is sealed in, yes: toward the goal on its own level
+        // (a step up where it has to), by hand if need be. Refusing to dig at all left one in a one-block shaft in the rock
+        // by the base for good (run 1118d: itsCyber, empty-handed, its logs 27 blocks lower down).
+        if (goal != null && goal.y() < pos.position().y - 1 && !navBody.hasPickaxe()) goal = new PathFinder.Node(goal.x(), (int) Math.floor(pos.position().y + 0.01) + 1, goal.z());
         if (underwaterTicks > 0) return; // under water: up for air first (tickUnderwater), no digging sideways
         if (escapeGoal != null) return; // already digging out: let it finish
         if (!hasWorldHere() || onlineFor() < 5_000) return; // no world loaded yet: that's why there was no way, not a pit
