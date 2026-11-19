@@ -1065,6 +1065,7 @@ public final class Agent implements AgentHandle {
                 // Came back after a reconnect: pick the job up where it was (mine X, explore...).
                 if (replayTask) { replayTask = false; if (!task.equals("idle")) module.onTask(this, task); }
             }
+            if (dev.agentnet.role.PickaxeKit.tick(this)) return; // a pickaxe first, whatever the job
             module.tick(this);
             dev.agentnet.role.SpeedrunnerModule.crewLavaLook(this); // every agent is a lava-pool scout for the main (cheap: once in ten seconds)
         } catch (RuntimeException e) {

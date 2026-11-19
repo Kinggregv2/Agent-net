@@ -1,0 +1,79 @@
+package dev.agentnet.role;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+import net.minecraft.world.item.ItemStack;
+
+/**
+ * A pickaxe for everyone (the user, 2026-11-19: "every single role should get a pickaxe, even base guys, literally
+ * everyone"). Whatever its job, an agent with no pickaxe in its pack makes one before it goes on: a stone one if it
+ * carries three cobblestone, else a wooden one; with no wood for it, it chops three logs first. Without one it cannot dig
+ * itself out of anything, and half of the "stuck" agents of run 1119 had none.
+ *
+ * <p>Called from every agent's tick, before its role. Not in the Nether or the End (no trees there), not while it
+ * fights. If there is no wood to be had in three minutes, it lets the role work for five and tries again.
+ */
+public final class PickaxeKit {
+    private static final class Kit {
+        final MakerModule crafter = new MakerModule();
+        final MinerModule miner = new MinerModule();
+        boolean mining;
+        int ticks, mineStart, pausedUntil, lastTry = -1000;
+        boolean said;
+    }
+
+    private static final Map<String, Kit> KITS = new ConcurrentHashMap<>();
+
+    private PickaxeKit() {}
+
+    /** One tick. True while it is busy getting its pickaxe (the role waits). */
+    public static boolean tick(AgentHandle a) {
+        Kit k = KITS.computeIfAbsent(a.name().toLowerCase(), n -> new Kit());
+        k.ticks++;
+        if (Gear.bestTool(a.inventory(), "pickaxe") >= 0) {
+            if (k.mining) { k.miner.onTask(a, "idle"); k.mining = false; }
+            if (k.said) { k.said = false; a.log("§ahas its pickaxe"); }
+            if (k.crafter.busy()) { k.crafter.tick(a); return true; } // its table goes back into its pack
+            return false;
+        }
+        if (a.dimension() == null || !a.dimension().endsWith("overworld") || a.airborne()) return false;
+        if (k.crafter.busy()) { k.crafter.tick(a); return true; }
+        if (k.ticks < k.pausedUntil) return false;
+        int wood = 0, cobble = 0;
+        boolean table = false;
+        for (ItemStack s : a.inventory()) {
+            if (s.isEmpty()) continue;
+            String id = Gear.id(s);
+            if (id.endsWith("_planks")) wood += s.getCount();
+            else if ((id.endsWith("_log") || id.endsWith("_stem")) && !id.contains("stripped")) wood += 4 * s.getCount();
+            else if (id.equals("minecraft:cobblestone") || id.equals("minecraft:cobbled_deepslate")) cobble += s.getCount();
+            else if (id.equals("minecraft:crafting_table")) table = true;
+        }
+        // A wooden pickaxe is 3 planks and 2 sticks (2 planks make 4); a table to make it on, 4 more.
+        int need = cobble >= 3 ? 2 : 5;
+        if (!table) need += 4;
+        if (wood >= need) {
+            if (k.mining) { k.miner.onTask(a, "idle"); k.mining = false; }
+            if (k.ticks - k.lastTry >= 60) {
+                k.lastTry = k.ticks;
+                String pick = cobble >= 3 ? "minecraft:stone_pickaxe" : "minecraft:wooden_pickaxe";
+                if (k.crafter.queueTool(a, pick) && !k.said) { k.said = true; a.log("§7no pickaxe: making a " + pick.substring(10).replace('_', ' ') + " before anything else"); }
+            }
+            return k.crafter.busy();
+        }
+        if (!k.mining) {
+            k.mining = true; k.mineStart = k.ticks;
+            k.miner.onTask(a, "mine 3 logs");
+            if (!k.said) { k.said = true; a.log("§7no pickaxe and no wood for one: chopping three logs first"); }
+        }
+        if (k.ticks - k.mineStart > 20 * 180) {
+            k.miner.onTask(a, "idle"); k.mining = false; k.said = false;
+            k.pausedUntil = k.ticks + 20 * 300;
+            a.log("§eno wood for a pickaxe in three minutes: on with its job, and again in five");
+            return false;
+        }
+        k.miner.tick(a);
+        return true;
+    }
+}
