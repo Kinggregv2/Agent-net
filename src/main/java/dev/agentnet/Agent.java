@@ -492,14 +492,47 @@ public final class Agent implements AgentHandle {
                 }
                 if (walled && roofY != Integer.MIN_VALUE && roofY - by <= 3) {
                     burrowX = bx; burrowZ = bz; burrowY = roofY + 1; burrowTicks = 0;
-                    burrow = night() ? Burrow.WAIT : Burrow.OUT;
+                    burrow = Burrow.OUT; // nobody waits in a hole any more
                     if (navigator.busy()) navigator.stop();
                     escapeGoal = null; escapeStep = null; escapeMoves.clear(); failedGoal = null; pendingGoal = null;
-                    log(night() ? "§7back in its night hole: waiting for morning" : "§7back in its night hole, and it is day: coming out");
+                    log("§7back in a night hole from before: coming out");
                     return true;
                 }
             }
             if (System.currentTimeMillis() < burrowWalkUntil && navigator.busy()) return true; // on its way to a spot it can dig
+            // No more digging in (the user, 2026-11-19: "instead of an agent digging down it should disconnect, then a warrior
+            // should take care of those mobs, and then reconnect, or just fight the mobs like a normal person"). So: with
+            // something to fight with and the health for it, it fights (the fight code takes it from here). With nothing, or
+            // too hurt, it leaves the game for a while, tells the warriors where the mobs are, and comes back.
+            if (++burrowCheck % 10 != 0 || System.currentTimeMillis() < burrowAgainAt) return false;
+            if (role == Role.WARRIOR || airVel != null || myVehicle >= 0 || onlineFor() < 6_000) return false;
+            {
+                var tw = openWorld();
+                if (tw == null) return false;
+                Vec3 at = pos.position();
+                dev.agentnet.role.Seen threat = null;
+                for (dev.agentnet.role.Seen s : entitiesNear(14)) {
+                    if (s.player() || !s.hostile() || HARMLESS.contains(s.name()) && !s.angry()) continue;
+                    if (!s.name().equals("phantom") && !dev.agentnet.role.Sight.clear(tw, at.x, at.y + 1.62, at.z, s.pos().x, s.pos().y + 1.0, s.pos().z)) continue;
+                    if (threat == null || s.distance() < threat.distance()) threat = s;
+                }
+                if (threat == null) return false;
+                var tinv = inventory();
+                boolean weapon = dev.agentnet.role.Gear.bestTool(tinv, "sword") >= 0 || dev.agentnet.role.Gear.bestTool(tinv, "axe") >= 0;
+                boolean tool = dev.agentnet.role.Gear.bestTool(tinv, "pickaxe") >= 0 || dev.agentnet.role.Gear.bestTool(tinv, "shovel") >= 0;
+                float thp = health();
+                if (Float.isNaN(thp)) thp = 20;
+                if (weapon && thp >= 8 || tool && thp >= 12) return false; // it fights
+                callForHelp(threat);
+                int runs = AWAY_RUNS.merge(name.toLowerCase(), 1, Integer::sum);
+                long away = Math.min(120_000L, 45_000L * runs);
+                log("§ea " + threat.name().replace('_', ' ') + " is coming and it " + (weapon || tool ? "is too hurt to fight (" + Math.round(thp) + " hp)" : "has nothing to fight with")
+                        + ": leaving the game for " + away / 1000 + " s");
+                burrowAgainAt = System.currentTimeMillis() + 10_000;
+                final long awayMs = away;
+                mc.execute(() -> AgentNetClient.leaveFor(this, awayMs));
+                if (true) return true;
+            }
             if (++burrowCheck % 10 != 0 || System.currentTimeMillis() < burrowAgainAt || !night()) return false;
             // A phantom about: under a roof, whoever it is. It flies and swoops faster than anything runs, and a fighter swinging
             // at it as it passes loses (itsCyber ran, turned, and died at 1 health, run 1118d). A roof stops it.
@@ -936,6 +969,9 @@ public final class Agent implements AgentHandle {
     }
 
     private long helpSentAt;
+    /** How often in a row it has left the game because of mobs (the next time away is longer); and who is away now, with its role. */
+    static final Map<String, Integer> AWAY_RUNS = new ConcurrentHashMap<>();
+    static final Map<String, Object[]> AWAY = new ConcurrentHashMap<>();
 
     /** Tell every warrior who is after us (again every 10 s while it lasts). */
     private void callForHelp(dev.agentnet.role.Seen threat) {

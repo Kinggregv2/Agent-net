@@ -170,6 +170,9 @@ public final class Civ {
         long nowJ = System.currentTimeMillis();
         joining.entrySet().removeIf(e -> nowJ - e.getValue().at() > 120_000 || AgentNetClient.AGENTS.containsKey(e.getKey()) && AgentNetClient.AGENTS.get(e.getKey()).isOnline());
         for (Joining j : joining.values()) roles.merge(j.role(), 1, Integer::sum);
+        // Out of the game for a minute because of mobs: still the crew's, its job is taken (no replacement hired).
+        Agent.AWAY.values().removeIf(v -> System.currentTimeMillis() > (Long) v[1]);
+        for (var e : Agent.AWAY.entrySet()) { Agent aw = AgentNetClient.AGENTS.get(e.getKey()); if ((aw == null || !aw.isOnline()) && e.getValue()[0] != null) roles.merge((Role) e.getValue()[0], 1, Integer::sum); }
 
         List<Need> needs = new ArrayList<>();
         // 1. Threats.

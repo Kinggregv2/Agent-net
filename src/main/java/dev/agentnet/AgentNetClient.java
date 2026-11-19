@@ -979,6 +979,15 @@ public final class AgentNetClient implements ClientModInitializer {
         fresh.replayTask = true;
     }
 
+    /** Out of the game for a while (mobs it cannot fight), then back as it was: same role, same job, same module. */
+    static void leaveFor(Agent a, long ms) {
+        if (AGENTS.get(a.name.toLowerCase()) != a) return;
+        Agent.AWAY.put(a.name.toLowerCase(), new Object[]{a.role(), System.currentTimeMillis() + ms + 20_000});
+        Agent fresh = rejoin(a.name, a.address, a.role(), a.importance, a.task, ms);
+        fresh.adoptModule(a); // before the old one leaves: its onStop would reset the job
+        a.leave();
+    }
+
     static void reconnect(Agent a, dev.agentnet.pathing.PathFinder.Node goal, int radius) {
         Agent fresh = rejoin(a.name, a.address, a.role(), a.importance, a.task, 1500);
         fresh.adoptModule(a); // before the old one leaves: its onStop would reset the job
