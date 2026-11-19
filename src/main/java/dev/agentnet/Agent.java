@@ -483,7 +483,15 @@ public final class Agent implements AgentHandle {
                 var inv = inventory();
                 boolean armed = dev.agentnet.role.Gear.bestTool(inv, "sword") >= 0 || dev.agentnet.role.Gear.bestTool(inv, "axe") >= 0;
                 float hp = health();
-                if (role == Role.WARRIOR || armed && (Float.isNaN(hp) || hp >= 10)) return false;
+                // One mob it fights. Two or more coming, or a creeper: into the ground. Armed and at full health the main
+                // speedrunner took on a skeleton, a zombie, a spider and a creeper at once and lost everything again (run 1118d).
+                int coming = 0; boolean creeper = false;
+                for (dev.agentnet.role.Seen s : entitiesNear(14)) {
+                    if (s.player() || !s.hostile() || HARMLESS.contains(s.name()) && !s.angry()) continue;
+                    coming++;
+                    if (s.name().equals("creeper")) creeper = true;
+                }
+                if (role == Role.WARRIOR || armed && (Float.isNaN(hp) || hp >= 10) && coming <= 1 && !creeper) return false;
             } else if (!phantom && module != null && module.fighting()) return false;
             if (!String.valueOf(dimension()).endsWith("overworld") || airVel != null || underwaterTicks > 0 || myVehicle >= 0) return false;
             var w = openWorld();
