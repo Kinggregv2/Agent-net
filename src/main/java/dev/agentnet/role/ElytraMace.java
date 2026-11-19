@@ -32,7 +32,9 @@ final class ElytraMace {
     private net.minecraft.world.phys.Vec3 lastEnemy;
     private double evx, evz, evy;
     /** The ground the target last stood on, and when: thrown up by a smash, it comes back down to it (an arc, not a flight). */
-    private double groundY = Double.NaN, rawVy;
+    private double groundY = Double.NaN, rawVy, rawVx, rawVz;
+    /** The rocket on our back may be gone: at the smash it often runs into the target or the floor and goes off. */
+    private boolean rocketGone;
     private int groundAt = -1000, still;
     /** The dive is on: no more climbing first because it is "too low" (it gets lower all the way down). */
     private boolean committed;
@@ -93,17 +95,20 @@ final class ElytraMace {
             // Its position comes in every other tick: a tick with no news is not "standing still". Its speed is the last
             // change over the ticks it took; it stands on the ground once nothing has changed for four ticks.
             if (Math.abs(my) < 0.003 && mx * mx + mz * mz < 1e-5) {
-                if (++still >= 4) { groundY = enemy.pos().y; groundAt = total; rawVy = 0; }
+                if (++still >= 4) { groundY = enemy.pos().y; groundAt = total; rawVy = 0; rawVx = 0; rawVz = 0; }
                 else if (still >= 2) rawVy = (rawVy - 0.08) * 0.98; // no news for a while: it goes on falling meanwhile
             } else {
-                if (Math.abs(my) < 4) rawVy = my / (still + 1);
+                if (Math.abs(my) < 4) { rawVy = my / (still + 1); rawVx = mx / (still + 1); rawVz = mz / (still + 1); }
                 still = 0;
             }
         } else { evx = 0; evz = 0; evy = 0; rawVy = 0; still = 0; groundY = Double.NaN; groundAt = -1000; }
         // Thrown up (by our own smash, or a jump): it stood on the ground a moment ago and comes back down to it.
         boolean arc = !Double.isNaN(groundY) && total - groundAt < 70;
         // A target that runs or flies (a "bird"): chased on the elytra, not climbed over.
-        boolean moving = Math.hypot(evx, evz) > 0.45 || !arc && Math.abs(evy) > 0.3;
+        // Not one our own smash just knocked away: that is a slide of a few blocks that stops by itself, and chasing it
+        // like a runner made the next dive a low, flat one (4 blocks of fall).
+        boolean knocked = smashes > 0 && total - struckAt < 30;
+        boolean moving = !knocked && Math.hypot(evx, evz) > 0.45 || !arc && Math.abs(evy) > 0.3;
         lastEnemy = enemy.pos();
         lastFlat = enemy.distance(); // in all three directions: a target in the air can be right overhead and 20 blocks up
         targetId = enemy.id();
@@ -166,7 +171,9 @@ final class ElytraMace {
                 // Thrown up, it flies an arc back to the ground it stood on; a straight line put the aim far over or under it,
                 // and the dive at a Dummy the Wind Burst had thrown up missed every other time.
                 if (arc && !committed) t += 3; // the turn at the top
-                double tx = enemy.pos().x + evx * (arc ? Math.min(t, 6) : t), ty = arc ? arcY(enemy.pos().y, rawVy, (int) Math.round(t)) : enemy.pos().y + evy * t, tz = enemy.pos().z + evz * (arc ? Math.min(t, 6) : t);
+                // Sideways, a knocked target slows by itself (air drag 0.91 a tick): the way it still goes is a sum that ends.
+                double slide = (1 - Math.pow(0.91, Math.min(t, 30))) / 0.09;
+                double tx = enemy.pos().x + (arc ? rawVx * slide : evx * t), ty = arc ? arcY(enemy.pos().y, rawVy, (int) Math.round(t)) : enemy.pos().y + evy * t, tz = enemy.pos().z + (arc ? rawVz * slide : evz * t);
                 double off = Math.hypot(tx - a.x(), tz - a.z()), up = a.y() - ty, d3 = Math.sqrt(off * off + up * up);
                 double keep = moving ? 7 : height(a);
                 // A dive only from above: arriving level with it or under it there is nothing to smash with (against
@@ -180,7 +187,8 @@ final class ElytraMace {
                 if (!committed && (settling || off > up + 2 || up < minUp)) {
                     tactic = String.format("flying at %s (%.0f out, %.0f up)", enemy.name(), off, up);
                     a.lookAt(tx, ty + keep, tz);
-                    if (!moving && off < 6) a.look(yaw, -86f); // right over it: straight up, so the dive is straight down
+                    // Over it, or a few blocks off (knocked away): steeply up, leaning its way, so the dive is steep too.
+                    if (!moving && off < 12) a.look((float) Math.toDegrees(Math.atan2(-(tx - a.x()), tz - a.z())), off < 2.5 ? -86f : (float) (-86 + Math.min(28, off * 4)));
                     else if (up < keep - 2 && off < 14) a.look(a.yaw(), off < 6 ? -60f : -40f); // too low for a dive: gain height as it closes
                     if (a.rocketLeft() <= 0 && slot(a, Items.FIREWORK_ROCKET) >= 0) rocket(a, a.yaw(), a.pitch());
                     if (timer > 20 * 25) { abort(a, "couldn't catch " + enemy.name()); return false; }
@@ -333,6 +341,7 @@ final class ElytraMace {
                         a.log(String.format("§cmace smash on %s after %.0f blocks of fall", enemy.name(), fallen));
                     }
                     struck = true;
+                    rocketGone = true;
                     struckAt = total;
                     dev.agentnet.AgentNet.LOG.info("[{}] smash swing: {} ticks after the elytra came off, {} away, {} up, falling {} a tick, target blocking: {}, holding {}", a.name(), timer, String.format("%.1f", enemy.distance()), String.format("%.1f", a.y() - enemy.pos().y), String.format("%.2f", a.verticalSpeed()), enemy.blocking(), Gear.id(a.inventory().get(a.selectedSlot())) + "; the server has: " + Fight.serverSide(a));
                 }
@@ -355,7 +364,9 @@ final class ElytraMace {
                 topped = true;
                 committed = false;
                 if (high) a.lookAt(enemy.pos().x, enemy.pos().y + 0.9, enemy.pos().z); else a.look(yaw, -86f);
-                if (a.rocketLeft() <= 2 && slot(a, Items.FIREWORK_ROCKET) >= 0) rocket(a, a.yaw(), a.pitch());
+                // After a smash always a new rocket: the old one may have gone off on the target, and without one burning
+                // the server never sees the dive going down and counts no fall for it until the elytra is off.
+                if ((rocketGone || a.rocketLeft() <= 2) && slot(a, Items.FIREWORK_ROCKET) >= 0) { rocket(a, a.yaw(), a.pitch()); rocketGone = false; }
                 go(State.DIVE);
             }
             case CONFIRM -> {
