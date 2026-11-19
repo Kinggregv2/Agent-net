@@ -2611,6 +2611,7 @@ public final class SpeedrunnerModule implements RoleModule {
         if (!nether(a)) {
             // The main went through its portal: after it.
             if (mNether && mainPortal != null) {
+                if (netherArmor(a)) return; // full iron and a golden helmet first, like the main
                 status = "following " + MAIN + " into the nether";
                 // The main's way in: onto the block in front of the frame, to its middle, then one straight step in (the drop
                 // does the rest). Stepping in at a slant from wherever it got to clipped the frame; the server put it back
@@ -2903,7 +2904,7 @@ public final class SpeedrunnerModule implements RoleModule {
         if (wearArmor(a)) return true;
         String item = !hasShield(a) ? "minecraft:shield"
                 : !hasArmor(a, 1) ? "minecraft:iron_chestplate"
-                : !hasArmor(a, 0) ? "minecraft:iron_helmet" : null;
+                : null; // (no iron helmet: the helmet is the golden one of the nether kit)
         if (item == null) {
             if (ownMining) { mine(a, null); ownMining = false; }
             return false;
@@ -2949,6 +2950,21 @@ public final class SpeedrunnerModule implements RoleModule {
         for (int slot = 0; slot < 4; slot++) {
             ItemStack on = a.armor().get(slot);
             if (on.getItem() == net.minecraft.world.item.Items.ELYTRA) continue;
+            // The helmet is the golden one (piglins): put on when it has it, and nothing takes its place.
+            if (slot == 0) {
+                if (Gear.id(on).equals("minecraft:golden_helmet")) continue;
+                int g = -1;
+                for (int k = 0; k < inv.size(); k++) if (Gear.id(inv.get(k)).equals("minecraft:golden_helmet")) { g = k; break; }
+                if (g >= 0) {
+                    wornAt = ticks;
+                    int ghb = g < 9 ? g : 8;
+                    if (g >= 9) a.moveToHotbar(g, ghb);
+                    a.selectHotbar(ghb);
+                    a.useItem();
+                    a.log("[speedrun] puts on its golden helmet");
+                    return true;
+                }
+            }
             int i = Gear.bestArmor(inv, ARMOR_SLOTS[slot]);
             if (i < 0 || !on.isEmpty() && Gear.armorScore(inv.get(i)) <= Gear.armorScore(on) + 1) continue;
             wornAt = ticks;
@@ -3901,7 +3917,74 @@ public final class SpeedrunnerModule implements RoleModule {
         a.useItemOn(bottom.getX(), bottom.getY(), bottom.getZ(), Direction.UP);
     }
 
+    // ------------------------------------------------------------------ the nether kit
+    //
+    // Nobody goes into the Nether without full iron and a golden helmet (the user, 2026-11-19: "make it a requirement to be
+    // in full iron with a golden helmet to go into the nether"). Iron against the blazes and the falls, the gold so the
+    // piglins leave it alone. Chestplate 8 iron, leggings 7, boots 4, the helmet 5 gold: mined, smelted, made and put on by
+    // itself, in that order.
+
+    private static boolean ironOrBetter(ItemStack s) {
+        String id = Gear.id(s);
+        return id.startsWith("minecraft:iron_") || id.startsWith("minecraft:diamond_") || id.startsWith("minecraft:netherite_");
+    }
+
+    /** Wears it all: a golden helmet, and iron (or better) on chest, legs and feet. */
+    static boolean netherKit(AgentHandle a) {
+        List<ItemStack> on = a.armor();
+        if (on.size() < 4) return false;
+        return Gear.id(on.get(0)).equals("minecraft:golden_helmet") && ironOrBetter(on.get(1)) && ironOrBetter(on.get(2)) && ironOrBetter(on.get(3));
+    }
+
+    private boolean kitMining;
+    private String kitSaid;
+    private int kitAt = -1000;
+
+    /** Gets and puts on what is missing of the nether kit. True while it is busy with it; false once it wears it all. */
+    private boolean netherArmor(AgentHandle a) {
+        if (wearArmor(a)) return true;
+        if (netherKit(a)) { if (kitMining) { mine(a, null); kitMining = false; } return false; }
+        List<ItemStack> on = a.armor();
+        String item = null;
+        for (int slot = 1; slot <= 3 && item == null; slot++) {
+            if (ironOrBetter(on.get(slot))) continue;
+            int have = Gear.bestArmor(a.inventory(), ARMOR_SLOTS[slot]);
+            if (have >= 0 && ironOrBetter(a.inventory().get(have))) return true; // in its pack: wearArmor puts it on next
+            item = "minecraft:iron_" + ARMOR_SLOTS[slot];
+        }
+        if (item == null) {
+            if (count(a, "minecraft:golden_helmet") > 0) return true; // in its pack: wearArmor puts it on next
+            item = "minecraft:golden_helmet";
+        }
+        boolean gold = item.equals("minecraft:golden_helmet");
+        String ingot = gold ? "minecraft:gold_ingot" : "minecraft:iron_ingot", raw = gold ? "minecraft:raw_gold" : "minecraft:raw_iron";
+        int cost = gold ? 5 : item.endsWith("chestplate") ? 8 : item.endsWith("leggings") ? 7 : 4;
+        int ingots = count(a, ingot), rawN = count(a, raw);
+        String name = item.substring(10).replace('_', ' ');
+        if (ingots >= cost) {
+            if (kitMining) { mine(a, null); kitMining = false; }
+            status = "making its " + name + " (the nether kit)";
+            if (ticks - kitAt > 200) { kitAt = ticks; crafter.queueTool(a, item); }
+            return true;
+        }
+        if (ingots + rawN >= cost) {
+            if (kitMining) { mine(a, null); kitMining = false; }
+            if (furnaceKit(a)) return true;
+            status = "smelting for its " + name + " (the nether kit)";
+            if (ticks - kitAt > 200) { kitAt = ticks; crafter.onTask(a, "make " + ingot.substring(10) + " " + (cost - ingots)); }
+            return true;
+        }
+        status = "mining " + (gold ? "gold" : "iron") + " for its " + name + " (the nether kit: full iron and a golden helmet)";
+        if (!status.equals(kitSaid)) { kitSaid = status; a.log("[speedrun] " + status); }
+        if (minerJob != null && miner.idle() && miner.status().startsWith("done") && ticks - jobRestart > 100) { minerJob = null; jobRestart = ticks; }
+        mine(a, "mine " + (cost - ingots - rawN) + (gold ? " gold_ore" : " iron_ore"));
+        kitMining = true;
+        miner.tick(a);
+        return true;
+    }
+
     private void enter(AgentHandle a) {
+        if (!nether(a) && netherArmor(a)) { stageTicks = 0; return; } // full iron and a golden helmet first
         status = "walking into its portal";
         BlockPos in = c(1, 0, 0);
         if (stageTicks > 20 * 40) { go(a, Stage.LIGHT); return; }

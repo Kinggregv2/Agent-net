@@ -38,5 +38,10 @@ if [ -d .git ]; then
   if ! git diff --cached --quiet; then
     git commit -q -m "build $(date '+%Y-%m-%d %H:%M')" && echo "Saved version $(git rev-parse --short HEAD)"
   fi
-  if git remote | grep -q '^origin$'; then git push -q origin main 2>/dev/null && echo "Pushed to GitHub" || echo "Push to GitHub failed (still saved locally)"; fi
+  if git remote | grep -q '^origin$'; then
+    git push -q origin main 2>/dev/null && echo "Pushed to GitHub" || echo "Push to GitHub failed (still saved locally)"
+    # A branch of its own for every change (the user, 2026-11-19): the state of the code at this build, kept under its own name.
+    B="build-$(date '+%Y%m%d-%H%M%S')"
+    git branch -q "$B" 2>/dev/null && git push -q origin "$B" 2>/dev/null && echo "Branch $B"
+  fi
 fi
