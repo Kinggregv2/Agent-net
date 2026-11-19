@@ -335,6 +335,22 @@ final class MakerModule implements RoleModule {
                 return;
             }
         }
+        // Smelting with nothing better to burn than logs: sawn into planks first. A log burns as long as one plank and
+        // makes four (the user, watching it put whole logs under 4 porkchops: "he should craft the logs into planks").
+        if (kind == Kind.SMELT && !job.item.endsWith("charcoal")) {
+            List<ItemStack> fuelInv = a.inventory();
+            boolean coal = find(fuelInv, "minecraft:coal") >= 0 || find(fuelInv, "minecraft:charcoal") >= 0 || find(fuelInv, "minecraft:coal_block") >= 0
+                    || find(fuelInv, "minecraft:blaze_rod") >= 0 || find(fuelInv, "minecraft:lava_bucket") >= 0;
+            String planks = coal ? null : planksFromLog(a);
+            if (planks != null) {
+                a.log("logs into planks first: four times the fuel");
+                jobs.addFirst(job);
+                jobs.addFirst(new Job(planks, 64, null));
+                job = null;
+                go(State.IDLE);
+                return;
+            }
+        }
         if (kind != Kind.CRAFT_2X2) {
             // Carrying its own crafting table: use that (one seen earlier may be back up a tunnel it can't reach).
             station = kind == Kind.CRAFT && find(a.inventory(), "minecraft:crafting_table") >= 0 ? null : findStation(a, kind);
