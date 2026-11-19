@@ -2471,6 +2471,9 @@ public final class Agent implements AgentHandle {
             // Water or lava resting on it would pour down on the agent.
             BlockState over = w.get(fx, fy + dy + 1, fz);
             if (over == null || !over.getFluidState().isEmpty()) return false;
+            // Sand or gravel resting on it would fall on the agent, and the next block of it after that: it dug up under
+            // sand, the sand came down on its head, it dug again, and suffocated (run 1119d, the main, 8 minutes in).
+            if (over.getBlock() instanceof net.minecraft.world.level.block.FallingBlock || s.getBlock() instanceof net.minecraft.world.level.block.FallingBlock) return false;
             dev.agentnet.role.Gear.holdBestFor(this, s);
             dig(fx, fy + dy, fz);
             return true;
