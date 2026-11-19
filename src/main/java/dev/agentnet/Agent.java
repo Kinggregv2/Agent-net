@@ -2464,7 +2464,9 @@ public final class Agent implements AgentHandle {
                 if (!wet && !dev.agentnet.pathing.Rules.canWalkThrough(s) && dig == null) dig = c;
             }
             if (blocked) continue;
-            if (dig != null) { dev.agentnet.role.Gear.holdBestFor(this, w.get(dig[0], dig[1], dig[2])); dig(dig[0], dig[1], dig[2]); return; } // with its pickaxe, not its fist
+            // With its pickaxe, not its fist. A block it may not dig (the server refused it three times, or it is the base):
+            // a wall, the next way round. Taken as dug, it walked into it again and again (run 1120a: 45 put-backs).
+            if (dig != null) { dev.agentnet.role.Gear.holdBestFor(this, w.get(dig[0], dig[1], dig[2])); if (dig(dig[0], dig[1], dig[2]) >= 0) return; continue; }
             // This step is open now: step into it (straight up first if it's a step up, then across:
             // the same kind of short move the walker makes), then plan the whole trip again from there.
             escapeStep = new PathFinder.Node(nx, stepUp ? fy + 1 : fy, nz);
