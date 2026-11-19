@@ -1952,7 +1952,15 @@ public final class Agent implements AgentHandle {
             case 3 -> {
                 log("§estill stuck: straight up to the surface");
                 surfaceTriedAt = 0; escapeGoal = null; escapeStuck = 0;
-                if (!toSurface(g, now) && !pillarOut(g)) log("§eit's at the surface already and can't pillar here");
+                if (!toSurface(g, now) && !pillarOut(g)) {
+                    // In a hole whose walls are the base (someone dug it there), sky above, nothing to pillar with: out through
+                    // a wall, for a minute. A hole in the base is mended; an agent in it for good is not (run 1118d: itsCyber,
+                    // 23 times "stuck" in ten minutes in a one-block shaft in the base).
+                    baseBreakUntil = now + 60_000;
+                    log("§eat the surface already and nothing to pillar with: digging out, through the base if it has to");
+                    escapeRounds = 0; escapeStuck = 0; escapeAt = 0; escapeGoal = null;
+                    if (g != null) startEscape(g, 1);
+                }
             }
             case 4 -> {
                 log("§estill stuck: leaving and coming straight back");
@@ -2320,7 +2328,7 @@ public final class Agent implements AgentHandle {
                 boolean wet = s != null && !stepUp && c[1] == fy && s.getFluidState().is(net.minecraft.tags.FluidTags.WATER) && !dev.agentnet.pathing.Rules.dangerous(s)
                         && dev.agentnet.pathing.Rules.canWalkThrough(w.get(c[0], fy + 1, c[2]));
                 if (s == null || !s.getFluidState().isEmpty() && !wet || s.getBlock() == net.minecraft.world.level.block.Blocks.BEDROCK
-                        || dev.agentnet.pathing.Rules.dangerous(s) || spawnProtected(c[0], c[2]) || inBase(c[0], c[1], c[2]) && !dev.agentnet.pathing.Rules.canWalkThrough(s) && !baseDiggable(s, c[0], c[1], c[2], fy)
+                        || dev.agentnet.pathing.Rules.dangerous(s) || spawnProtected(c[0], c[2]) || inBase(c[0], c[1], c[2]) && !dev.agentnet.pathing.Rules.canWalkThrough(s) && !baseDiggable(s, c[0], c[1], c[2], fy) && System.currentTimeMillis() >= baseBreakUntil
                         || !s.isAir() && dev.agentnet.pathing.Rules.canWalkThrough(s) == false && !escapeDiggable(s, c[0], c[1], c[2])) { blocked = true; break; }
                 if (!wet && !dev.agentnet.pathing.Rules.canWalkThrough(s) && dig == null) dig = c;
             }
@@ -2400,9 +2408,13 @@ public final class Agent implements AgentHandle {
         return underBase(feetY) && b != null && b.hub() != null && y < b.hub().getY() && !s.hasBlockEntity();
     }
 
+    /** Until then an escape may dig through the base too (see the stuck steps). */
+    private volatile long baseBreakUntil;
+
     private boolean escapeDiggable(BlockState s, int x, int y, int z) {
         if (natural(s)) return true;
-        if (inBase(x, y, z) || s.hasBlockEntity()) return false;
+        if (s.hasBlockEntity()) return false;
+        if (inBase(x, y, z)) return System.currentTimeMillis() < baseBreakUntil;
         var b = s.getBlock();
         return b != net.minecraft.world.level.block.Blocks.OBSIDIAN && b != net.minecraft.world.level.block.Blocks.CRYING_OBSIDIAN && b != net.minecraft.world.level.block.Blocks.BEDROCK
                 && b != net.minecraft.world.level.block.Blocks.REINFORCED_DEEPSLATE && b != net.minecraft.world.level.block.Blocks.SPAWNER && b != net.minecraft.world.level.block.Blocks.TRIAL_SPAWNER;

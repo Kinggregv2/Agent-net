@@ -2688,6 +2688,9 @@ public final class SpeedrunnerModule implements RoleModule {
     /** Each helper's own job in the overworld, given out in turn: iron, flint, iron. */
     private static final java.util.Map<String, String> HELPER_JOBS = new java.util.concurrent.ConcurrentHashMap<>();
     private boolean helperMining;
+    /** The miner is on the helper's OWN gear (helperOwn). Its own flag: sharing helperMining, the job for the main stopped
+     *  the miner every tick ("the main needs nothing") and this started it again: 8 400 starts in six minutes, nothing mined. */
+    private boolean ownMining;
     private String helperJobSaid;
 
     /**
@@ -2747,7 +2750,7 @@ public final class SpeedrunnerModule implements RoleModule {
      */
     private boolean helperOwn(AgentHandle a) {
         if (mainStage.ordinal() >= Stage.CAST.ordinal()) {
-            if (helperMining) { mine(a, null); helperMining = false; }
+            if (ownMining) { mine(a, null); ownMining = false; }
             return false;
         }
         if (wearArmor(a)) return true;
@@ -2755,20 +2758,20 @@ public final class SpeedrunnerModule implements RoleModule {
                 : !hasArmor(a, 1) ? "minecraft:iron_chestplate"
                 : !hasArmor(a, 0) ? "minecraft:iron_helmet" : null;
         if (item == null) {
-            if (helperMining) { mine(a, null); helperMining = false; }
+            if (ownMining) { mine(a, null); ownMining = false; }
             return false;
         }
         String name = item.substring(10).replace('_', ' ');
         int cost = item.endsWith("shield") ? 1 : item.endsWith("chestplate") ? 8 : 5;
         int ingots = count(a, "minecraft:iron_ingot"), raw = count(a, "minecraft:raw_iron");
         if (ingots >= cost) {
-            if (helperMining) { mine(a, null); helperMining = false; }
+            if (ownMining) { mine(a, null); ownMining = false; }
             status = "making itself a " + name;
             if (ticks - ownAt > 200) { ownAt = ticks; if (crafter.queueTool(a, item)) a.log("[speedrun] making itself a " + name + " while " + MAIN + " works on its own"); }
             return true;
         }
         if (ingots + raw >= cost) {
-            if (helperMining) { mine(a, null); helperMining = false; }
+            if (ownMining) { mine(a, null); ownMining = false; }
             if (furnaceKit(a)) return true;
             status = "smelting iron for its own " + name;
             if (ticks - ownAt > 200) { ownAt = ticks; crafter.onTask(a, "make iron_ingot " + (cost - ingots)); }
@@ -2778,7 +2781,7 @@ public final class SpeedrunnerModule implements RoleModule {
         if (!status.equals(ownSaid)) { ownSaid = status; a.log("[speedrun] " + status + " (on its own until " + MAIN + " builds the portal)"); }
         if (minerJob != null && miner.idle() && miner.status().startsWith("done") && ticks - jobRestart > 100) { minerJob = null; jobRestart = ticks; }
         mine(a, "mine 8 iron_ore");
-        helperMining = true;
+        ownMining = true;
         miner.tick(a);
         return true;
     }
