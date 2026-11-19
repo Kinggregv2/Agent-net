@@ -2412,6 +2412,7 @@ public final class Agent implements AgentHandle {
             }
         } else escapeHover = 0;
         if (isDigging()) return;
+        if (System.currentTimeMillis() < fallSettleUntil) return; // sand or gravel still falling into the gap it dug: not into it yet
         if (pillarPlace != null) {
             // Pillar step, second tick: the block under its feet (and a tick to settle on it).
             lookAt(pillarPlace.getX() + 0.5, pillarPlace.getY() + 1.0, pillarPlace.getZ() + 0.5);
