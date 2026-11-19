@@ -192,3 +192,9 @@ Test run: potions, Wind Burst elytra mace, cart PvP, then 9 minutes of autopilot
 13. Explorer is hired at 4 crew members but then gives up on most chunks (item 6).
 14. The learning check judged the coal miner after 5 minutes while it was still
     walking to its ore (coal 0 -> 0); longer waits for it would be fairer.
+
+
+
+
+
+agents mine don't expect graavity blocks to fall down
