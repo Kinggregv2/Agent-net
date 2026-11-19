@@ -536,7 +536,21 @@ public final class Agent implements AgentHandle {
             // Fresh from a death at night with nothing: in the ground at once, before anything comes. Waiting for a mob to
             // show first, the speedrunner died five times in three minutes at its spawn (skeletons, zombies, spiders).
             boolean fresh = System.currentTimeMillis() - diedAt < 120_000;
-            if (!phantom && (near == null ? !fresh : near.distance() < 4)) return false;
+            // A worker (no fighter) out under the open sky: into the ground as soon as it is night, mob in sight or not.
+            // Waiting to see one first, the hunter died four times in one night and the distributors four times (run
+            // 1119c): by then it was a creeper at its feet or "nowhere to dig in". Under a roof (a mine, a cave it works in)
+            // it carries on.
+            boolean exposed = false;
+            if (!fighter && near == null && !fresh) {
+                exposed = true;
+                int ex = (int) Math.floor(me.x), ey = (int) Math.floor(me.y + 0.01), ez = (int) Math.floor(me.z);
+                for (int dy = 2; dy <= 20; dy++) {
+                    BlockState s = w.get(ex, ey + dy, ez);
+                    if (s == null) break;
+                    if (!s.isAir() && !s.is(net.minecraft.tags.BlockTags.LEAVES) && !s.is(net.minecraft.tags.BlockTags.LOGS)) { exposed = false; break; }
+                }
+            }
+            if (!phantom && !exposed && (near == null ? !fresh : near.distance() < 4)) return false;
             int x = (int) Math.floor(me.x), y = (int) Math.floor(me.y + 0.01), z = (int) Math.floor(me.z);
             if (!burrowable(w, x, y, z)) {
                 // A spot a few steps away that can be dug: walk there and try again (run 1118d: the main came back from a
@@ -564,7 +578,7 @@ public final class Agent implements AgentHandle {
             pendingGoal = null; // and no trip waiting to start either: one did, its "boxed in" dug it back out of its hole and a zombie killed it
             if (navigator.busy()) navigator.stop();
             escapeGoal = null; escapeStep = null; escapeMoves.clear();
-            log(phantom ? "§ephantoms about: digging in under a roof until morning" : near == null ? "§ejust back from a death, at night, with nothing: digging in until morning" : "§enight, and a " + near.name() + " is coming: digging in until morning");
+            log(phantom ? "§ephantoms about: digging in under a roof until morning" : near == null ? (exposed ? "§enight, and it is out in the open: digging in until morning" : "§ejust back from a death, at night, with nothing: digging in until morning") : "§enight, and a " + near.name() + " is coming: digging in until morning");
             return true;
         }
         burrowTicks++;
