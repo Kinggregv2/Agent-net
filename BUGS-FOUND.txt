@@ -218,3 +218,4 @@ Test run: potions, Wind Burst elytra mace, cart PvP, then 9 minutes of autopilot
 
 agents mine don't expect graavity blocks to fall down
 when mining a crafting table and the items drops out of reach, it just waits to pick it up instead of waling to the item
+the agents are unable to go under water
