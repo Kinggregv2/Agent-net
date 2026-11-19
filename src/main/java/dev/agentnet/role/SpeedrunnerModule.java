@@ -2955,6 +2955,7 @@ public final class SpeedrunnerModule implements RoleModule {
         int ingots = count(a, "minecraft:iron_ingot"), raw = count(a, "minecraft:raw_iron");
         if (ingots >= cost) {
             if (ownMining) { mine(a, null); ownMining = false; }
+            if (tableKit(a)) return true; // a table to make it on first
             status = "making itself a " + name;
             if (ticks - ownAt > 200) { ownAt = ticks; if (crafter.queueTool(a, item)) a.log("[speedrun] making itself a " + name + " while " + MAIN + " works on its own"); }
             return true;
@@ -4039,6 +4040,7 @@ public final class SpeedrunnerModule implements RoleModule {
         String name = item.substring(10).replace('_', ' ');
         if (ingots >= cost) {
             if (kitMining) { mine(a, null); kitMining = false; }
+            if (tableKit(a)) return true; // a table to make it on first
             status = "making its " + name + " (the nether kit)";
             if (ticks - kitAt > 200) { kitAt = ticks; crafter.queueTool(a, item); }
             return true;
