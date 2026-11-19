@@ -1,7 +1,7 @@
 AGENTNET BUGS (kept up to date by Claude: open ones first, then what was fixed)
 ================================================================================
 A bug = any unintended behaviour, including deaths that could have been prevented.
-Last updated: 2026-11-19 20:35, from crew runs "run 1118d" and "run 1119a" to "run 1119d".
+Last updated: 2026-11-19 20:55, from crew runs "run 1118d" and "run 1119a" to "run 1119e".
 
 --- OPEN (found, not fixed yet) --------------------------------------------------
 
@@ -16,18 +16,16 @@ O3. "PUT BACK BY THE SERVER" LOOPS: the main cause was found 19:05 (391 put-back
     diagonal one behind a solid corner: it walked into the corner, was put back, planned the
     same again. Fixed in the planner 19:06. SEEN WORKING: 1 put-back in 6 minutes (was 391 in 28).
     (F3 and F4 were lesser causes.) Keep an eye on it for a few more rounds before closing.
-O4. MINERS TRY ORE THEY CANNOT REACH for minutes ("skipping iron_ore: every way there is
-    blocked", 75 times in 10 minutes for one agent) before moving on.
-O5. BUILDER "can't get within reach" of its own block 42 times in 10 minutes.
-O6. BOTS SOMETIMES MINE THE BASE (a hunter dug a hole through its own house). Low priority
-    (the user: just write it down).
 O7. THE DISTRIBUTOR OFTEN DELIVERS NOTHING ("0 collected, 0 delivered" with 7 to 12 jobs
-    queued), partly because it digs in for the night like everyone else.
+    queued). Digging in is gone (O16). Seen 20:46 in run 1119e: a distributor with a pickaxe sat
+    at -46 43 33 underground, "no way (closed in)" every ten seconds for minutes, though a step up
+    beside it looked open. Cause not found yet.
 O8. NO TREES NEAR SOME SPAWNS (snowy mountains): the whole crew is short of wood and the
     "looking further out" hops find none for a long time.
 O9. ELYTRA MACE: the fighter read its own Strength as 0 while it had Strength II (so it
     dives a block or two higher than needed). The dive height from the target's armor,
-    health and our Strength is written but not tested in-game.
+    health and our Strength is written but not tested in-game. 20:55: could not find the cause
+    by reading; a log line now says which effects an agent is told it has, to catch it next time.
 O10. Helpers sit "making itself an iron chestplate" for minutes without moving (AFK line).
 O11. Old ones from 2026-11-16 that nobody has re-checked: keeper hiring loop (old 2), idle
     farmers / no fishing rod (old 3, 4), healing potions unused (old 5), kill order far
@@ -36,15 +34,13 @@ O12. EIGHT AGENTS KILLED IN ONE CAVE IN 15 MINUTES (run 1119c, the iron at about
     3 creepers, 3 skeletons, 2 zombies). Each respawned and walked straight back to the same
     ore. Fix written 18:35 (miners leave ore within 20 blocks of a crew death alone for ten
     minutes), not yet seen working. The list of death spots is forgotten when the game is
-    restarted. Unarmed miners at half health still "fight" what they cannot outrun.
+    restarted (no longer matters: every restart is a new world). Unarmed or badly hurt agents
+    now leave the game instead of fighting (O16).
 O13. DIGS REFUSED BY THE SERVER, AGAIN: 212 in 23 minutes in run 1119c, single agents on the
     same block every 1.7 s (probably while the server does not have them on the ground:
     "standing on air" lines). The first fix (F3) used one stretch factor for the whole crew,
     which hit its cap and slowed everybody's digging threefold. Changed 18:38 to a factor
     per agent with room for the server's five-times air penalty; not yet seen working.
-O14. A MINER SKIPPED LOGS 247 TIMES IN 12 MINUTES ("every way there is blocked"), each with a
-    failed path search. The "six in a row: look elsewhere" rule (F11) does not stop it when
-    the unreachable targets are spread out.
 O15. THE MAIN SEARCHED 50 MINUTES FOR A LAVA POOL in run 1119c (pool stage from 25 to 75+ min).
     Its search was a random walk: a 48-block hop in a random direction every 20 s. Changed 19:40:
     it keeps one heading and goes on outward, and every agent in the crew tells it about lava it
@@ -121,6 +117,16 @@ F17. Seen working in run 1119c: logs sawn into planks before fuelling a furnace 
     and a stuck miner (2 times).
     Written, not yet seen working: hitting
     a mob on its lava bridge instead of walking into it; keeping away from hoglins/piglins.
+F18. (was O4 and O14) Miners retried targets they could not reach, each after a failed path
+    search (75 iron ore in 10 minutes, 247 logs in 12). Since 20:50: eight given up within a
+    minute with nothing mined = nothing within 48 blocks of there for three minutes, and it goes
+    to look elsewhere. Written, not yet seen working.
+F19. (was O5) A builder skipped block after block as "can't get within reach" (412 in ten
+    minutes): it was the builder that was stuck. Since 20:50: after five in a row it goes back to
+    the base's drop-off and tries those five again. Written, not yet seen working.
+F20. (was O6) Bots dug into the base. Since 20:52 there is one gate for every dig: a block of
+    the building is never dug by anyone but the builder (and the last-resort way out of a hole
+    in it). Written, not yet seen working.
 
 ================================================================================
 OLDER REPORT, kept for reference
