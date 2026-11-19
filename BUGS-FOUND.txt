@@ -1,7 +1,7 @@
 AGENTNET BUGS (kept up to date by Claude: open ones first, then what was fixed)
 ================================================================================
 A bug = any unintended behaviour, including deaths that could have been prevented.
-Last updated: 2026-11-19 20:55, from crew runs "run 1118d" and "run 1119a" to "run 1119e".
+Last updated: 2026-11-19 21:00, from crew runs "run 1118d" and "run 1119a" to "run 1119g".
 
 --- OPEN (found, not fixed yet) --------------------------------------------------
 
@@ -127,6 +127,10 @@ F19. (was O5) A builder skipped block after block as "can't get within reach" (4
 F20. (was O6) Bots dug into the base. Since 20:52 there is one gate for every dig: a block of
     the building is never dug by anyone but the builder (and the last-resort way out of a hole
     in it). Written, not yet seen working.
+F21. A PICKAXE FOR EVERYONE (asked by the user 20:57: "every single role should get a pickaxe,
+    even base guys"). Since 21:00 any agent of any role with no pickaxe makes one before it goes
+    on with its job: stone with three cobblestone, else wood, chopping three logs first if it
+    has no wood. Overworld only. Written, not yet seen working.
 
 ================================================================================
 OLDER REPORT, kept for reference
