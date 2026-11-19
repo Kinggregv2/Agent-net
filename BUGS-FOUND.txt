@@ -1,7 +1,7 @@
 AGENTNET BUGS (kept up to date by Claude: open ones first, then what was fixed)
 ================================================================================
 A bug = any unintended behaviour, including deaths that could have been prevented.
-Last updated: 2026-11-20 00:26, from crew runs "run 1118d" to "run 1120b".
+Last updated: 2026-11-20 00:36, from crew runs "run 1118d" to "run 1120c".
 
 --- OPEN (found, not fixed yet) --------------------------------------------------
 
@@ -27,7 +27,10 @@ O9. ELYTRA MACE: the fighter read its own Strength as 0 while it had Strength II
     dives a block or two higher than needed). The dive height from the target's armor,
     health and our Strength is written but not tested in-game. 20:55: could not find the cause
     by reading; a log line now says which effects an agent is told it has, to catch it next time.
-O10. Helpers sit "making itself an iron chestplate" for minutes without moving (AFK line).
+O10. HELPERS STOOD STILL "MAKING ITSELF A STONE AXE" (also "an iron chestplate") for minutes: they
+    had the materials but no crafting table and no wood for one, and queued the craft every 5 s
+    (run 1120c). Since 00:35 the stone tools, its own gear and the nether kit get a table first (a
+    carried one, one within 24 blocks, or logs chopped for one). Not yet seen working.
 O11. Old ones from 2026-11-16 that nobody has re-checked: keeper hiring loop (old 2), idle
     farmers / no fishing rod (old 3, 4), healing potions unused (old 5), kill order far
     away does nothing (old 7), "kill" task stays after a role change (old 8).
