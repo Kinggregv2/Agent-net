@@ -457,6 +457,7 @@ public final class SpeedrunnerModule implements RoleModule {
             case BUCKETS -> {
                 if (buckets(a) >= 2) { go(a, Stage.FLINT); return; }
                 if (count(a, "minecraft:iron_ingot") < 3) { go(a, Stage.IRON); return; }
+                if (tableKit(a)) return;
                 if (stageTicks % 100 == 1) { crafter.onTask(a, "make bucket 1"); status = "crafting a bucket"; }
             }
             case FLINT -> {
@@ -466,6 +467,7 @@ public final class SpeedrunnerModule implements RoleModule {
             case LIGHTER -> {
                 if (count(a, "minecraft:flint_and_steel") > 0) { go(a, Stage.SHIELD); return; }
                 if (count(a, "minecraft:iron_ingot") < 1) { go(a, Stage.IRON); return; }
+                if (tableKit(a)) return;
                 if (stageTicks % 100 == 1) { crafter.onTask(a, "make flint_and_steel 1"); status = "crafting flint and steel"; }
                 if (stageTicks > 20 * 60) { a.log("§e[speedrun] couldn't craft flint and steel: getting the parts again"); go(a, Stage.FLINT); }
             }
@@ -570,6 +572,32 @@ public final class SpeedrunnerModule implements RoleModule {
 
     private boolean kitJob;
     private int fuelAskedAt = -10000;
+
+    /**
+     * A crafting table to craft at: one carried, one within 24 blocks, or the 4 planks for one; else it chops logs itself.
+     * Run 1118d: it left its table behind digging out of a hole, had 1 plank, and asked "make 1x bucket" every 5 s for
+     * 80 minutes while waiting on the crew for logs.
+     */
+    private boolean tableKit(AgentHandle a) {
+        int wood = 0;
+        for (ItemStack s : a.inventory()) {
+            String id = Gear.id(s);
+            if (id.endsWith("_planks")) wood += s.getCount();
+            else if ((id.endsWith("_log") || id.endsWith("_stem")) && !id.contains("stripped")) wood += 4 * s.getCount();
+        }
+        boolean ok = wood >= 4 || count(a, "minecraft:crafting_table") > 0
+                || (a.openWorld() instanceof BlockView w && !w.findAll((int) Math.floor(a.x()), (int) Math.floor(a.z()), 24, s -> s.getBlock() == Blocks.CRAFTING_TABLE, 1).isEmpty());
+        if (ok) { if (tableJob) { tableJob = false; mine(a, null); } return false; }
+        if (!tableJob) a.log("[speedrun] no crafting table near and " + wood + " planks' worth of wood: chopping logs for one");
+        tableJob = true;
+        status = "getting wood for a crafting table";
+        if (minerJob != null && miner.idle() && miner.status().startsWith("done") && ticks - jobRestart > 100) { minerJob = null; jobRestart = ticks; }
+        mine(a, "mine 3 logs");
+        miner.tick(a);
+        return true;
+    }
+
+    private boolean tableJob;
 
     // ------------------------------------------------------------------ the nether: a fortress, its blazes, their rods
     //
