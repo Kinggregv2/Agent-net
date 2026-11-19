@@ -156,6 +156,18 @@ public final class Navigator {
                 // Up a block: room to jump in its own column first (vanilla: 1.8 tall, it can't rise a block under a ceiling
                 // two blocks up). Without this check it rose into the ceiling, was put back, planned the same, again and again.
                 if (dy > 0) { var over = view.get(start.x(), start.y() + 2, start.z()); if (over == null || !Rules.canWalkThrough(over)) continue; }
+                // A diagonal one: only round an open corner (both blocks beside the way clear, feet and head, at the level it
+                // walks on). Stepped onto through a solid corner, the server put it back, it planned the same step again, and
+                // so on for good: this was the "put back" loop (run 1119c: 391 in 28 minutes, 130 for one agent at one spot).
+                if (dx != 0 && dz != 0) {
+                    int wy = Math.max(start.y(), y);
+                    boolean open = true;
+                    for (int[] c : new int[][]{{start.x() + dx, start.z()}, {start.x(), start.z() + dz}}) for (int h = 0; h <= 1; h++) {
+                        var side = view.get(c[0], wy + h, c[1]);
+                        if (side == null || !Rules.canWalkThrough(side)) open = false;
+                    }
+                    if (!open) continue;
+                }
                 PathFinder.Result alt = finder.find(new PathFinder.Node(x, y, z), target, r, MAX_NODES, SEARCH_MS, () -> cancel);
                 if (alt.path().size() >= 2 || alt.reachesGoal()) { stepFirst = true; return alt; }
             }
