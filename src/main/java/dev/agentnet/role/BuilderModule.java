@@ -182,6 +182,7 @@ final class BuilderModule implements RoleModule {
         if (pickup.tick(a)) return;
         if (sweep.tick(a)) { status = "picking up the wood from the trees it cut"; return; }
         if (crafter.busy()) { status = "crafting: " + crafter.status(); crafter.tick(a); return; }
+        if (System.currentTimeMillis() < reposUntil) { status = "getting back onto the site"; return; }
         switch (state) {
             case IDLE, DONE -> {} // nothing to build: the check above (every 10 s) sees whether the crew needs a base
             case SPLIT -> split(a);
@@ -578,7 +579,7 @@ final class BuilderModule implements RoleModule {
         BlockPos p = current.pos();
         BlockState now = w == null ? null : w.get(p.getX(), p.getY(), p.getZ());
         if (now != null && now.getBlock() == current.state().getBlock()) {
-            placed++;
+            placed++; reachFails = 0; lastFails.clear();
             passProgress++;
             tries.remove(p);
         } else if (tries.merge(p, 1, Integer::sum) >= MAX_TRIES) {
@@ -658,10 +659,29 @@ final class BuilderModule implements RoleModule {
         return dx * dx + dy * dy + dz * dz <= REACH * REACH;
     }
 
+    private int reachFails;
+    private long reposUntil;
+    private final java.util.ArrayDeque<BlockPos> lastFails = new java.util.ArrayDeque<>();
+
     private void fail(AgentHandle a, BlockPos p, String why) {
         skipped.add(p);
         dev.agentnet.AgentNet.LOG.info("[{}] skipping {} at {}: {}", a.name(), current.state().getBlock(), p.toShortString(), why);
         if (a.isNavigating()) a.stopNavigation();
+        // Five in a row it cannot get to: it is the builder that is stuck somewhere, not the blocks (one skipped 412 blocks
+        // in ten minutes from one spot, run 1119c). Back to the base's drop-off for a quarter of a minute, and those five
+        // again from there.
+        if (why.startsWith("can't get within reach")) {
+            lastFails.addLast(p);
+            if (++reachFails >= 5) {
+                reachFails = 0;
+                skipped.removeAll(lastFails);
+                lastFails.clear();
+                BlockPos home = BaseDelivery.dropOff(a);
+                if (home != null) a.navigate(home.getX(), home.getY(), home.getZ(), 2);
+                reposUntil = System.currentTimeMillis() + 15_000;
+                a.log("§efive blocks in a row out of reach: back to the base's drop-off and at them again from there");
+            }
+        } else { reachFails = 0; lastFails.clear(); }
         go(State.NEXT);
     }
 
