@@ -522,11 +522,15 @@ public final class Agent implements AgentHandle {
                 boolean tool = dev.agentnet.role.Gear.bestTool(tinv, "pickaxe") >= 0 || dev.agentnet.role.Gear.bestTool(tinv, "shovel") >= 0;
                 float thp = health();
                 if (Float.isNaN(thp)) thp = 20;
-                if (weapon && thp >= 8 || tool && thp >= 12) return false; // it fights
+                // A creeper near and no sword or axe: never "fights" it with a pickaxe (run 1120b: a distributor did, at a zombie,
+                // and the creeper beside it blew it up). Out of the game until it has wandered off.
+                boolean creeperNear = false;
+                for (dev.agentnet.role.Seen s : entitiesNear(7)) if (s.name().equals("creeper")) creeperNear = true;
+                if (!(creeperNear && !weapon) && (weapon && thp >= 8 || tool && thp >= 12)) return false; // it fights
                 callForHelp(threat);
                 int runs = AWAY_RUNS.merge(name.toLowerCase(), 1, Integer::sum);
                 long away = Math.min(120_000L, 45_000L * runs);
-                log("§ea " + threat.name().replace('_', ' ') + " is coming and it " + (weapon || tool ? "is too hurt to fight (" + Math.round(thp) + " hp)" : "has nothing to fight with")
+                log("§ea " + threat.name().replace('_', ' ') + " is coming and it " + (creeperNear && !weapon ? "has no sword or axe for a creeper" : weapon || tool ? "is too hurt to fight (" + Math.round(thp) + " hp)" : "has nothing to fight with")
                         + ": leaving the game for " + away / 1000 + " s");
                 burrowAgainAt = System.currentTimeMillis() + 10_000;
                 final long awayMs = away;
