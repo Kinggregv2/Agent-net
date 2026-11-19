@@ -598,7 +598,9 @@ public final class SpeedrunnerModule implements RoleModule {
             else if ((id.endsWith("_log") || id.endsWith("_stem")) && !id.contains("stripped")) wood += 4 * s.getCount();
         }
         boolean ok = wood >= 4 || count(a, "minecraft:crafting_table") > 0
-                || (a.openWorld() instanceof BlockView w && !w.findAll((int) Math.floor(a.x()), (int) Math.floor(a.z()), 24, s -> s.getBlock() == Blocks.CRAFTING_TABLE, 1).isEmpty());
+                // A table standing near counts only for the first 15 s of the stage: one the crafter cannot get to (across water,
+                // up a cliff) kept this "fine" while "make 1x bucket" was queued 68 times with nothing made (run 1118d).
+                || stageTicks < 300 && (a.openWorld() instanceof BlockView w && !w.findAll((int) Math.floor(a.x()), (int) Math.floor(a.z()), 24, s -> s.getBlock() == Blocks.CRAFTING_TABLE, 1).isEmpty());
         if (ok) { if (tableJob) { tableJob = false; mine(a, null); } return false; }
         if (!tableJob) a.log("[speedrun] no crafting table near and " + wood + " planks' worth of wood: chopping logs for one");
         tableJob = true;
