@@ -2473,6 +2473,24 @@ public final class Agent implements AgentHandle {
             for (int k = 1; k <= 3; k++) escapeMoves.add(new Vec3(here.x + (nx + 0.5 - here.x) * k / 3, ty, here.z + (nz + 0.5 - here.z) * k / 3));
             return;
         }
+        // In water, every side water too (an underwater pocket under rock): not "staying put" but up, swimming where the cell
+        // over its head is open (water or air), digging where it is rock. Water was counted as a wall above, and one agent
+        // said "staying put" 230 times in a flooded cave (run 1119j) and never moved.
+        BlockState feetHere = w.get(fx, fy, fz), overHead = w.get(fx, fy + 2, fz);
+        if (feetHere != null && feetHere.getFluidState().is(net.minecraft.tags.FluidTags.WATER) && overHead != null) {
+            if (System.currentTimeMillis() < fallSettleUntil) return;
+            if (dev.agentnet.pathing.Rules.canWalkThrough(overHead) || overHead.getFluidState().is(net.minecraft.tags.FluidTags.WATER) && overHead.getCollisionShape(net.minecraft.world.level.EmptyBlockGetter.INSTANCE, BlockPos.ZERO).isEmpty()) {
+                navBody.moveTo(p.x, p.y + 0.2, p.z, Float.NaN);
+                return;
+            }
+            BlockState overThat = w.get(fx, fy + 3, fz);
+            if (overHead.getFluidState().isEmpty() && overHead.getBlock() != net.minecraft.world.level.block.Blocks.BEDROCK && !dev.agentnet.pathing.Rules.dangerous(overHead)
+                    && overThat != null && !overThat.getFluidState().is(net.minecraft.tags.FluidTags.LAVA)) {
+                dev.agentnet.role.Gear.holdBestFor(this, overHead);
+                dig(fx, fy + 2, fz);
+                return;
+            }
+        }
         log("§eboxed in and every way out is water, lava, bedrock or protected: staying put");
         escapeGoal = null;
     }
