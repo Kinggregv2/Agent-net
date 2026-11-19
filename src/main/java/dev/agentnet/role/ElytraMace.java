@@ -38,6 +38,7 @@ final class ElytraMace {
     private boolean committed;
     /** How far over the target a chained dive starts: the server counts the fall only once it is going down fast. */
     private static final double DIVE_UP = Double.parseDouble(System.getProperty("agentnet.diveUp", "9"));
+    private static final boolean TRACE = Boolean.getBoolean("agentnet.diveTrace");
     private static final int SETTLE = Integer.getInteger("agentnet.settle", 7);
     private int reglides, confirmedAt, chain;
     private double lastX = Double.NaN, lastZ;
