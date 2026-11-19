@@ -421,8 +421,8 @@ final class MinerModule extends GathererModule {
                 boredTicks = 0;
                 // Diamonds are what the crew is always short of (gear, then netherite upgrades, enchanting): no coal runs.
                 boolean iron = canHarvest(a, net.minecraft.world.level.block.Blocks.DIAMOND_ORE.defaultBlockState());
+                if (keepsLoad) return; // a helper inside another role (the speedrunner, a builder, the pickaxe kit): that role says what to mine. Never a task of its own: one turned the main speedrunner into a miner a minute into run 1119g.
                 a.log("no requests: bored, mining " + (iron ? "diamonds" : "iron for a pickaxe that can take diamonds"));
-                if (keepsLoad) return; // inside the speedrunner: its own stages say what to mine
                 a.assignTask(iron ? "mine 16 diamond_ore" : "mine 6 iron_ore");
                 return;
             }

@@ -18,8 +18,9 @@ public final class PickaxeKit {
     private static final class Kit {
         final MakerModule crafter = new MakerModule();
         final MinerModule miner = new MinerModule();
+        { miner.keepsLoad = true; } // a helper: it keeps what it chops and never gives the agent a task of its own
         boolean mining;
-        int ticks, mineStart, pausedUntil, lastTry = -1000;
+        int ticks, mineStart, pausedUntil, lastTry = -1000, jobAt;
         boolean said;
     }
 
@@ -62,8 +63,12 @@ public final class PickaxeKit {
             }
             return k.crafter.busy();
         }
+        // Its three logs are in and the wood is still short (the miner made itself an axe out of them): three more.
+        if (k.mining && k.miner.idle() && k.miner.status().startsWith("done") && k.ticks - k.jobAt > 100) k.mining = false;
         if (!k.mining) {
-            k.mining = true; k.mineStart = k.ticks;
+            k.jobAt = k.ticks;
+            if (k.mineStart == 0 || k.ticks - k.mineStart > 20 * 600) k.mineStart = k.ticks;
+            k.mining = true;
             k.miner.onTask(a, "mine 3 logs");
             if (!k.said) { k.said = true; a.log("§7no pickaxe and no wood for one: chopping three logs first"); }
         }

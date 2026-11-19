@@ -1753,6 +1753,7 @@ public final class SpeedrunnerModule implements RoleModule {
     private boolean lavaBridging;
     private int lavaAt = -1000, lavaWalked, noBridgeUntil, bridgeMineAt;
     private final MinerModule bridgeMiner = new MinerModule();
+    { bridgeMiner.keepsLoad = true; }
     private boolean bridgeMining;
     private int bridgeHitAt = -1000;
 

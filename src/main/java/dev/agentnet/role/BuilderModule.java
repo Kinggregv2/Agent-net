@@ -110,6 +110,7 @@ final class BuilderModule implements RoleModule {
     private BlockPos unloaded;
 
     private final MinerModule ownMiner = new MinerModule();
+    { ownMiner.keepsLoad = true; }
     private boolean selfMining;
     private int selfTarget;
 
