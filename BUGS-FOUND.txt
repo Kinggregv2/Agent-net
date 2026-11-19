@@ -1,7 +1,7 @@
 AGENTNET BUGS (kept up to date by Claude: open ones first, then what was fixed)
 ================================================================================
 A bug = any unintended behaviour, including deaths that could have been prevented.
-Last updated: 2026-11-19 23:20, from crew runs "run 1118d" and "run 1119a" to "run 1119m".
+Last updated: 2026-11-19 23:40, from crew runs "run 1118d" and "run 1119a" to "run 1119o".
 
 --- OPEN (found, not fixed yet) --------------------------------------------------
 
@@ -160,6 +160,10 @@ F21. A PICKAXE FOR EVERYONE (asked by the user 20:57: "every single role should 
     chops the logs went "bored" and gave the agent a task of its own, which turned the main
     speedrunner into a miner one minute in (a helper took over as main only at 15 minutes).
     Fixed 21:33: helper miners inside another role never hand out tasks. Not yet seen working.
+    23:38: a wooden pickaxe wore out within a minute and the helper had none again for good (run
+    1119o: no cobblestone, no reachable logs). Now anyone with only a wooden one mines three stone
+    with it straight away and makes a stone pickaxe; sticks it carries count toward the wood.
+    Not yet seen working.
 F22. UNDERGROUND LAVA POOLS ("to add", the user, 21:24). Run 1119i: the main picked one 44 blocks
     down the moment it reached the pool stage (9.3 min), but began its staircase in a lake and
     stood on step 1 in the water until the run was closed. Fixed 22:00: the staircase starts on
