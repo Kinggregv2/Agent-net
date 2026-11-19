@@ -1,7 +1,7 @@
 AGENTNET BUGS (kept up to date by Claude: open ones first, then what was fixed)
 ================================================================================
 A bug = any unintended behaviour, including deaths that could have been prevented.
-Last updated: 2026-11-19 22:45, from crew runs "run 1118d" and "run 1119a" to "run 1119j".
+Last updated: 2026-11-19 23:00, from crew runs "run 1118d" and "run 1119a" to "run 1119k".
 
 --- OPEN (found, not fixed yet) --------------------------------------------------
 
@@ -76,10 +76,13 @@ O20. THE MAIN SUFFOCATED IN SAND (run 1119d, 8 minutes in, at the water stage). 
     surface it dug out the block under a column of sand; the sand fell on its head, it dug again,
     more fell. Changed 20:33: no digging straight up under sand or gravel (it looks for another
     way out). Not yet seen working.
-O21. THE MAIN SUFFOCATED TWICE IN 25 MINUTES (run 1119j), the first time right after gravel came
-    down. F-fix O20 only covered pillaring up. Since 22:40 no agent digs a block over its own
-    head with sand or gravel resting on it, whatever it is doing. Not yet seen working. The second
-    suffocation (in cobblestone, after "boxed in ... staying put") is not explained.
+O21. SUFFOCATION UNDER SAND OR GRAVEL, AND NO WAY OUT FROM UNDER IT. The main suffocated twice in
+    run 1119j. My 22:40 fix (never dig a block over its own head with sand on it) was wrong: an agent
+    under water under a sand ceiling then had no way out at all (the user, 22:55, run 1119k). Since
+    23:00 it digs sand and gravel over its head like a player, one block at a time, and does not
+    move up into the gap (swimming, climbing, pillaring, digging out) for 1.5 s after each, while
+    the next block falls into it. Not yet seen working. The second suffocation of run 1119j (in
+    cobblestone) is not explained.
 O22. THE SAME BLOCK REFUSED AGAIN AND AGAIN: 502 refused digs in 40 minutes of run 1119j, mostly the
     same few blocks (one stone 76 times, one gravel 70, a crafting table 34), so it was not the dig
     time (O13). Since 22:40 an agent leaves a block alone for two minutes after three refusals,
