@@ -26,3 +26,14 @@ Make speedrunners looking for a lava pool be able to detect lava pools undergrou
    search now also takes lava pools up to 70 blocks under the runner. Rock over the lava (a
    cave's roof) is dug away for the frame, and the runner walks to a spot above the shore and digs
    its own spiral staircase down. A pool near the surface is still preferred when there is one.
+
+3. Miners go after diamonds until the speedrunners beat the game; then they go through the
+   speedrunners' portal and mine netherite (ancient debris). (From chat, 2026-11-19 23:25.)
+
+   Progress (Claude, 23:30, built, NOT TESTED): the civ keeps up to three miners on diamonds
+   until the dragon is dead (after the speedrunner's own iron); once the game is beaten it puts
+   up to three on ancient debris. The speedrunners' lit portal is now saved to disk
+   (speedrun-portal.txt), and a miner sent for ancient debris walks into it when the crew has no
+   portal of its own. Not seen yet: the diamond miners in a run, and the whole netherite part
+   (no run has beaten the dragon since). Ancient debris needs a diamond pickaxe, which the
+   miners make from their own diamonds.
