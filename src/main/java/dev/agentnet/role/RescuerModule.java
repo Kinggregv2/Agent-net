@@ -24,9 +24,52 @@ final class RescuerModule implements RoleModule {
     private String status = "waiting for someone to rescue";
 
     @Override public void onStart(AgentHandle a) { a.keepWorld(true); }
-    @Override public void onStop(AgentHandle a) { a.keepWorld(false); if (a.isNavigating()) a.stopNavigation(); }
+    @Override public void onStop(AgentHandle a) { mine(a, null); a.keepWorld(false); if (a.isNavigating()) a.stopNavigation(); }
     @Override public String status() { return status; }
     @Override public boolean idle() { return patient == null; }
+
+    private final MinerModule miner = new MinerModule();
+    private String minerJob;
+    private int jobAt;
+
+    private void mine(AgentHandle a, String job) {
+        if (job == null ? minerJob == null : job.equals(minerJob)) return;
+        minerJob = job;
+        jobAt = ticks;
+        miner.onTask(a, job == null ? "idle" : job);
+    }
+
+    /**
+     * Short of spare pickaxes with nobody to rescue: it gets the wood and the cobblestone itself and makes them. Asking
+     * alone left it standing at the base with one dirt and "0 spare pickaxes" (run 1118d: no distributor had any), and
+     * with fewer than two it rescues nobody. True while it is busy with that.
+     */
+    private boolean stock(AgentHandle a) {
+        int have = pickaxes(a);
+        if (have >= SPARE) { mine(a, null); return false; }
+        int wood = 0, stone = 0;
+        for (ItemStack s : a.inventory()) {
+            String id = Gear.id(s);
+            if (id.endsWith("_planks")) wood += s.getCount();
+            else if ((id.endsWith("_log") || id.endsWith("_stem")) && !id.contains("stripped")) wood += 4 * s.getCount();
+            else if (id.equals("minecraft:stick")) wood += s.getCount() / 2;
+            else if (id.equals("minecraft:cobblestone") || id.equals("minecraft:cobbled_deepslate")) stone += s.getCount();
+        }
+        // A table (4 planks), sticks, and a wooden pickaxe to get at the stone: 3 logs; then 3 cobblestone a pickaxe.
+        String job = wood < 6 ? "mine 3 logs" : stone < 3 ? "mine " + 3 * (SPARE - have) + " stone" : null;
+        if (job == null) {
+            mine(a, null);
+            if (ticks % 60 == 0 && crafter.queueTool(a, "minecraft:stone_pickaxe")) a.log("making a spare stone pickaxe (" + have + " of " + SPARE + ")");
+            status = "making spare pickaxes (" + have + " of " + SPARE + ")";
+            return true;
+        }
+        if (minerJob != null && miner.idle() && ticks - jobAt > 100) minerJob = null; // done or gave up: again
+        if (minerJob == null) a.log("§7" + have + " of " + SPARE + " spare pickaxes: getting " + (job.contains("logs") ? "wood" : "cobblestone") + " for more");
+        mine(a, job);
+        miner.tick(a);
+        status = "getting " + (job.contains("logs") ? "wood" : "cobblestone") + " for spare pickaxes (" + have + " of " + SPARE + ")";
+        return true;
+    }
 
     private static int pickaxes(AgentHandle a) {
         int n = 0;
@@ -71,7 +114,9 @@ final class RescuerModule implements RoleModule {
         if (patient == null) {
             if (ticks % 100 == 0) restock(a);
             if (ticks % 40 == 0) pick(a);
-            if (patient == null) { status = "waiting for someone to rescue (" + pickaxes(a) + " spare pickaxes)"; HomeBase.goHome(a, ticks); }
+            if (patient != null) { mine(a, null); return; }
+            if (stock(a)) return;
+            status = "waiting for someone to rescue (" + pickaxes(a) + " spare pickaxes)"; HomeBase.goHome(a, ticks);
             return;
         }
         AgentHandle p = GathererModule.find(patient);
