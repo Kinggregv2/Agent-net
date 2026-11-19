@@ -1,7 +1,7 @@
 AGENTNET BUGS (kept up to date by Claude: open ones first, then what was fixed)
 ================================================================================
 A bug = any unintended behaviour, including deaths that could have been prevented.
-Last updated: 2026-11-19 19:10, from crew runs "run 1118d", "run 1119a", "run 1119b" and "run 1119c".
+Last updated: 2026-11-19 19:25, from crew runs "run 1118d", "run 1119a", "run 1119b" and "run 1119c".
 
 --- OPEN (found, not fixed yet) --------------------------------------------------
 
@@ -47,10 +47,14 @@ O14. A MINER SKIPPED LOGS 247 TIMES IN 12 MINUTES ("every way there is blocked")
 O15. THE MAIN SEARCHED 28 MINUTES FOR A LAVA POOL in run 1119c (pool stage from 25 to 53+ min,
     no pool found, 300 blocks from spawn). The lava-pool scouts in "to add" are the answer.
 O16. WORKERS STILL DIE AT NIGHT ON THE SURFACE: 11 deaths in 28 minutes in run 1119c (the hunter
-    4 times, distributors 4 times, miners 3; creepers, zombies, skeletons, two drowned). Fix
-    written 19:08: an unarmed worker under the open sky digs in as soon as it is night, not
-    only once a mob is in sight. Not yet seen working. Two of the deaths were drownings while
-    digging out; those are not looked at yet.
+    4 times, distributors 4 times, miners 3; creepers, zombies, skeletons, two drowned).
+    DIGGING IN IS GONE (the user, 19:15: "instead of digging down it should disconnect, then a
+    warrior should take care of those mobs, and then reconnect, or just fight like a normal
+    person"). Since 19:25: an agent with a sword or axe and 8+ health, or any tool and 12+
+    health, fights; one with nothing or too hurt leaves the game for 45 s (longer each time in a
+    row, 2 minutes at most), calls the warriors to the spot, and comes back as it was. Not yet
+    seen working. Known gaps: there are usually no warriors in a speedrun crew, so nobody
+    clears the mobs; the two drownings while digging out are not looked at.
 
 --- FIXED ON 2026-11-19 (seen working in a run unless it says otherwise) ----------
 
@@ -63,7 +67,7 @@ F3. Digs refused by the server as "too fast" (the server ran slower than the age
     with every refusal. 100 refusals in 6 minutes -> 1 or 2.
 F4. Walker clipped a block beside the path after being pushed off-centre. It now lines up
     on the centre line first.
-F5. Agents dug in for the night forgot it across a restart and sat sealed in their holes.
+F5. (Superseded 19:25: nobody digs in any more, see O16.) Agents dug in for the night forgot it across a restart and sat sealed in their holes.
     They now go back to waiting (or climb out by day); dug-in agents no longer show as AFK.
 F6. Shield took 4 minutes every regear: 3 planks + 3 logs, and the craft does not saw logs.
     Now 1 second.
@@ -79,7 +83,7 @@ F10. Tank helper stood in the Nether portal "holding the blazes" with no blaze a
     fortress. Now it travels with the group until there is one.
 F11. Miner stood on a beach trying 65 stone blocks under water. Now it leaves an area after
     six unreachable targets in a row.
-F12. Armed speedrunner always fought at night, even four mobs at once. Now it digs in when
+F12. (Superseded 19:25, see O16: it fights again.) Armed speedrunner always fought at night, even four mobs at once. It dug in when
     two or more come, or a creeper.
 F13. Rescuer restarted its mining job every 5 s; then the role was removed altogether (the
     user's call): the civ hires none and turns a saved one into a miner.

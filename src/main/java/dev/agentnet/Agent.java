@@ -516,7 +516,7 @@ public final class Agent implements AgentHandle {
                     if (!s.name().equals("phantom") && !dev.agentnet.role.Sight.clear(tw, at.x, at.y + 1.62, at.z, s.pos().x, s.pos().y + 1.0, s.pos().z)) continue;
                     if (threat == null || s.distance() < threat.distance()) threat = s;
                 }
-                if (threat == null) return false;
+                if (threat == null) { if (onlineFor() > 120_000) AWAY_RUNS.remove(name.toLowerCase()); return false; } // two quiet minutes: the next time away is a short one again
                 var tinv = inventory();
                 boolean weapon = dev.agentnet.role.Gear.bestTool(tinv, "sword") >= 0 || dev.agentnet.role.Gear.bestTool(tinv, "axe") >= 0;
                 boolean tool = dev.agentnet.role.Gear.bestTool(tinv, "pickaxe") >= 0 || dev.agentnet.role.Gear.bestTool(tinv, "shovel") >= 0;
