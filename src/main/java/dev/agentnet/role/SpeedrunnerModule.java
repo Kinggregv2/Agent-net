@@ -2897,9 +2897,12 @@ public final class SpeedrunnerModule implements RoleModule {
      * endermen, the dragon). True while busy with it.
      */
     private boolean helperOwn(AgentHandle a) {
+        // The main is building its portal (or past it, still in the overworld): its own nether kit meanwhile, wherever the
+        // iron and gold are. Before, they had nothing to do from here and five of them stood round the main's pond for
+        // minutes (the user: "this isn't a funeral, leave the lake alone").
         if (mainStage.ordinal() >= Stage.CAST.ordinal()) {
             if (ownMining) { mine(a, null); ownMining = false; }
-            return false;
+            return hasShield(a) && !netherKit(a) && netherArmor(a);
         }
         if (wearArmor(a)) return true;
         // A shield first, then the whole nether kit (full iron, a golden helmet): ready when the main's portal is.
@@ -3707,7 +3710,9 @@ public final class SpeedrunnerModule implements RoleModule {
             if (s == null) return null;
             if (s.isAir() || s.canBeReplaced() && s.getFluidState().isEmpty()) continue;
             if (!s.getFluidState().isEmpty() || !solid(s)) return null;
-            for (int dx = -2; dx <= 2; dx++) for (int dz = -2; dz <= 2; dz++) for (int dy = -1; dy <= 1; dy++) {
+            // The whole staircase: a 4x4 ring going +x +z from here, a block round it, and 8 blocks down. Checking only round
+            // the top it started beside a pond and its third step was in the water (run 1119m).
+            for (int dx = -1; dx <= 4; dx++) for (int dz = -1; dz <= 4; dz++) for (int dy = -8; dy <= 1; dy++) {
                 BlockState n = w.get(x + dx, y + dy, z + dz);
                 if (n == null || !n.getFluidState().isEmpty()) return null;
             }
