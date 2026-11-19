@@ -161,7 +161,7 @@ public final class Civ {
             if (r == Role.DISTRIBUTOR && st.contains(" 0 pickup(s), 0 deliver(ies)")) continue; // nothing asked of it
             stalled.add(a.name);
             roles.merge(r, -1, Integer::sum);
-            if (stalledSaid.add(a.name)) AgentNet.LOG.info("[Civ] {}", a.name + " (" + r.id() + ") has been stuck for " + AfkChecker.idleMs(a.name) / 60_000 + " min (" + st + "): not counted as a " + r.id() + " until it moves again");
+            if (stalledSaid.add(a.name)) decide(a.name + " (" + r.id() + ") has been stuck for " + AfkChecker.idleMs(a.name) / 60_000 + " min (" + st + "): not counted as a " + r.id() + " until it moves again");
         }
         stalledSaid.retainAll(stalled);
         roles.values().removeIf(v -> v <= 0);
