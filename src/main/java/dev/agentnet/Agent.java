@@ -816,7 +816,11 @@ public final class Agent implements AgentHandle {
             if (foodTicks % 20 != 0 || System.currentTimeMillis() < forageAgainAt || !isOnline()) return false;
             if (role == Role.HUNTER || role == Role.FARMER || role == Role.FISHER) return false; // food is their job anyway
             int food = food();
-            if (food < 0 || food > 10) return false;
+            float hp = health(), max = Math.max(1f, maxHealth());
+            // Starving, or hurt with too little food to heal (under 18 it doesn't regenerate: the main walked about at 5 hp for
+            // minutes with food 14, and the next skeleton killed it).
+            boolean hurt = !Float.isNaN(hp) && hp < max * 0.6f && food < 18;
+            if (food < 0 || food > 10 && !hurt) return false;
             if (!String.valueOf(dimension()).endsWith("overworld") || myVehicle >= 0 || airVel != null) return false;
             if (module != null && module.fighting()) return false;
             if (hasFood()) return false;
