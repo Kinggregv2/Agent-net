@@ -1,7 +1,7 @@
 AGENTNET BUGS (kept up to date by Claude: open ones first, then what was fixed)
 ================================================================================
 A bug = any unintended behaviour, including deaths that could have been prevented.
-Last updated: 2026-11-19 23:05, from crew runs "run 1118d" and "run 1119a" to "run 1119l".
+Last updated: 2026-11-19 23:20, from crew runs "run 1118d" and "run 1119a" to "run 1119m".
 
 --- OPEN (found, not fixed yet) --------------------------------------------------
 
@@ -92,6 +92,14 @@ O23. "BOXED IN ... STAYING PUT" IN A FLOODED CAVE: the main of run 1119j said it
     wall and the swim-up never got its turn. Since 23:03: in water with every way blocked it swims
     up where the cell over its head is open, and digs it where it is rock (waiting for sand or
     gravel to settle, see O21). Not yet seen working.
+O24. HELPERS STOOD ROUND THE MAIN WITH NOTHING TO DO (run 1119m, the user: "this isn't a funeral,
+    leave the lake alone"): once the main starts its portal, the helpers had no job of their own
+    and five of them followed it to its pond. Since 23:19 they work on their own nether kit (full
+    iron, golden helmet) until they have it, then join it. Not yet seen working.
+O25. THE STAIRCASE DOWN TO AN UNDERGROUND POOL STARTED BESIDE A POND (run 1119m): the "dry ground"
+    check looked only round the top block, and the 4x4 spiral ran into the water by its third
+    step; stuck there 3 minutes. Since 23:19 the whole spiral and a block round it, 8 deep, must be
+    dry. Not yet seen working.
 
 --- FIXED ON 2026-11-19 (seen working in a run unless it says otherwise) ----------
 
