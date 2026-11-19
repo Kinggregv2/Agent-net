@@ -63,7 +63,9 @@ final class RescuerModule implements RoleModule {
             status = "making spare pickaxes (" + have + " of " + SPARE + ")";
             return true;
         }
-        if (minerJob != null && miner.idle() && ticks - jobAt > 100) minerJob = null; // done or gave up: again
+        // Again only once the miner says it is done: "idle" it also is while it waits for a distributor or makes its own
+        // pickaxe, and starting over every 5 s kept it asking for one, 42 times in five minutes.
+        if (minerJob != null && miner.idle() && miner.status().startsWith("done") && ticks - jobAt > 100) minerJob = null;
         if (minerJob == null) a.log("§7" + have + " of " + SPARE + " spare pickaxes: getting " + (job.contains("logs") ? "wood" : "cobblestone") + " for more");
         mine(a, job);
         miner.tick(a);
