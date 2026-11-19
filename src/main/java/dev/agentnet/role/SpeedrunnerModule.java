@@ -415,12 +415,24 @@ public final class SpeedrunnerModule implements RoleModule {
         // and closes them behind it) it picked one unreachable water after another, ran out of food where there are no
         // animals, and a skeleton killed it.
         if ((stage == Stage.WATER || stage == Stage.POOL) && !nether(a)) {
-            if (a.escaping()) { status = "on its way up to the surface"; return; }
-            if (ticks - upAt > 200 && underground(a)) {
-                upAt = ticks;
-                if (a.isNavigating()) a.stopNavigation();
-                if (a.goUp()) { fetchStand = null; status = "up to the surface first"; a.log("[speedrun] underground: up to the surface first"); return; }
-            }
+            // Between its dig steps the climb hands over to the walker: a climb still under way is left alone. Restarted
+            // every 10 s, it never got out of a cave 5 blocks down (run 1118d, 30 minutes in the pool stage).
+            if (a.escaping() || upTrip && a.isNavigating() && ticks - upAt < 1800) { status = "on its way up to the surface"; return; }
+            if (ticks - upAt > 200 && ticks > upGiveUpUntil && underground(a)) {
+                if (upTrip && a.y() < upFromY + 1.5) {
+                    if (++upFails >= 6) {
+                        upFails = 0; upTrip = false; upGiveUpUntil = ticks + 6000;
+                        a.log("§e[speedrun] can't get up to the surface from here: looking from down here for 5 minutes");
+                    }
+                } else upFails = 0;
+                if (ticks <= upGiveUpUntil) { upTrip = false; }
+                else {
+                    upAt = ticks; upFromY = a.y();
+                    if (a.isNavigating()) a.stopNavigation();
+                    upTrip = a.goUp();
+                    if (upTrip) { fetchStand = null; status = "up to the surface first"; a.log("[speedrun] underground: up to the surface first"); return; }
+                }
+            } else if (upTrip && !a.isNavigating()) upTrip = false;
         }
         // Back in the overworld (it died down there and came back at spawn): the run goes on from what it carries.
         if (!nether(a) && stage == Stage.NETHER && ticks > 100) { rodDrop = null; blazeId = -1; spawner = null; foe = -1; go(a, Stage.IRON); }
@@ -2970,7 +2982,9 @@ public final class SpeedrunnerModule implements RoleModule {
         return false;
     }
 
-    private int upAt = -1000;
+    private int upAt = -1000, upFails, upGiveUpUntil;
+    private boolean upTrip;
+    private double upFromY;
 
     /** Rock over its head (not just a tree): it is in a cave or a tunnel. */
     private static boolean underground(AgentHandle a) {
