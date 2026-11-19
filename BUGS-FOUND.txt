@@ -1,7 +1,7 @@
 AGENTNET BUGS (kept up to date by Claude: open ones first, then what was fixed)
 ================================================================================
 A bug = any unintended behaviour, including deaths that could have been prevented.
-Last updated: 2026-11-19 19:45, from crew runs "run 1118d", "run 1119a", "run 1119b" and "run 1119c".
+Last updated: 2026-11-19 20:05, from crew runs "run 1118d", "run 1119a", "run 1119b" and "run 1119c".
 
 --- OPEN (found, not fixed yet) --------------------------------------------------
 
@@ -59,6 +59,12 @@ O16. WORKERS STILL DIE AT NIGHT ON THE SURFACE: 11 deaths in 28 minutes in run 1
     seen working at first. SEEN WORKING 19:27 (an agent left for 45 s, came back, went on
     building; 18 left this way in 6 minutes, 1 death). Known gaps: there are usually no warriors in a speedrun crew, so nobody
     clears the mobs; the two drownings while digging out are not looked at.
+O17. THE CREW ENDED UP WITH NO DISTRIBUTOR AT ALL (run 1119c, 19:57; the user: "distributors are
+    vital"). Five were hired, then turned into miners and hunters one by one: a distributor is
+    "idle" between deliveries, and the civ gave idle agents the speedrunner's iron and the
+    hunger jobs. At the cap none could be hired back. Changed 20:00: distributors are never
+    taken as "idle", the civ keeps at least two, and with none at all a gatherer becomes one even
+    at the cap. Seen working is noted below once it has run for a while.
 
 --- FIXED ON 2026-11-19 (seen working in a run unless it says otherwise) ----------
 
