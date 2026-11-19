@@ -1,7 +1,7 @@
 AGENTNET BUGS (kept up to date by Claude: open ones first, then what was fixed)
 ================================================================================
 A bug = any unintended behaviour, including deaths that could have been prevented.
-Last updated: 2026-11-19 22:05, from crew runs "run 1118d" and "run 1119a" to "run 1119i".
+Last updated: 2026-11-19 22:45, from crew runs "run 1118d" and "run 1119a" to "run 1119j".
 
 --- OPEN (found, not fixed yet) --------------------------------------------------
 
@@ -76,6 +76,17 @@ O20. THE MAIN SUFFOCATED IN SAND (run 1119d, 8 minutes in, at the water stage). 
     surface it dug out the block under a column of sand; the sand fell on its head, it dug again,
     more fell. Changed 20:33: no digging straight up under sand or gravel (it looks for another
     way out). Not yet seen working.
+O21. THE MAIN SUFFOCATED TWICE IN 25 MINUTES (run 1119j), the first time right after gravel came
+    down. F-fix O20 only covered pillaring up. Since 22:40 no agent digs a block over its own
+    head with sand or gravel resting on it, whatever it is doing. Not yet seen working. The second
+    suffocation (in cobblestone, after "boxed in ... staying put") is not explained.
+O22. THE SAME BLOCK REFUSED AGAIN AND AGAIN: 502 refused digs in 40 minutes of run 1119j, mostly the
+    same few blocks (one stone 76 times, one gravel 70, a crafting table 34), so it was not the dig
+    time (O13). Since 22:40 an agent leaves a block alone for two minutes after three refusals,
+    and the log says how far from its eyes it was (to find the real cause next time).
+O23. UNDERGROUND AGENTS "BOXED IN ... STAYING PUT": the main (run 1119j) stood in a cave at y 60,
+    "no way (closed in)" and "every way out is water, lava, bedrock or protected", for minutes.
+    Not looked at yet.
 
 --- FIXED ON 2026-11-19 (seen working in a run unless it says otherwise) ----------
 
@@ -149,6 +160,7 @@ F24. THE NETHER KIT (the user, 21:56: "make it a requirement to be in full iron 
     helper or falloff follows it, without an iron chestplate, leggings and boots and a golden
     helmet on. Each mines, smelts, makes and puts on its own (19 iron and 5 gold; gold ore needs
     an iron pickaxe first). Helpers start on it as soon as they have their shield. This will make
+    (run 1119j, 40 min: nobody reached the Nether yet; the main died twice before it got that far.)
     the Nether come later in a run. Not yet seen working.
 F25. A BRANCH FOR EVERY CHANGE (the user, 21:57). Every build now also pushes a branch
     "build-<date>-<time>" with the code as it was; changes to these notes alone get a branch
