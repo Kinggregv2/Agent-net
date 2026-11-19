@@ -2664,6 +2664,15 @@ public final class Agent implements AgentHandle {
         BlockState above = w.get(x, hy + 1, z);
         if (above == null) return true;
         if (openWater(above) || dev.agentnet.pathing.Rules.canWalkThrough(above)) {
+            // Off the middle of its column, a shoulder is under the next column's ceiling: the server stops the rise there
+            // and puts it back, every tick, until it drowns (run 1119c: 67 put-backs in two minutes, then "drowned"; two
+            // more drownings the round before). To the middle of its own column first, then up.
+            double ox = x + 0.5 - p.x, oz = z + 0.5 - p.z, off = Math.hypot(ox, oz);
+            if (Math.abs(ox) > 0.19 || Math.abs(oz) > 0.19) {
+                double step = Math.min(0.2, off);
+                navBody.moveTo(p.x + ox / off * step, p.y, p.z + oz / off * step, Float.NaN);
+                return true;
+            }
             navBody.moveTo(p.x, p.y + 0.2, p.z, Float.NaN);
             return true;
         }
