@@ -459,13 +459,14 @@ public final class Agent implements AgentHandle {
     private enum Burrow { NONE, DIG, ROOF, WAIT, OUT }
     private Burrow burrow = Burrow.NONE;
     private int burrowX, burrowY, burrowZ, burrowTicks, burrowCheck, burrowDigs;
-    private long burrowAgainAt, burrowMoveSaidAt;
+    private long burrowAgainAt, burrowMoveSaidAt, burrowWalkUntil;
 
     private static final java.util.Set<String> BURROW_BLOCKS = java.util.Set.of("minecraft:dirt", "minecraft:cobblestone", "minecraft:cobbled_deepslate",
             "minecraft:stone", "minecraft:netherrack", "minecraft:granite", "minecraft:diorite", "minecraft:andesite", "minecraft:tuff", "minecraft:coarse_dirt");
 
     private boolean tickBurrow() {
         if (burrow == Burrow.NONE) {
+            if (System.currentTimeMillis() < burrowWalkUntil && navigator.busy()) return true; // on its way to a spot it can dig
             if (++burrowCheck % 10 != 0 || System.currentTimeMillis() < burrowAgainAt || !night()) return false;
             // A phantom about: under a roof, whoever it is. It flies and swoops faster than anything runs, and a fighter swinging
             // at it as it passes loses (itsCyber ran, turned, and died at 1 health, run 1118d). A roof stops it.
@@ -510,7 +511,8 @@ public final class Agent implements AgentHandle {
                 if (bd < 99 && !navigator.busy()) {
                     if (System.currentTimeMillis() - burrowMoveSaidAt > 20_000) { burrowMoveSaidAt = System.currentTimeMillis(); log("§7can't dig in right here: a spot " + Math.round(bd) + " blocks over"); }
                     navigate(bx, by, bz, 0);
-                    burrowAgainAt = System.currentTimeMillis() + 2_000;
+                    burrowWalkUntil = System.currentTimeMillis() + 10_000;
+                    burrowAgainAt = System.currentTimeMillis() + 500;
                     return true;
                 }
                 if (System.currentTimeMillis() - burrowMoveSaidAt > 20_000) { burrowMoveSaidAt = System.currentTimeMillis(); log("§7nowhere to dig in within 3 blocks" + (spawnProtected(x, z) ? " (spawn protection)" : inBase(x, y, z) ? " (the base)" : "")); }
