@@ -1,7 +1,7 @@
 AGENTNET BUGS (kept up to date by Claude: open ones first, then what was fixed)
 ================================================================================
 A bug = any unintended behaviour, including deaths that could have been prevented.
-Last updated: 2026-11-19 23:00, from crew runs "run 1118d" and "run 1119a" to "run 1119k".
+Last updated: 2026-11-19 23:05, from crew runs "run 1118d" and "run 1119a" to "run 1119l".
 
 --- OPEN (found, not fixed yet) --------------------------------------------------
 
@@ -87,9 +87,11 @@ O22. THE SAME BLOCK REFUSED AGAIN AND AGAIN: 502 refused digs in 40 minutes of r
     same few blocks (one stone 76 times, one gravel 70, a crafting table 34), so it was not the dig
     time (O13). Since 22:40 an agent leaves a block alone for two minutes after three refusals,
     and the log says how far from its eyes it was (to find the real cause next time).
-O23. UNDERGROUND AGENTS "BOXED IN ... STAYING PUT": the main (run 1119j) stood in a cave at y 60,
-    "no way (closed in)" and "every way out is water, lava, bedrock or protected", for minutes.
-    Not looked at yet.
+O23. "BOXED IN ... STAYING PUT" IN A FLOODED CAVE: the main of run 1119j said it 230 times, standing
+    in flowing water with water on every side under a rock ceiling; the dig-out counted water as a
+    wall and the swim-up never got its turn. Since 23:03: in water with every way blocked it swims
+    up where the cell over its head is open, and digs it where it is rock (waiting for sand or
+    gravel to settle, see O21). Not yet seen working.
 
 --- FIXED ON 2026-11-19 (seen working in a run unless it says otherwise) ----------
 
