@@ -1711,6 +1711,15 @@ public final class Agent implements AgentHandle {
         if (state == null || state.isAir()) return -1;
         float hardness = state.getDestroySpeed(net.minecraft.world.level.EmptyBlockGetter.INSTANCE, BlockPos.ZERO);
         if (hardness < 0) return -1; // bedrock & co.
+        // Never the base: whatever asks for it (a miner's tunnel, room for a crafting table, a way out), a block that is
+        // part of the building stays, unless it is the builder's own work or the last-resort way out of a hole in it. The
+        // one gate for every dig (the user saw a hunter dig a hole through its own house; each caller had its own check,
+        // or none).
+        if (role != Role.BUILDER && System.currentTimeMillis() >= baseBreakUntil && inBase(x, y, z)
+                && !baseDiggable(state, x, y, z, (int) Math.floor(pos.position().y + 0.01)) && state.getBlock() != Blocks.CRAFTING_TABLE) {
+            if (System.currentTimeMillis() - baseDigSaidAt > 30_000) { baseDigSaidAt = System.currentTimeMillis(); log("§7not digging " + state.getBlock().getDescriptionId().replace("block.minecraft.", "") + " at " + x + " " + y + " " + z + ": that is the base"); }
+            return -1;
+        }
         BlockPos p = new BlockPos(x, y, z);
         Direction face = faceToward(p);
         send(new ServerboundPlayerActionPacket(ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK, p, face, ++useSequence));
@@ -2566,7 +2575,7 @@ public final class Agent implements AgentHandle {
 
     /** Until then an escape may dig through the base too (see the stuck steps). */
     private volatile long baseBreakUntil;
-    private long diagAt;
+    private long diagAt, baseDigSaidAt;
 
     private boolean escapeDiggable(BlockState s, int x, int y, int z) {
         if (natural(s)) return true;
