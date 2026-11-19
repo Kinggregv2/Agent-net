@@ -117,6 +117,10 @@ final class ElytraMace {
         lastX = a.x(); lastZ = a.z();
         double closing = aflat < 0.01 ? 0 : (mvx * adx + mvz * adz) / aflat;
         double across = aflat < 0.01 ? 0 : Math.abs(mvx * adz - mvz * adx) / aflat;
+        // Tests only (-Dagentnet.diveTrace=true, your own world): ours beside what the server has, every tick of a dive.
+        if (TRACE && (state == State.DIVE || state == State.FALL || state == State.SWAP || state == State.REGLIDE))
+            dev.agentnet.AgentNet.LOG.info("[{}] trace {} t{} up {} vy {} pitch {} rocket {} glide {} // {}", a.name(), state, timer, String.format("%.1f", a.y() - enemy.pos().y),
+                    String.format("%.2f", a.verticalSpeed()), String.format("%.0f", a.pitch()), a.rocketLeft(), a.gliding(), Fight.serverSide(a).replaceAll(", y .*holding [a-z_]*", "").replaceAll(", sprinting [a-z]*", "").replaceAll(", damage.*", ""));
         switch (state) {
             case EQUIP -> {
                 tactic = "putting the elytra on";
