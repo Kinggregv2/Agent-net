@@ -254,6 +254,20 @@ public final class Navigator {
             }
             ny = Math.min(ty, p.y + RISE);               // step up first, in our own column
         } else if (horiz > 1e-3) {
+            // A straight step (along x or along z) from off the line between the two blocks' middles: onto that line
+            // first. Its body is 0.6 wide: more than 0.2 off, a shoulder is in the next row, and a block standing there
+            // beside the way stops it on the server ("put back", 0.25 blocks, again and again: run 1119b, two helpers 30
+            // times each; it gets off-centre by being pushed, put back, or dug out).
+            PathFinder.Node from = index > 0 ? path.get(index - 1) : null;
+            int cellX = from != null ? from.x() : (int) Math.floor(p.x), cellZ = from != null ? from.z() : (int) Math.floor(p.z);
+            if (cellX != n.x() && cellZ == n.z() && Math.abs(dz) > 0.19 && Math.abs(dx) > 0.3) {
+                body.moveTo(p.x, p.y, p.z + Math.signum(dz) * Math.min(SPEED * body.speed(), Math.abs(dz)), Float.NaN);
+                return;
+            }
+            if (cellZ != n.z() && cellX == n.x() && Math.abs(dx) > 0.19 && Math.abs(dz) > 0.3) {
+                body.moveTo(p.x + Math.signum(dx) * Math.min(SPEED * body.speed(), Math.abs(dx)), p.y, p.z, Float.NaN);
+                return;
+            }
             double step = Math.min(SPEED * body.speed(), horiz); // then walk across (slower when sneaking)
             nx += dx / horiz * step;
             nz += dz / horiz * step;
