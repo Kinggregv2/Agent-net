@@ -227,6 +227,7 @@ final class KeeperModule implements RoleModule {
     }
 
     private void idle(AgentHandle a) {
+        if (smelt(a)) return;
         // Anything to put away? (A deposit picked up, or leftovers.)
         String kind = nextKind(a);
         if (kind != null) { storeKind = kind; chest = chestFor(a, kind); if (chest != null) { go(State.STORE_GO); return; } }
@@ -253,8 +254,117 @@ final class KeeperModule implements RoleModule {
             go(State.FETCH_GO);
             return;
         }
+        if (startSmelt(a)) return;
         status = "keeping storage (" + stock(a.server(), a.dimension()).values().stream().mapToInt(Integer::intValue).sum() + " items in " + base.chests().size() + " chests)";
         if (!near(a, base.hub(), 3) && !a.isNavigating() && timer % 100 == 1) a.navigate(base.hub().getX(), base.hub().getY(), base.hub().getZ(), 1);
+    }
+
+    // ------------------------------------------------------------------ smelting what is in storage
+    //
+    // Raw iron, copper and gold lying in the chests, with fuel beside them, are no use to anyone (the user, 2026-11-19:
+    // "the storage keeper should smelt them in a furnace"). When nothing else is asked of it, the keeper takes a batch of
+    // ore and some fuel out, smelts it in a furnace at the base (the crafter finds one within reach, or uses its own), and
+    // the ingots go into storage with everything else it carries. Sixteen at a time, so deposits and requests are not
+    // kept waiting longer than a few minutes.
+
+    private static final String[][] SMELT = {{"minecraft:raw_iron", "iron_ingot"}, {"minecraft:raw_copper", "copper_ingot"}, {"minecraft:raw_gold", "gold_ingot"}};
+    private static final int SMELT_BATCH = 16;
+    private final MakerModule crafter = new MakerModule();
+    /** 0 none, 1 getting the ore, 2 getting fuel, 3 at the furnace. */
+    private int smeltPhase;
+    private String smeltOre, smeltOut, smeltFuel;
+    private int smeltCount;
+    private long smeltAgainAt;
+
+    private static boolean fuelId(String id) {
+        return id.equals("minecraft:coal") || id.equals("minecraft:charcoal") || id.endsWith("_planks") || id.endsWith("_log") && !id.contains("stripped");
+    }
+
+    /** A fuel the storage has (coal before wood), or null. */
+    private String storedFuel() {
+        String wood = null;
+        for (BlockPos c : chests(base)) {
+            List<ItemStack> l = contents(c);
+            if (l == null) continue;
+            for (ItemStack s : l) {
+                if (s.isEmpty()) continue;
+                String id = Gear.id(s);
+                if (id.equals("minecraft:coal") || id.equals("minecraft:charcoal")) return id;
+                if (wood == null && fuelId(id)) wood = id;
+            }
+        }
+        return wood;
+    }
+
+    private int carried(AgentHandle a, String id) {
+        int n = 0;
+        for (ItemStack s : a.inventory()) if (!s.isEmpty() && Gear.id(s).equals(id)) n += s.getCount();
+        return n;
+    }
+
+    /** Starts a batch if there is ore and fuel. True if it did. */
+    private boolean startSmelt(AgentHandle a) {
+        if (System.currentTimeMillis() < smeltAgainAt) return false;
+        String fuel = null;
+        for (ItemStack s : a.inventory()) if (!s.isEmpty() && fuelId(Gear.id(s))) fuel = Gear.id(s);
+        if (fuel == null) fuel = storedFuel();
+        if (fuel == null) { smeltAgainAt = System.currentTimeMillis() + 60_000; return false; }
+        for (String[] o : SMELT) {
+            if (count(o[0]) + carried(a, o[0]) < 1) continue;
+            smeltOre = o[0]; smeltOut = o[1]; smeltFuel = fuel; smeltCount = 0;
+            smeltPhase = carried(a, o[0]) > 0 ? 2 : 1;
+            a.log("§araw " + o[0].substring(14) + " in storage and " + fuel.replace("minecraft:", "") + " to burn: smelting a batch");
+            return true;
+        }
+        smeltAgainAt = System.currentTimeMillis() + 30_000;
+        return false;
+    }
+
+    /** One tick of a batch. True while it is busy with it. */
+    private boolean smelt(AgentHandle a) {
+        if (smeltPhase == 0) return false;
+        if (crafter.busy()) { status = "smelting " + smeltCount + " " + smeltOre.substring(14) + " for the storage"; crafter.tick(a); return true; }
+        if (smeltPhase == 3) {
+            // Done (or it could not: no furnace in reach, nothing to burn). What it carries goes back into the chests.
+            a.log(carried(a, "minecraft:" + smeltOut) > 0 ? "§asmelted " + carried(a, "minecraft:" + smeltOut) + " " + smeltOut.replace('_', ' ') + " for the storage" : "§ecould not smelt the " + smeltOre.substring(14) + " (no furnace in reach?): again in five minutes");
+            if (carried(a, "minecraft:" + smeltOut) == 0) smeltAgainAt = System.currentTimeMillis() + 300_000;
+            smeltPhase = 0;
+            return false;
+        }
+        String want = smeltPhase == 1 ? smeltOre : smeltFuel;
+        if (smeltPhase == 2 && carried(a, smeltFuel) > 0) want = null; // fuel in its pack already
+        if (want != null) {
+            if (chest == null) { chest = chestWithId(want); timer = 0; }
+            if (chest == null || timer > 20 * 40) { if (a.containerOpen()) a.closeContainer(); chest = null; smeltPhase = 0; smeltAgainAt = System.currentTimeMillis() + 60_000; return false; }
+            status = "getting " + want.replace("minecraft:", "") + " out of storage to smelt";
+            if (!openChest(a, chest)) return true;
+            if (timer % 4 != 0) return true;
+            List<ItemStack> slots = a.containerSlots();
+            int have = carried(a, want);
+            if (have < (smeltPhase == 1 ? SMELT_BATCH : 1)) for (int i = 0; i < slots.size(); i++) {
+                if (slots.get(i).isEmpty() || !Gear.id(slots.get(i)).equals(want)) continue;
+                a.quickMoveContainerSlot(i);
+                return true;
+            }
+            ChestMemory.CONTENTS.put(chest, a.containerSlots().stream().map(ItemStack::copy).toList());
+            a.closeContainer();
+            chest = null;
+            if (have == 0) { smeltPhase = 0; smeltAgainAt = System.currentTimeMillis() + 60_000; return false; }
+        }
+        if (smeltPhase == 1) { smeltPhase = 2; return true; }
+        smeltCount = Math.min(SMELT_BATCH, carried(a, smeltOre));
+        if (smeltCount == 0) { smeltPhase = 0; return false; }
+        crafter.onTask(a, "make " + smeltOut + " " + smeltCount);
+        smeltPhase = 3;
+        return true;
+    }
+
+    private BlockPos chestWithId(String id) {
+        for (BlockPos c : chests(base)) {
+            List<ItemStack> l = contents(c);
+            if (l != null && l.stream().anyMatch(s -> !s.isEmpty() && Gear.id(s).equals(id))) return c;
+        }
+        return null;
     }
 
     private static int parse(String s) { try { return Integer.parseInt(s); } catch (RuntimeException e) { return 1; } }
