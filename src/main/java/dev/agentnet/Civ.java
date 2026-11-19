@@ -310,6 +310,15 @@ public final class Civ {
         if (baseBuilt && warriors == 0) needs.add(new Need(Role.WARRIOR, null, "the base is finished: the first guard, to gear up in diamond"));
         if (iron < ironTarget && minersOn(crew, "iron_ore") < ironMiners) needs.add(new Need(Role.MINER, "mine iron_ore 32", iron + " of " + ironTarget + " iron (" + noIron + " guard(s) without iron armor)"));
         if (diamonds < diamondTarget && minersOn(crew, "diamond_ore") < diamondMiners) needs.add(new Need(Role.MINER, "mine diamond_ore 8", diamonds + " of " + diamondTarget + " diamonds (" + noDiamond + " guard(s) without diamond armor)"));
+        // Diamonds until the speedrunners beat the game, then netherite (the user, 2026-11-19: "the miners should also go
+        // after diamonds until the speedrunners beat the game, then they should go through their portal and start mining
+        // netherite"). Up to three miners on each, after the speedrunner's own iron.
+        if (dev.agentnet.role.SpeedrunnerModule.gameBeaten()) {
+            if (dev.agentnet.role.SpeedrunnerModule.runnersPortal() != null && minersOn(crew, "ancient_debris") < 3)
+                needs.add(new Need(Role.MINER, "mine ancient_debris 8", "the game is beaten: through the speedrunners' portal for ancient debris (netherite)"));
+        } else if (minersOn(crew, "diamond_ore") < 3) {
+            needs.add(new Need(Role.MINER, "mine diamond_ore 8", "diamonds while the speedrunners go for the dragon"));
+        }
         // The nether (netherite comes from there): a portal next to the base, once a diamond pickaxe exists.
         if (baseBuilt && countHeld(crew, id -> id.equals("minecraft:diamond_pickaxe") || id.equals("minecraft:netherite_pickaxe")) > 0) {
             dev.agentnet.role.PortalWork.tick(crew);

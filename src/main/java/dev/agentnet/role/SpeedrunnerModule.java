@@ -1569,6 +1569,38 @@ public final class SpeedrunnerModule implements RoleModule {
         } catch (java.io.IOException ignored) {}
     }
 
+    /**
+     * The speedrunners' lit nether portal (the cell to stand in), for the miners going after netherite once the game is
+     * beaten. Kept on disk per server: the miners need it after a restart too. Null if there is none.
+     */
+    public static BlockPos runnersPortal() {
+        if (mainPortal != null) return mainPortal;
+        try {
+            java.nio.file.Path f = dev.agentnet.AgentFiles.dir().resolve("speedrun-portal.txt");
+            if (!java.nio.file.Files.exists(f)) return null;
+            String server = String.valueOf(dev.agentnet.map.Servers.current());
+            for (String line : java.nio.file.Files.readAllLines(f)) {
+                String[] p = line.split("[|]");
+                if (p.length == 4 && p[0].equals(server)) return new BlockPos(Integer.parseInt(p[1]), Integer.parseInt(p[2]), Integer.parseInt(p[3]));
+            }
+        } catch (java.io.IOException | RuntimeException e) { /* none */ }
+        return null;
+    }
+
+    private static void savePortal(BlockPos p) {
+        try {
+            java.nio.file.Path f = dev.agentnet.AgentFiles.dir().resolve("speedrun-portal.txt");
+            String server = String.valueOf(dev.agentnet.map.Servers.current());
+            List<String> keep = new ArrayList<>();
+            if (java.nio.file.Files.exists(f)) for (String line : java.nio.file.Files.readAllLines(f)) if (!line.startsWith(server + "|")) keep.add(line);
+            keep.add(server + "|" + p.getX() + "|" + p.getY() + "|" + p.getZ());
+            java.nio.file.Files.write(f, keep);
+        } catch (java.io.IOException e) { /* only a convenience */ }
+    }
+
+    /** The game is beaten on this world (the dragon is dead). */
+    public static boolean gameBeaten() { return beaten(); }
+
     static boolean beaten() {
         try {
             java.nio.file.Path f = dev.agentnet.AgentFiles.dir().resolve("speedrun-beaten.txt");
@@ -3935,7 +3967,7 @@ public final class SpeedrunnerModule implements RoleModule {
         stepTicks++;
         BlockPos inside = c(1, 1, 0);
         BlockState in = w.get(inside.getX(), inside.getY(), inside.getZ());
-        if (in != null && in.getBlock() == Blocks.NETHER_PORTAL) { a.log("§a[speedrun] its nether portal is lit"); mainPortal = c(1, 0, 0); mainPortalFront = c(1, 1, 1); mainPortal2 = c(2, 0, 0); mainPortalFront2 = c(2, 1, 1); go(a, Stage.ENTER); return; }
+        if (in != null && in.getBlock() == Blocks.NETHER_PORTAL) { a.log("§a[speedrun] its nether portal is lit"); mainPortal = c(1, 0, 0); savePortal(mainPortal); mainPortalFront = c(1, 1, 1); mainPortal2 = c(2, 0, 0); mainPortalFront2 = c(2, 1, 1); go(a, Stage.ENTER); return; }
         if (stageTicks == 1) frameMap(a, "frame done: lighting it");
         if (stageTicks > 20 * 90) { a.log("§e[speedrun] the portal didn't light: checking the frame again"); frameMap(a, "didn't light"); step = 0; stepTicks = 0; go(a, Stage.CAST); return; }
         if (!standAt(a, w, c(1, 1, 1), 0)) { status = "getting into place to light the portal"; return; }
