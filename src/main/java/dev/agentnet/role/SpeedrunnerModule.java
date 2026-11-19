@@ -539,7 +539,7 @@ public final class SpeedrunnerModule implements RoleModule {
                 if (count(a, "minecraft:water_bucket") > 0) { fetchStand = null; go(a, Stage.POOL); return; }
                 fetch(a, false);
             }
-            case POOL -> findPool(a);
+            case POOL -> { if (resumeLater && resume(a)) return; findPool(a); } // geared up again after a death: its own portal, not a new pool
             case CAST -> cast(a);
             case LIGHT -> light(a);
             case ENTER -> enter(a);
@@ -1729,7 +1729,9 @@ public final class SpeedrunnerModule implements RoleModule {
     private BlockPos hopGoal;
     private Direction lavaDir;
     private boolean lavaBridging;
-    private int lavaAt = -1000, lavaWalked;
+    private int lavaAt = -1000, lavaWalked, noBridgeUntil, bridgeMineAt;
+    private final MinerModule bridgeMiner = new MinerModule();
+    private boolean bridgeMining;
 
     /**
      * Lava between it and where its hop goes (the user: "give them the ability to bridge over lava"; run 1119a's portal
@@ -1738,7 +1740,7 @@ public final class SpeedrunnerModule implements RoleModule {
      * first. Only once the walker has found no way round. True while it is at it.
      */
     private boolean lavaBridge(AgentHandle a, BlockView w) {
-        if (hopGoal == null || a.airborne()) return false;
+        if (hopGoal == null || a.airborne() || ticks < noBridgeUntil) return false;
         double dx = hopGoal.getX() + 0.5 - a.x(), dz = hopGoal.getZ() + 0.5 - a.z();
         if (Math.hypot(dx, dz) < 6) { lavaBridging = false; return false; }
         int fx = (int) Math.floor(a.x()), fy = (int) Math.floor(a.y() + 0.01), fz = (int) Math.floor(a.z());
@@ -1782,13 +1784,19 @@ public final class SpeedrunnerModule implements RoleModule {
         status = "bridging over lava";
         if (!solid(w.get(under.getX(), under.getY(), under.getZ()))) return true; // still stepping onto the last block
         if (count(a, "minecraft:cobblestone") + count(a, "minecraft:netherrack") + count(a, "minecraft:cobbled_deepslate") == 0) {
+            // Netherrack only drops for a pickaxe: without one there is nothing to bridge with. Not this way, for two minutes.
+            if (Gear.bestTool(a.inventory(), "pickaxe") < 0) {
+                lavaBridging = false; noBridgeUntil = ticks + 2400;
+                a.log("§e[speedrun] lava in the way and nothing to bridge with (no blocks, no pickaxe): another way");
+                return false;
+            }
             status = "out of blocks to bridge with: mining netherrack";
-            if (minerJob != null && miner.idle() && miner.status().startsWith("done") && ticks - jobRestart > 100) { minerJob = null; jobRestart = ticks; }
-            mine(a, "mine 16 netherrack");
-            miner.tick(a);
+            // Its own miner: the nether stage stops the shared one every tick ("mining 16x netherrack" / "stopped", 20 a second).
+            if (!bridgeMining || bridgeMiner.idle() && bridgeMiner.status().startsWith("done") && ticks - bridgeMineAt > 100) { bridgeMiner.onTask(a, "mine 16 netherrack"); bridgeMining = true; bridgeMineAt = ticks; }
+            bridgeMiner.tick(a);
             return true;
         }
-        mine(a, null);
+        if (bridgeMining) { bridgeMiner.onTask(a, "idle"); bridgeMining = false; }
         // To the edge of its block first (not past it), then the block against the side of the one it stands on.
         double ex = fx + 0.5 + dir.getStepX() * 0.35, ez = fz + 0.5 + dir.getStepZ() * 0.35;
         if (Math.hypot(a.x() - ex, a.z() - ez) > 0.12) { a.stepToward(ex, ez); return true; }
@@ -3491,9 +3499,19 @@ public final class SpeedrunnerModule implements RoleModule {
     }
 
     /** Back after a reconnect (a new module): the same site, the same step. */
+    private boolean resumeLater;
+
     private boolean resume(AgentHandle a) {
         int[] s = SAVED.get(a.name());
         if (s == null) return false;
+        // Back from a death with nothing: its kit first. Straight on to "enter", it walked into the nether with empty hands
+        // (run 1119a, 23 minutes in: no pickaxe, no shield, no food, and no blocks to bridge the lava with).
+        if (Gear.bestTool(a.inventory(), "pickaxe") < 0 || Gear.bestTool(a.inventory(), "axe") < 0 && Gear.bestTool(a.inventory(), "sword") < 0) {
+            if (!resumeLater) a.log("[speedrun] back with no kit: gearing up first, then on with its portal at " + s[0] + " " + s[1] + " " + s[2]);
+            resumeLater = true;
+            return false;
+        }
+        resumeLater = false;
         origin = new BlockPos(s[0], s[1], s[2]);
         alongX = s[3]; alongZ = s[4]; inX = s[5]; inZ = s[6];
         pool = origin;
