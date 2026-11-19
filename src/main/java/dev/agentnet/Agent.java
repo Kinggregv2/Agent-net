@@ -770,6 +770,62 @@ public final class Agent implements AgentHandle {
         return true;
     }
 
+    // ---- foraging: starving with nothing to eat, it kills an animal itself (run 1118d: the main speedrunner asked for food
+    // for ten minutes, nobody had any, and a skeleton finished it at 4 health with cows in sight).
+    private static final java.util.Set<String> GAME = java.util.Set.of("cow", "pig", "sheep", "chicken", "rabbit", "mooshroom");
+    private int forageId = -1, forageTicks, forageX, forageY, forageZ;
+    private boolean foragePickup;
+    private long forageAgainAt;
+
+    private boolean hasFood() {
+        for (var s : inventory()) if (dev.agentnet.role.Gear.isFood(s) && !dev.agentnet.role.Gear.id(s).contains("golden_apple")) return true;
+        return false;
+    }
+
+    private void endForage(long pauseMs) {
+        forageId = -1; foragePickup = false;
+        forageAgainAt = System.currentTimeMillis() + pauseMs;
+        if (navigator.busy()) navigator.stop();
+    }
+
+    private boolean tickForage() {
+        if (forageId < 0 && !foragePickup) {
+            if (foodTicks % 20 != 0 || System.currentTimeMillis() < forageAgainAt || !isOnline()) return false;
+            if (role == Role.HUNTER || role == Role.FARMER || role == Role.FISHER) return false; // food is their job anyway
+            int food = food();
+            if (food < 0 || food > 10) return false;
+            if (!String.valueOf(dimension()).endsWith("overworld") || myVehicle >= 0 || airVel != null) return false;
+            if (module != null && module.fighting()) return false;
+            if (hasFood()) return false;
+            dev.agentnet.role.Seen best = null;
+            for (dev.agentnet.role.Seen s : entitiesNear(24)) if (GAME.contains(s.name()) && (best == null || s.distance() < best.distance())) best = s;
+            if (best == null) return false;
+            forageId = best.id(); forageTicks = 0;
+            if (navigator.busy()) navigator.stop();
+            log("§estarving with nothing to eat: hunting a " + best.name() + " itself (" + Math.round(best.distance()) + " blocks)");
+            return true;
+        }
+        if (++forageTicks > 20 * 45) { log("§egave up hunting for food"); endForage(60_000); return false; }
+        if (hasFood()) { log("§agot food for itself"); endForage(0); return false; }
+        if (foragePickup) { // the animal is dead: onto its drops
+            if (forageTicks > 20 * 8) { endForage(20_000); return false; }
+            if (!navigator.busy() && forageTicks % 20 == 1) navigate(forageX, forageY, forageZ, 0);
+            return true;
+        }
+        dev.agentnet.role.Seen t = null;
+        for (dev.agentnet.role.Seen s : entitiesNear(32)) if (s.id() == forageId) { t = s; break; }
+        if (t == null) { foragePickup = true; forageTicks = 0; return true; } // killed (or gone): where it last stood
+        forageX = (int) Math.floor(t.pos().x); forageY = (int) Math.floor(t.pos().y); forageZ = (int) Math.floor(t.pos().z);
+        if (t.distance() > 2.8) {
+            if (!navigator.busy() && forageTicks % 20 == 1) navigate(forageX, forageY, forageZ, 1);
+            return true;
+        }
+        if (navigator.busy()) navigator.stop();
+        lookAt(t.pos().x, t.pos().y + 0.5, t.pos().z);
+        if (forageTicks % 12 == 0) attack(t.id());
+        return true;
+    }
+
     private int hubTicks;
     private long hubFailedAt;
     private boolean hubTried;
@@ -881,6 +937,7 @@ public final class Agent implements AgentHandle {
         if (tickBurrow()) return;  // dug in for the night
         if (tickThreats()) return; // running from a mob or a hitlist player
         if (tickFood()) return;    // eating
+        if (tickForage()) return;  // starving with no food: an animal for itself
         tickHub();
         if (module == null) return;
         try {
