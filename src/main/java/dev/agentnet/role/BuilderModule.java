@@ -697,14 +697,67 @@ final class BuilderModule implements RoleModule {
     }
 
     /** Ask the nearest distributor for materials this builder is missing. */
-    static void requestMaterial(AgentHandle a, String item, int count) {
-        AgentBus.closest(Role.DISTRIBUTOR, a).ifPresentOrElse(
-                d -> AgentBus.send(Message.of(a.name(), d.name(), Message.Type.ITEM_REQUEST,
-                        "need " + count + "x " + item,
-                        Map.of("item", item, "count", String.valueOf(count),
-                               "x", GathererModule.coord(a.x()), "y", GathererModule.coord(a.y()),
-                               "z", GathererModule.coord(a.z())))),
-                () -> a.log("needs " + count + "x " + item + " but no distributor is online"));
+    /**
+     * A request for supplies. First the nearest distributor's estimate (the user, 2026-11-19: a speedrunner standing in a
+     * forest asked a swamped distributor hundreds of blocks away for 4 logs): the jobs it already has waiting, about 40 s
+     * each (a pick-up, a walk, a hand-over), plus its walk over here. Against that, what the asker would need itself, for
+     * the things it can judge: logs, cobblestone or coal it can see near it. Faster itself: nothing is asked, and the
+     * distributor is spared the trip. False when no request went out.
+     */
+    static boolean requestMaterial(AgentHandle a, String item, int count) {
+        var dist = AgentBus.closest(Role.DISTRIBUTOR, a);
+        if (dist.isEmpty()) { a.log("needs " + count + "x " + item + " but no distributor is online"); return false; }
+        AgentHandle d = dist.get();
+        double eta = distributorSeconds(d, a), own = ownSeconds(a, item, count);
+        if (own < eta) {
+            String key = a.name() + "|" + item;
+            long now = System.currentTimeMillis();
+            Long said = ETA_SAID.get(key);
+            if (said == null || now - said > 120_000) {
+                ETA_SAID.put(key, now);
+                a.log(String.format("§7%dx %s: about %.0f s itself, %.0f s from %s (%d jobs waiting on it): getting it itself", count, item.replace("minecraft:", ""), own, eta, d.name(), waitingOn(d)));
+            }
+            return false;
+        }
+        AgentBus.send(Message.of(a.name(), d.name(), Message.Type.ITEM_REQUEST,
+                "need " + count + "x " + item,
+                Map.of("item", item, "count", String.valueOf(count),
+                       "x", GathererModule.coord(a.x()), "y", GathererModule.coord(a.y()),
+                       "z", GathererModule.coord(a.z()))));
+        return true;
+    }
+
+    private static final Map<String, Long> ETA_SAID = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** Pick-ups and deliveries a distributor has waiting (from what it reports about itself). */
+    static int waitingOn(AgentHandle d) {
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("([0-9]+) pickup[(]s[)], ([0-9]+) deliver").matcher(String.valueOf(d.moduleStatus()));
+        return m.find() ? Integer.parseInt(m.group(1)) + Integer.parseInt(m.group(2)) : 0;
+    }
+
+    /** The distributor's estimate for one more job, in seconds: what waits on it already, then its walk to the asker. */
+    static double distributorSeconds(AgentHandle d, AgentHandle asker) {
+        return 20 + waitingOn(d) * 40.0 + Math.sqrt(AgentBus.distSq(d, asker)) / 4.0;
+    }
+
+    /** What getting it itself would take, in seconds; infinite for what it cannot get (or judge) itself. */
+    static double ownSeconds(AgentHandle a, String item, int count) {
+        if (!(a.openWorld() instanceof dev.agentnet.pathing.BlockView w)) return Double.POSITIVE_INFINITY;
+        String id = item.replace("minecraft:", "");
+        boolean pick = Gear.bestTool(a.inventory(), "pickaxe") >= 0;
+        java.util.function.Predicate<net.minecraft.world.level.block.state.BlockState> what;
+        double each;
+        if (id.equals("logs") || id.endsWith("_log")) { what = s -> s.is(net.minecraft.tags.BlockTags.LOGS); each = 4; }
+        else if (id.equals("cobblestone") || id.equals("stone")) { if (!pick) return Double.POSITIVE_INFINITY; what = s -> s.is(net.minecraft.tags.BlockTags.BASE_STONE_OVERWORLD); each = 1.5; }
+        else if (id.equals("coal")) { if (!pick) return Double.POSITIVE_INFINITY; what = s -> s.getBlock() == net.minecraft.world.level.block.Blocks.COAL_ORE || s.getBlock() == net.minecraft.world.level.block.Blocks.DEEPSLATE_COAL_ORE; each = 3; }
+        else return Double.POSITIVE_INFINITY;
+        int x = (int) Math.floor(a.x()), z = (int) Math.floor(a.z());
+        double best = Double.POSITIVE_INFINITY;
+        for (BlockPos p : w.findAll(x, z, 40, what, 24)) {
+            if (Math.abs(p.getY() - a.y()) > 12) continue; // a cave far below is no help
+            best = Math.min(best, Math.sqrt(p.distToCenterSqr(a.x(), a.y(), a.z())));
+        }
+        return best == Double.POSITIVE_INFINITY ? best : 10 + best / 4.0 + count * each;
     }
 
     private void go(State s) { state = s; timer = 0; }
