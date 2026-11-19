@@ -38,6 +38,7 @@ final class ElytraMace {
     private boolean committed;
     /** How far over the target a chained dive starts: the server counts the fall only once it is going down fast. */
     private static final double DIVE_UP = Double.parseDouble(System.getProperty("agentnet.diveUp", "9"));
+    private static final int SETTLE = Integer.getInteger("agentnet.settle", 7);
     private int reglides, confirmedAt, chain;
     private double lastX = Double.NaN, lastZ;
     int cooldown;
@@ -168,7 +169,10 @@ final class ElytraMace {
                 // In a chain (thrown up by Wind Burst) higher: the server counts the fall only from where it goes down fast,
                 // and a dive from 8 over it came to 4.6 blocks of fall, too little to pop a totem through Protection IV.
                 double minUp = topped && !moving ? DIVE_UP : 4;
-                if (!committed && (off > up + 2 || up < minUp)) {
+                // Just hit: its new speed (thrown up, or knocked down out of the air) takes a few ticks to show. Diving at
+                // once on the old one met it halfway down, after 4 blocks of fall instead of 9: no pop.
+                boolean settling = smashes > 0 && total - struckAt < SETTLE;
+                if (!committed && (settling || off > up + 2 || up < minUp)) {
                     tactic = String.format("flying at %s (%.0f out, %.0f up)", enemy.name(), off, up);
                     a.lookAt(tx, ty + keep, tz);
                     if (!moving && off < 6) a.look(yaw, -86f); // right over it: straight up, so the dive is straight down
