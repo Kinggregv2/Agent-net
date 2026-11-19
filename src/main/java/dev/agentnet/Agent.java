@@ -2419,8 +2419,42 @@ public final class Agent implements AgentHandle {
         return underBase(feetY) && b != null && b.hub() != null && y < b.hub().getY() && !s.hasBlockEntity();
     }
 
+    /**
+     * Your own world only, for the logs: what the server itself has in the 3x3 columns round a spot (feet-1 to head+1),
+     * beside what this agent sees there. Printed when the server keeps putting it back: every such loop so far was a
+     * guess at which block the two disagreed on.
+     */
+    private String serverBlocks(Vec3 at, Vec3 to) {
+        try {
+            var srv = mc.getSingleplayerServer();
+            var view = openWorld();
+            if (srv == null || view == null) return "";
+            net.minecraft.server.level.ServerPlayer sp = srv.getPlayerList().getPlayerByName(name);
+            if (sp == null) return "";
+            var level = sp.level();
+            int bx = (int) Math.floor(at.x), by = (int) Math.floor(at.y + 0.01), bz = (int) Math.floor(at.z);
+            StringBuilder sb = new StringBuilder(String.format("%n  it was at %.2f %.2f %.2f, going to %.2f %.2f %.2f; the server has it at %.2f %.2f %.2f", at.x, at.y, at.z, to.x, to.y, to.z, sp.getX(), sp.getY(), sp.getZ()));
+            for (int dy = 2; dy >= -1; dy--) for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) {
+                var p = new BlockPos(bx + dx, by + dy, bz + dz);
+                BlockState truth = level.getBlockState(p), seen = view.get(p.getX(), p.getY(), p.getZ());
+                boolean same = seen != null && truth.equals(seen);
+                var shape = truth.getCollisionShape(level, p);
+                boolean plain = truth.isAir() || !shape.isEmpty() && shape.max(net.minecraft.core.Direction.Axis.Y) == 1.0 && shape.min(net.minecraft.core.Direction.Axis.Y) == 0.0
+                        && shape.min(net.minecraft.core.Direction.Axis.X) == 0.0 && shape.max(net.minecraft.core.Direction.Axis.X) == 1.0;
+                if (same && plain) continue; // full blocks and air they agree on: not the reason
+                sb.append(String.format("%n  %d %d %d: server %s%s | agent %s%s", p.getX(), p.getY(), p.getZ(), truth.toString().replace("Block{minecraft:", "").replace("}", ""),
+                        shape.isEmpty() ? " (no collision)" : String.format(" (collision up to %.3f)", shape.max(net.minecraft.core.Direction.Axis.Y)),
+                        seen == null ? "?" : seen.toString().replace("Block{minecraft:", "").replace("}", ""), same ? "" : "   <-- DIFFERENT"));
+            }
+            for (var e : level.getEntities(sp, sp.getBoundingBox().inflate(1.5), x -> x.canBeCollidedWith(sp) || x instanceof net.minecraft.world.entity.vehicle.boat.AbstractBoat))
+                sb.append(String.format("%n  entity in the way: %s at %.2f %.2f %.2f", e.getType().toShortString(), e.getX(), e.getY(), e.getZ()));
+            return sb.toString();
+        } catch (Throwable t) { return " (" + t + ")"; }
+    }
+
     /** Until then an escape may dig through the base too (see the stuck steps). */
     private volatile long baseBreakUntil;
+    private long diagAt;
 
     private boolean escapeDiggable(BlockState s, int x, int y, int z) {
         if (natural(s)) return true;
@@ -3114,11 +3148,12 @@ public final class Agent implements AgentHandle {
                     corrections.add(nowTp);
                     if (corrections.size() >= 3) {
                         corrections.clear();
-                        final Vec3 bad = was;
+                        final Vec3 bad = was, backTo = v;
                         mc.execute(() -> {
                             holes.add(new long[]{(long) Math.floor(bad.x), (long) Math.floor(bad.y + 0.01), (long) Math.floor(bad.z), System.currentTimeMillis()});
                             navigator.stop();
-                            AgentNet.LOG.info("[{}] the server keeps putting it back near {}: giving up this way", name, bad);
+                            AgentNet.LOG.info("[{}] the server keeps putting it back near {}: giving up this way{}", name, bad, System.currentTimeMillis() - diagAt > 20_000 ? serverBlocks(backTo, bad) : "");
+                            diagAt = System.currentTimeMillis();
                         });
                     } else mc.execute(navigator::onTeleported);
                 }
