@@ -516,7 +516,16 @@ public final class SpeedrunnerModule implements RoleModule {
                     return;
                 }
                 mine(a, null);
-                if (stageTicks % 100 == 1) { crafter.onTask(a, "make shield 1"); status = "crafting a shield"; }
+                if (stageTicks % 100 == 1) {
+                    // Six planks, as planks: the craft does not saw its logs up by itself. With 3 planks and 3 logs it
+                    // "made a shield" every 5 s for four minutes, each one missing ingredients (run 1118d, every regear).
+                    int planks = 0;
+                    for (ItemStack s : a.inventory()) if (Gear.id(s).endsWith("_planks")) planks += s.getCount();
+                    String fromLog = MakerModule.planksFromLog(a);
+                    if (planks < 6 && fromLog != null) crafter.queueAll(a, fromLog);
+                    crafter.onTask(a, "make shield 1");
+                    status = "crafting a shield";
+                }
             }
             case COBBLE -> {
                 // A stone axe too (its weapon: harder hits than a sword), once it has the cobblestone.
