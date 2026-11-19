@@ -609,6 +609,8 @@ final class MinerModule extends GathererModule {
         boolean obsidian = targets.contains(net.minecraft.world.level.block.Blocks.OBSIDIAN);
         for (BlockPos p : found) {
             if (isSkipped(p)) continue;
+            // Under water: not for it (agents cannot work under water; each such target cost a failed path search first).
+            { BlockState over = w.get(p.getX(), p.getY() + 1, p.getZ()); if (over != null && over.getFluidState().is(net.minecraft.tags.FluidTags.WATER)) continue; }
             // Eight given up in a minute with nothing mined: nothing round here is reachable (logs over water, ore behind
             // lava: one miner skipped 247 in twelve minutes, each after a failed path search). Nothing within 48 blocks of
             // where it stood then, for three minutes: it goes to look somewhere else.

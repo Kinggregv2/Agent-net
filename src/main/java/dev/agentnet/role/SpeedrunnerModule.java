@@ -2902,9 +2902,9 @@ public final class SpeedrunnerModule implements RoleModule {
             return false;
         }
         if (wearArmor(a)) return true;
-        String item = !hasShield(a) ? "minecraft:shield"
-                : !hasArmor(a, 1) ? "minecraft:iron_chestplate"
-                : null; // (no iron helmet: the helmet is the golden one of the nether kit)
+        // A shield first, then the whole nether kit (full iron, a golden helmet): ready when the main's portal is.
+        if (hasShield(a) && !netherKit(a)) { if (ownMining) { mine(a, null); ownMining = false; } return netherArmor(a); }
+        String item = !hasShield(a) ? "minecraft:shield" : null;
         if (item == null) {
             if (ownMining) { mine(a, null); ownMining = false; }
             return false;
@@ -3411,7 +3411,7 @@ public final class SpeedrunnerModule implements RoleModule {
         origin = site;
         plan();
         step = 0; stepTicks = 0; tries = 0;
-        poolDeep = siteDeep; stairOrigin = null; descendSaid = false;
+        poolDeep = siteDeep; stairOrigin = null; descendSaid = false; descendTop = null;
         if (poolDeep) a.log("§a[speedrun] a lava pool underground at " + origin.toShortString() + " (" + Math.round(a.y() - origin.getY()) + " blocks down): its own staircase down to it");
         a.log("[speedrun] building its portal in the pool edge at " + origin.toShortString() + " (" + steps.size() + " steps" + (clear.isEmpty() ? "" : ", " + clear.size() + " blocks to clear off the shore first") + ")");
         go(a, Stage.CAST);
@@ -3698,6 +3698,24 @@ public final class SpeedrunnerModule implements RoleModule {
 
     /** The pool it chose lies underground: it goes down to it first. */
     private boolean poolDeep, siteDeep, descendSaid;
+    private BlockPos descendTop;
+
+    /** The top of this column if it is dry land with no water or lava beside it (its staircase starts there); else null. */
+    private static BlockPos dryTop(BlockView w, int x, int z, int fromY) {
+        for (int y = fromY + 24; y >= fromY - 24; y--) {
+            BlockState s = w.get(x, y, z);
+            if (s == null) return null;
+            if (s.isAir() || s.canBeReplaced() && s.getFluidState().isEmpty()) continue;
+            if (!s.getFluidState().isEmpty() || !solid(s)) return null;
+            for (int dx = -2; dx <= 2; dx++) for (int dz = -2; dz <= 2; dz++) for (int dy = -1; dy <= 1; dy++) {
+                BlockState n = w.get(x + dx, y + dy, z + dz);
+                if (n == null || !n.getFluidState().isEmpty()) return null;
+            }
+            return new BlockPos(x, y + 1, z);
+        }
+        return null;
+    }
+
 
     /**
      * Down to an underground pool: to a spot above the shore (eight blocks back from the lava, so the stairs do not come
@@ -3708,7 +3726,22 @@ public final class SpeedrunnerModule implements RoleModule {
         if (!poolDeep || origin == null) return false;
         if (a.y() <= origin.getY() + 3.5) { poolDeep = false; stairOrigin = null; a.log("§a[speedrun] down at the lava pool (y " + origin.getY() + ")"); return false; }
         if (!(a.openWorld() instanceof BlockView w)) return true;
-        int tx = origin.getX() - inX * 8, tz = origin.getZ() - inZ * 8;
+        // Dry land to start from: agents cannot work under water (the user, 2026-11-19; run 1119i: its staircase began in a
+        // lake and stood on step 1, "y60=water y61=water y62=water", until the run ended). The nearest dry column 6 to 20
+        // blocks from the pool, the shore side first.
+        if (descendTop == null || descendTop.distSqr(origin) > 40 * 40) {
+            BlockPos best = null; double bd = Double.MAX_VALUE;
+            for (int r = 6; r <= 20; r += 2) for (int deg = 0; deg < 360; deg += 30) {
+                int cx = origin.getX() + (int) Math.round(Math.cos(Math.toRadians(deg)) * r), cz = origin.getZ() + (int) Math.round(Math.sin(Math.toRadians(deg)) * r);
+                BlockPos t = dryTop(w, cx, cz, (int) Math.floor(a.y()));
+                if (t == null) continue;
+                double d = t.distToCenterSqr(a.x(), a.y(), a.z());
+                if (d < bd) { bd = d; best = t; }
+            }
+            if (best == null) { if (stepTicks > 20 * 20) fail(a, "no dry ground to dig down from above the pool at " + origin.toShortString()); return true; }
+            descendTop = best;
+        }
+        int tx = descendTop.getX(), tz = descendTop.getZ();
         double hd = Math.hypot(a.x() - (tx + 0.5), a.z() - (tz + 0.5));
         if (stairOrigin == null && hd > 4) {
             status = "walking to above the underground lava pool (" + Math.round(hd) + " blocks)";
