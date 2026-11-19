@@ -1732,6 +1732,7 @@ public final class SpeedrunnerModule implements RoleModule {
     private int lavaAt = -1000, lavaWalked, noBridgeUntil, bridgeMineAt;
     private final MinerModule bridgeMiner = new MinerModule();
     private boolean bridgeMining;
+    private int bridgeHitAt = -1000;
 
     /**
      * Lava between it and where its hop goes (the user: "give them the ability to bridge over lava"; run 1119a's portal
@@ -1749,6 +1750,28 @@ public final class SpeedrunnerModule implements RoleModule {
         BlockPos under = new BlockPos(fx, fy - 1, fz), next = under.relative(dir);
         BlockState n = w.get(next.getX(), next.getY(), next.getZ()), nFeet = w.get(next.getX(), fy, next.getZ()), nHead = w.get(next.getX(), fy + 1, next.getZ());
         if (n == null || nFeet == null || nHead == null) { lavaBridging = false; return false; }
+        // Something hostile on or by the bridge (a magma cube hopping along it): no step toward it. It is hit when it
+        // comes in reach, from where it stands. Walking on, it stepped straight into one and died (run 1119a).
+        if (lavaBridging) {
+            Seen foeNear = null;
+            for (Seen s : a.entitiesNear(6)) {
+                if (s.player() || !s.hostile()) continue;
+                if (foeNear == null || s.distance() < foeNear.distance()) foeNear = s;
+            }
+            if (foeNear != null) {
+                if (a.isNavigating()) a.stopNavigation();
+                status = "on its bridge: a " + foeNear.name().replace('_', ' ') + " in the way";
+                a.lookAt(foeNear.pos().x, foeNear.pos().y + 0.4, foeNear.pos().z);
+                if (eyeDist(a, foeNear) <= 3.0 && ticks - bridgeHitAt >= 13) {
+                    bridgeHitAt = ticks;
+                    int axe = Gear.bestTool(a.inventory(), "axe"), sword = Gear.bestTool(a.inventory(), "sword");
+                    int w2 = sword >= 0 ? sword : axe;
+                    if (w2 >= 0 && w2 < 9) a.selectHotbar(w2);
+                    a.attack(foeNear.id());
+                }
+                return true;
+            }
+        }
         boolean lavaAhead = lavaAt(n);
         if (!lavaAhead && n.isAir()) for (int y = next.getY() - 1; y >= next.getY() - 8; y--) {
             BlockState s = w.get(next.getX(), y, next.getZ());
