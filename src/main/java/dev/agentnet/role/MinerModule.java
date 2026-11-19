@@ -180,6 +180,9 @@ final class MinerModule extends GathererModule {
     private final java.util.LinkedHashSet<BlockPos> floors = new java.util.LinkedHashSet<>();
     private int toolWaits;
     private long lastSkipLog;
+    /** Skips in a row with nothing mined between, and the place where six of them happened: left alone for two minutes. */
+    private int skipRun, badUntil;
+    private BlockPos badSpot;
     private String lastWarning;
     private String status = "";
 
@@ -601,6 +604,9 @@ final class MinerModule extends GathererModule {
         boolean obsidian = targets.contains(net.minecraft.world.level.block.Blocks.OBSIDIAN);
         for (BlockPos p : found) {
             if (isSkipped(p)) continue;
+            // Six in a row out of reach round here (stone under a beach, all of it under water: run 1118d, 65 failed path
+            // searches in six minutes on one spot): nothing within 28 blocks of there for a while, so it goes to look elsewhere.
+            if (badSpot != null && ticks < badUntil && (p.getX() - badSpot.getX()) * (p.getX() - badSpot.getX()) + (p.getZ() - badSpot.getZ()) * (p.getZ() - badSpot.getZ()) < 28 * 28) continue;
             if (obsidian && !obsidianOk(w, p)) continue; // lava at its side or under it: not that one
             if (near != null && !nearOk(p)) continue; // the base's quarry: close to it, not deep, never the base itself
             if (underAgent(a, p)) continue; // holding another agent up: don't dig it out from under it
@@ -682,7 +688,7 @@ final class MinerModule extends GathererModule {
             a.lookAt(target.getX() + 0.5, target.getY() + 0.5, target.getZ() + 0.5);
             int t = a.dig(target.getX(), target.getY(), target.getZ());
             if (t < 0) { skip(a, "it can't be broken"); return; }
-            mined++;
+            mined++; skipRun = 0;
             minedAt = target;
             pickupTried.clear();
             uncovered.clear();
@@ -809,7 +815,7 @@ final class MinerModule extends GathererModule {
             if (!safeToDig(w, target)) { skip(a, "it touches lava or water"); return; }
             int t = a.dig(target.getX(), target.getY(), target.getZ());
             if (t < 0) { skip(a, "it can't be broken"); return; }
-            mined++;
+            mined++; skipRun = 0;
             minedAt = target;
             pickupTried.clear();
             uncovered.clear();
@@ -1461,6 +1467,10 @@ final class MinerModule extends GathererModule {
 
     private void skip(AgentHandle a, String why) {
         if (target != null) skipped.put(target, ticks);
+        if (why != null && ++skipRun >= 6) {
+            skipRun = 0; badSpot = BlockPos.containing(a.x(), a.y(), a.z()); badUntil = ticks + 20 * 120;
+            a.log("§esix " + targetName + " in a row out of reach here: looking somewhere else");
+        }
         if (why != null) {
             String line = "skipping " + targetName + " at " + target.getX() + " " + target.getY() + " " + target.getZ() + ": " + why;
             // Chat gets at most one of these every 30 s (a cave full of unreachable ore would flood it); the log gets all.
