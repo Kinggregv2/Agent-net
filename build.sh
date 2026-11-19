@@ -29,6 +29,8 @@ cp -r src/main/resources/* build/classes/
 sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" build/classes/fabric.mod.json
 (cd build/classes && jar --create --file ../agentnet-$VERSION.jar .)
 echo "Built build/agentnet-$VERSION.jar"
+# The jar itself goes on GitHub too (the user, 2026-11-19): a copy at the top of the repo, replaced by every build.
+cp "build/agentnet-$VERSION.jar" "agentnet-$VERSION.jar"
 
 # Every successful build is a saved version: committed, and pushed when a GitHub remote ("origin") is set up.
 if [ -d .git ]; then
