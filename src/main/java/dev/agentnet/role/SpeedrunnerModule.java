@@ -3551,7 +3551,7 @@ public final class SpeedrunnerModule implements RoleModule {
         if (s == null) return false;
         // Back from a death with nothing: its kit first. Straight on to "enter", it walked into the nether with empty hands
         // (run 1119a, 23 minutes in: no pickaxe, no shield, no food, and no blocks to bridge the lava with).
-        if (Gear.bestTool(a.inventory(), "pickaxe") < 0 || Gear.bestTool(a.inventory(), "axe") < 0 && Gear.bestTool(a.inventory(), "sword") < 0) {
+        if (!hasShield(a) || Gear.bestTool(a.inventory(), "pickaxe") < 0 || Gear.bestTool(a.inventory(), "axe") < 0 && Gear.bestTool(a.inventory(), "sword") < 0) {
             if (!resumeLater) a.log("[speedrun] back with no kit: gearing up first, then on with its portal at " + s[0] + " " + s[1] + " " + s[2]);
             resumeLater = true;
             return false;

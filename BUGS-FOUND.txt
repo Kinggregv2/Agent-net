@@ -11,8 +11,6 @@ O1. THE MAIN SPEEDRUNNER STILL DIES AND LOSES ITS KIT. Every death costs a full 
     for that one written 18:05, not yet seen working), a magma cube on its own lava
     bridge (fix written, not yet seen working), a fall in the Nether onto a block that was
     not there on the server (run 1118d, cause unknown).
-O2. IT ENTERED THE NETHER WITHOUT A SHIELD ("shield false" in its nether status) in run
-    1119b at 70 min. The kit check before the portal only looks for a pickaxe and a weapon.
 O3. SHORT "PUT BACK BY THE SERVER" LOOPS still happen (1 to 3 per agent in 6 minutes; were
     250 at one spot). Two causes were fixed (see F3, F4); what is left is not diagnosed.
 O4. MINERS TRY ORE THEY CANNOT REACH for minutes ("skipping iron_ore: every way there is
@@ -52,7 +50,9 @@ F7. Bucket stage waited on a crafting table it could not reach / had left behind
 F8. "Up to the surface" climb restarted every 10 s and never finished. Now a climb under
     way is left alone, and after 6 that gain nothing it searches from where it is.
 F9. Back from a death it walked through its finished portal with empty hands. Now it gears
-    up first.
+    up first (pickaxe, weapon and shield). (An earlier entry here said it had entered the
+    Nether without a shield: that was a misreading, the log line shows whether the shield
+    is raised, not whether it has one.)
 F10. Tank helper stood in the Nether portal "holding the blazes" with no blaze and no
     fortress. Now it travels with the group until there is one.
 F11. Miner stood on a beach trying 65 stone blocks under water. Now it leaves an area after
