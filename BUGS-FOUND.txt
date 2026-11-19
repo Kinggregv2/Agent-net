@@ -1,7 +1,7 @@
 AGENTNET BUGS (kept up to date by Claude: open ones first, then what was fixed)
 ================================================================================
 A bug = any unintended behaviour, including deaths that could have been prevented.
-Last updated: 2026-11-19 20:05, from crew runs "run 1118d", "run 1119a", "run 1119b" and "run 1119c".
+Last updated: 2026-11-19 20:10, from crew runs "run 1118d", "run 1119a", "run 1119b" and "run 1119c".
 
 --- OPEN (found, not fixed yet) --------------------------------------------------
 
@@ -48,7 +48,8 @@ O14. A MINER SKIPPED LOGS 247 TIMES IN 12 MINUTES ("every way there is blocked")
 O15. THE MAIN SEARCHED 50 MINUTES FOR A LAVA POOL in run 1119c (pool stage from 25 to 75+ min).
     Its search was a random walk: a 48-block hop in a random direction every 20 s. Changed 19:40:
     it keeps one heading and goes on outward, and every agent in the crew tells it about lava it
-    sees near the surface (see "to add", item 2). Not yet seen working.
+    sees near the surface (see "to add", item 2). 20:02: one agent has reported lava; the main
+    going there is not seen yet.
 O16. WORKERS STILL DIE AT NIGHT ON THE SURFACE: 11 deaths in 28 minutes in run 1119c (the hunter
     4 times, distributors 4 times, miners 3; creepers, zombies, skeletons, two drowned).
     DIGGING IN IS GONE (the user, 19:15: "instead of digging down it should disconnect, then a
@@ -64,7 +65,12 @@ O17. THE CREW ENDED UP WITH NO DISTRIBUTOR AT ALL (run 1119c, 19:57; the user: "
     "idle" between deliveries, and the civ gave idle agents the speedrunner's iron and the
     hunger jobs. At the cap none could be hired back. Changed 20:00: distributors are never
     taken as "idle", the civ keeps at least two, and with none at all a gatherer becomes one even
-    at the cap. Seen working is noted below once it has run for a while.
+    at the cap. First check 20:02: three distributors hired in the first two minutes and none
+    taken away in the next two; too short to close.
+O18. DROWNINGS (three in run 1119c). An agent under water, off the middle of its column, tried to
+    swim straight up with a shoulder under the next column's ceiling: the server refused every
+    tick (67 put-backs in two minutes) and it drowned where it was. Changed 20:08: to the middle
+    of its own column first, then up. Not yet seen working.
 
 --- FIXED ON 2026-11-19 (seen working in a run unless it says otherwise) ----------
 
