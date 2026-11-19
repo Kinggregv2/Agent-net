@@ -2227,6 +2227,7 @@ public final class Agent implements AgentHandle {
 
     @Override public boolean goUp() { surfaceTriedAt = 0; return toSurface(null, System.currentTimeMillis()); }
     @Override public boolean escaping() { return escapeGoal != null; }
+    @Override public void cancelEscape() { escapeGoal = null; escapeStep = null; escapeMoves.clear(); }
 
     private boolean toSurface(PathFinder.Node goal, long now) {
         if (now - surfaceTriedAt < 120_000 || !dimension().endsWith("overworld")) return false;

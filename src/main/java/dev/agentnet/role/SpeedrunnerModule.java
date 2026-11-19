@@ -795,7 +795,11 @@ public final class SpeedrunnerModule implements RoleModule {
             if (!Sight.clear(w, a.x(), a.y() + 1.62, a.z(), s.pos().x, s.pos().y + 0.9, s.pos().z)) continue;
             if (lit == null || s.distance() < lit.distance()) lit = s;
         }
-        if (!main && isTank(a)) { tank(a, w, lit, rods); return; }
+        // The tank holds its post only where there is something to hold: a blaze about, or the spawner found. Until then it
+        // goes with the rest (run 1119a: it stood in the portal, shield up, "holding the blazes", with no fortress yet).
+        boolean blazeAbout = lit != null || spawner != null;
+        if (!blazeAbout) for (Seen s : a.entitiesNear(24)) if (s.name().equals("blaze")) { blazeAbout = true; break; }
+        if (!main && isTank(a) && blazeAbout) { tank(a, w, lit, rods); return; }
         if (rodDrop != null && lit == null) {
             if (blocking) { a.releaseUse(); blocking = false; }
             if (++rodTicks > 20 * 12 || rodTicks > 30 && a.itemsNear(1.5).isEmpty() && rodDrop.distToCenterSqr(a.x(), a.y(), a.z()) < 2.5 * 2.5) { rodDrop = null; if (a.isNavigating()) a.stopNavigation(); }
@@ -937,7 +941,8 @@ public final class SpeedrunnerModule implements RoleModule {
         if (brickGoal != null) { status = "walking the fortress for its blaze spawner (" + rods + "/" + RODS + " rods)"; return; }
         // Nothing yet: a hop over solid ground.
         status = "looking for a nether fortress";
-        if (!a.isNavigating() && ticks - hopAt > 20 * 30) { hopAt = ticks; netherHop(a, w, 64); }
+        if (lavaBridge(a, w)) return;
+        if (!a.isNavigating() && ticks - hopAt > 20 * 30) { hopAt = ticks; hopGoal = netherHop(a, w, 64); }
     }
 
     // ------------------------------------------------------------------ ender pearls: endermen, hunted where it finds them
@@ -1074,7 +1079,8 @@ public final class SpeedrunnerModule implements RoleModule {
         // nether one by one, and died one by one).
         if (!main && MAIN != null && online(MAIN)) { follow(a); status = "with " + MAIN + ", looking for endermen"; return; }
         status = "looking for endermen (" + pearls + "/" + PEARLS + " pearls, " + rods + " rods)";
-        if (!a.isNavigating() && ticks - hopAt > 20 * 30) { hopAt = ticks; if (nether(a)) netherHop(a, w, 48); else wanderOnLand(a, w, 48); }
+        if (nether(a) && lavaBridge(a, w)) return;
+        if (!a.isNavigating() && ticks - hopAt > 20 * 30) { hopAt = ticks; if (nether(a)) hopGoal = netherHop(a, w, 48); else wanderOnLand(a, w, 48); }
     }
 
     // ------------------------------------------------------------------ bartering: gold for pearls at a bastion
@@ -1719,6 +1725,82 @@ public final class SpeedrunnerModule implements RoleModule {
         a.placeAgainst(under.getX(), under.getY(), under.getZ(), dir);
         return true;
     }
+
+    private BlockPos hopGoal;
+    private Direction lavaDir;
+    private boolean lavaBridging;
+    private int lavaAt = -1000, lavaWalked;
+
+    /**
+     * Lava between it and where its hop goes (the user: "give them the ability to bridge over lava"; run 1119a's portal
+     * came out on a ledge in a lava sea and nobody could leave it): over it like a player, a block against the side of
+     * the one under its feet, a step onto it, the next. With cobblestone or netherrack; out of both, it mines netherrack
+     * first. Only once the walker has found no way round. True while it is at it.
+     */
+    private boolean lavaBridge(AgentHandle a, BlockView w) {
+        if (hopGoal == null || a.airborne()) return false;
+        double dx = hopGoal.getX() + 0.5 - a.x(), dz = hopGoal.getZ() + 0.5 - a.z();
+        if (Math.hypot(dx, dz) < 6) { lavaBridging = false; return false; }
+        int fx = (int) Math.floor(a.x()), fy = (int) Math.floor(a.y() + 0.01), fz = (int) Math.floor(a.z());
+        if (!lavaBridging) lavaDir = Math.abs(dx) >= Math.abs(dz) ? (dx > 0 ? Direction.EAST : Direction.WEST) : (dz > 0 ? Direction.SOUTH : Direction.NORTH);
+        Direction dir = lavaDir;
+        BlockPos under = new BlockPos(fx, fy - 1, fz), next = under.relative(dir);
+        BlockState n = w.get(next.getX(), next.getY(), next.getZ()), nFeet = w.get(next.getX(), fy, next.getZ()), nHead = w.get(next.getX(), fy + 1, next.getZ());
+        if (n == null || nFeet == null || nHead == null) { lavaBridging = false; return false; }
+        boolean lavaAhead = lavaAt(n);
+        if (!lavaAhead && n.isAir()) for (int y = next.getY() - 1; y >= next.getY() - 8; y--) {
+            BlockState s = w.get(next.getX(), y, next.getZ());
+            if (s == null || !s.isAir()) { lavaAhead = s != null && lavaAt(s); break; }
+        }
+        boolean room = Rules.canWalkThrough(nFeet) && Rules.canWalkThrough(nHead);
+        if (!lavaAhead) {
+            if (!lavaBridging) return false;
+            // Floor ahead (the block it just put down, or land): onto it. Three steps with nothing to bridge: it is across.
+            if (solid(n) && room && ++lavaWalked < 60) {
+                if (a.isNavigating()) a.stopNavigation();
+                a.cancelEscape();
+                a.stepToward(next.getX() + 0.5, next.getZ() + 0.5);
+                status = "bridging over lava";
+                return true;
+            }
+            lavaBridging = false;
+            a.log("§a[speedrun] across the lava: walking on");
+            hopAt = ticks;
+            a.navigate(hopGoal.getX(), hopGoal.getY(), hopGoal.getZ(), 6);
+            return false;
+        }
+        if (!room) { lavaBridging = false; return false; } // a wall over the lava: not this way
+        if (!lavaBridging) {
+            // The walker first: it may know a way round. Five seconds after the hop with no trip running: over it.
+            if (a.isNavigating() || ticks - hopAt < 100) return false;
+            lavaBridging = true;
+            a.log("§e[speedrun] lava in the way: bridging over it");
+        }
+        lavaWalked = 0;
+        if (a.isNavigating()) a.stopNavigation();
+        a.cancelEscape();
+        status = "bridging over lava";
+        if (!solid(w.get(under.getX(), under.getY(), under.getZ()))) return true; // still stepping onto the last block
+        if (count(a, "minecraft:cobblestone") + count(a, "minecraft:netherrack") + count(a, "minecraft:cobbled_deepslate") == 0) {
+            status = "out of blocks to bridge with: mining netherrack";
+            if (minerJob != null && miner.idle() && miner.status().startsWith("done") && ticks - jobRestart > 100) { minerJob = null; jobRestart = ticks; }
+            mine(a, "mine 16 netherrack");
+            miner.tick(a);
+            return true;
+        }
+        mine(a, null);
+        // To the edge of its block first (not past it), then the block against the side of the one it stands on.
+        double ex = fx + 0.5 + dir.getStepX() * 0.35, ez = fz + 0.5 + dir.getStepZ() * 0.35;
+        if (Math.hypot(a.x() - ex, a.z() - ez) > 0.12) { a.stepToward(ex, ez); return true; }
+        if (ticks - lavaAt < 5) return true;
+        lavaAt = ticks;
+        if (!hold(a, "minecraft:netherrack") && !hold(a, "minecraft:cobblestone") && !hold(a, "minecraft:cobbled_deepslate")) return true;
+        a.lookAt(under.getX() + 0.5 + dir.getStepX() * 0.5, under.getY() + 0.5, under.getZ() + 0.5 + dir.getStepZ() * 0.5);
+        a.placeAgainst(under.getX(), under.getY(), under.getZ(), dir);
+        return true;
+    }
+
+    private static boolean lavaAt(BlockState s) { return s != null && s.getFluidState().is(net.minecraft.tags.FluidTags.LAVA); }
 
     private static final double SHOT_RANGE = 75;
     // ------------------------------------------------------------------ the mace
@@ -2884,7 +2966,7 @@ public final class SpeedrunnerModule implements RoleModule {
     }
 
     /** A hop of about this far, landing on solid ground a little below or at its level (never lava). */
-    private static void netherHop(AgentHandle a, BlockView w, int dist) {
+    private static BlockPos netherHop(AgentHandle a, BlockView w, int dist) {
         int ay = (int) Math.floor(a.y());
         for (int tries = 0; tries < 16; tries++) {
             double ang = Math.random() * Math.PI * 2;
@@ -2901,8 +2983,10 @@ public final class SpeedrunnerModule implements RoleModule {
             }
             if (lava || known && ground == Integer.MIN_VALUE) continue;
             a.navigate(tx, known ? ground + 1 : ay, tz, 6);
-            return;
+            return new BlockPos(tx, known ? ground + 1 : ay, tz);
+            // (unreachable: the goal is returned above)
         }
+        return null;
     }
 
     /** Mine until it carries enough, then the next stage. */

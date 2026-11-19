@@ -222,6 +222,8 @@ public interface AgentHandle {
     /** It is raining (or thundering) in its world. */
     boolean raining();
     /** One of our own active effects ("strength", "minecraft:speed"...). */
+    /** Stop digging its way out (the role has a better way on: a bridge). */
+    default void cancelEscape() {}
     boolean hasEffect(String id);
     /** Its level (Strength II = 2); 0 without it. */
     default int effectLevel(String id) { return hasEffect(id) ? 1 : 0; }
