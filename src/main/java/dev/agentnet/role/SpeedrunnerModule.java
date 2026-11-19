@@ -660,6 +660,9 @@ public final class SpeedrunnerModule implements RoleModule {
         // After a restart the one with the most play time in the run is the main again (whichever ticked first took it:
         // itsCyber, 30 minutes in, became a helper and threw its iron to a fresh one). The main is saved by name; it gets 30 s to come back online.
         if (MAIN == null) { String back = Clock.savedMain(); if (back != null && !back.isEmpty() && !back.equalsIgnoreCase(a.name()) && (online(back) || ticks < 600)) return false; }
+        // (Away on purpose, out of the game for a minute because of mobs: still the main. A helper took over while it
+        // was away, run 1119p.)
+        if (MAIN != null && dev.agentnet.Agent.away(MAIN)) mainSeenAt = now;
         if (MAIN == null || !online(MAIN) && now - mainSeenAt > 15_000) {
             if (MAIN != null) a.log("§e[speedrun] " + MAIN + " is gone: " + a.name() + " is the main speedrunner now");
             MAIN = a.name();

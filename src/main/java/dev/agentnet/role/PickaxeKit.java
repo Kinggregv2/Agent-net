@@ -41,9 +41,13 @@ public final class PickaxeKit {
                 if (k.crafter.busy()) { k.crafter.tick(a); return true; }
                 int cob = 0;
                 for (ItemStack s : a.inventory()) { String id = Gear.id(s); if (id.equals("minecraft:cobblestone") || id.equals("minecraft:cobbled_deepslate")) cob += s.getCount(); }
+                int planks = 0; boolean tbl = false;
+                for (ItemStack s : a.inventory()) { String id = Gear.id(s); if (id.endsWith("_planks")) planks += s.getCount(); else if ((id.endsWith("_log") || id.endsWith("_stem")) && !id.contains("stripped")) planks += 4 * s.getCount(); else if (id.equals("minecraft:crafting_table")) tbl = true; }
+                // No table and no wood for one: not now (it tried every 3 s, 127 times, "needs a crafting table", run 1119p).
+                if (cob >= 3 && !tbl && planks < 4) return false;
                 if (cob >= 3) {
                     if (k.mining) { k.miner.onTask(a, "idle"); k.mining = false; }
-                    if (k.ticks - k.lastTry >= 60) { k.lastTry = k.ticks; if (k.crafter.queueTool(a, "minecraft:stone_pickaxe")) a.log("§7three cobblestone: a stone pickaxe before the wooden one wears out"); }
+                    if (k.ticks - k.lastTry >= 600) { k.lastTry = k.ticks; if (k.crafter.queueTool(a, "minecraft:stone_pickaxe")) a.log("§7three cobblestone: a stone pickaxe before the wooden one wears out"); }
                     return k.crafter.busy();
                 }
                 if (k.ticks >= k.pausedUntil) {

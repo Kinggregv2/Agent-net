@@ -972,6 +972,8 @@ public final class Agent implements AgentHandle {
     /** How often in a row it has left the game because of mobs (the next time away is longer); and who is away now, with its role. */
     static final Map<String, Integer> AWAY_RUNS = new ConcurrentHashMap<>();
     static final Map<String, Object[]> AWAY = new ConcurrentHashMap<>();
+    /** Out of the game on purpose for a while (mobs it could not fight): its place in the crew is kept. */
+    public static boolean away(String name) { Object[] v = name == null ? null : AWAY.get(name.toLowerCase()); return v != null && System.currentTimeMillis() < (Long) v[1]; }
 
     /** Tell every warrior who is after us (again every 10 s while it lasts). */
     private void callForHelp(dev.agentnet.role.Seen threat) {
