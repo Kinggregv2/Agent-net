@@ -1,7 +1,7 @@
 AGENTNET BUGS (kept up to date by Claude: open ones first, then what was fixed)
 ================================================================================
 A bug = any unintended behaviour, including deaths that could have been prevented.
-Last updated: 2026-11-19 19:25, from crew runs "run 1118d", "run 1119a", "run 1119b" and "run 1119c".
+Last updated: 2026-11-19 19:45, from crew runs "run 1118d", "run 1119a", "run 1119b" and "run 1119c".
 
 --- OPEN (found, not fixed yet) --------------------------------------------------
 
@@ -14,7 +14,8 @@ O1. THE MAIN SPEEDRUNNER STILL DIES AND LOSES ITS KIT. Every death costs a full 
 O3. "PUT BACK BY THE SERVER" LOOPS: the main cause was found 19:05 (391 put-backs in 28 minutes).
     A boxed-in agent was told to start from "a standing spot next to it", and that could be a
     diagonal one behind a solid corner: it walked into the corner, was put back, planned the
-    same again. Fixed in the planner 19:06; not yet seen working. (F3 and F4 were lesser causes.)
+    same again. Fixed in the planner 19:06. SEEN WORKING: 1 put-back in 6 minutes (was 391 in 28).
+    (F3 and F4 were lesser causes.) Keep an eye on it for a few more rounds before closing.
 O4. MINERS TRY ORE THEY CANNOT REACH for minutes ("skipping iron_ore: every way there is
     blocked", 75 times in 10 minutes for one agent) before moving on.
 O5. BUILDER "can't get within reach" of its own block 42 times in 10 minutes.
@@ -44,8 +45,10 @@ O13. DIGS REFUSED BY THE SERVER, AGAIN: 212 in 23 minutes in run 1119c, single a
 O14. A MINER SKIPPED LOGS 247 TIMES IN 12 MINUTES ("every way there is blocked"), each with a
     failed path search. The "six in a row: look elsewhere" rule (F11) does not stop it when
     the unreachable targets are spread out.
-O15. THE MAIN SEARCHED 28 MINUTES FOR A LAVA POOL in run 1119c (pool stage from 25 to 53+ min,
-    no pool found, 300 blocks from spawn). The lava-pool scouts in "to add" are the answer.
+O15. THE MAIN SEARCHED 50 MINUTES FOR A LAVA POOL in run 1119c (pool stage from 25 to 75+ min).
+    Its search was a random walk: a 48-block hop in a random direction every 20 s. Changed 19:40:
+    it keeps one heading and goes on outward, and every agent in the crew tells it about lava it
+    sees near the surface (see "to add", item 2). Not yet seen working.
 O16. WORKERS STILL DIE AT NIGHT ON THE SURFACE: 11 deaths in 28 minutes in run 1119c (the hunter
     4 times, distributors 4 times, miners 3; creepers, zombies, skeletons, two drowned).
     DIGGING IN IS GONE (the user, 19:15: "instead of digging down it should disconnect, then a
@@ -53,7 +56,8 @@ O16. WORKERS STILL DIE AT NIGHT ON THE SURFACE: 11 deaths in 28 minutes in run 1
     person"). Since 19:25: an agent with a sword or axe and 8+ health, or any tool and 12+
     health, fights; one with nothing or too hurt leaves the game for 45 s (longer each time in a
     row, 2 minutes at most), calls the warriors to the spot, and comes back as it was. Not yet
-    seen working. Known gaps: there are usually no warriors in a speedrun crew, so nobody
+    seen working at first. SEEN WORKING 19:27 (an agent left for 45 s, came back, went on
+    building; 18 left this way in 6 minutes, 1 death). Known gaps: there are usually no warriors in a speedrun crew, so nobody
     clears the mobs; the two drownings while digging out are not looked at.
 
 --- FIXED ON 2026-11-19 (seen working in a run unless it says otherwise) ----------

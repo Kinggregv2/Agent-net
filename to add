@@ -11,3 +11,8 @@ From chat on 2026-11-19 (not started):
 2. Explorers spawn by default, as lava-pool scouts. Their main goal is a lava pool where a
    nether portal can be made, so the speedrunners do not have to look for one. After finding
    it they mark the location, jump into the lava pool and never join again.
+
+   Progress on 2 (2026-11-19 19:40, not tested yet): every agent, whatever its job, now tells the
+   main speedrunner about lava it sees near the surface, and the main walks there. Still to do
+   for this item: explorers hired by default with the pool as their goal, marking it, and the
+   jump into the lava at the end.

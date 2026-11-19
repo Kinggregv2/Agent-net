@@ -3255,7 +3255,7 @@ public final class SpeedrunnerModule implements RoleModule {
     private double poolHeading = Double.NaN;
 
     /**
-     * Every agent, every ten seconds, while the main still has no portal: lava near the surface in what it can see (ten or
+     * Every agent, every twenty seconds, while the main still has no portal: lava near the surface in what it can see (ten or
      * more sources, open to the sky) is told to the crew. The main searched 50 minutes for a pool alone (run 1119c) while
      * thirteen others walked about seeing far more ground than it did. Called from the agent's own tick.
      */
@@ -3264,7 +3264,7 @@ public final class SpeedrunnerModule implements RoleModule {
         if (a.dimension() == null || !a.dimension().endsWith("overworld") || !a.isOnline()) return;
         long now = System.currentTimeMillis();
         Long last = LAVA_LOOKED.get(a.name());
-        if (last != null && now - last < 10_000) return;
+        if (last != null && now - last < 20_000) return;
         LAVA_LOOKED.put(a.name(), now);
         if (!(a.openWorld() instanceof BlockView w)) return;
         int fx = (int) Math.floor(a.x()), fz = (int) Math.floor(a.z());
