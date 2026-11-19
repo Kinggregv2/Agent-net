@@ -1,7 +1,7 @@
 AGENTNET BUGS (kept up to date by Claude: open ones first, then what was fixed)
 ================================================================================
 A bug = any unintended behaviour, including deaths that could have been prevented.
-Last updated: 2026-11-20 00:05, from crew runs "run 1118d" to "run 1119p".
+Last updated: 2026-11-20 00:16, from crew runs "run 1118d" to "run 1120a".
 
 --- OPEN (found, not fixed yet) --------------------------------------------------
 
@@ -87,6 +87,10 @@ O22. THE SAME BLOCK REFUSED AGAIN AND AGAIN: 502 refused digs in 40 minutes of r
     same few blocks (one stone 76 times, one gravel 70, a crafting table 34), so it was not the dig
     time (O13). Since 22:40 an agent leaves a block alone for two minutes after three refusals,
     and the log says how far from its eyes it was (to find the real cause next time).
+    00:15: side effect found in run 1120a: an agent digging its way out was refused one block over
+    its head, the dig then did nothing, and the dig-out walked into the spot anyway (45 put-backs).
+    Now a block it may not dig counts as a wall and the dig-out tries another way. Not yet seen
+    working. Run 1120a otherwise: no deaths in 12 minutes, main at the lava-pool stage at 10.4 min.
 O23. "BOXED IN ... STAYING PUT" IN A FLOODED CAVE: the main of run 1119j said it 230 times, standing
     in flowing water with water on every side under a rock ceiling; the dig-out counted water as a
     wall and the swim-up never got its turn. Since 23:03: in water with every way blocked it swims
