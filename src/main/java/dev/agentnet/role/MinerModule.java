@@ -181,6 +181,10 @@ final class MinerModule extends GathererModule {
     private int toolWaits;
     private long lastSkipLog;
     private int deathSkipped;
+    /** When it last gave targets up, and the area it has given up on (all of it, for three minutes). */
+    private final java.util.ArrayDeque<Integer> skipTicks = new java.util.ArrayDeque<>();
+    private BlockPos areaBad;
+    private int areaBadUntil;
     /** Skips in a row with nothing mined between, and the place where six of them happened: left alone for two minutes. */
     private int skipRun, badUntil;
     private BlockPos badSpot;
@@ -605,6 +609,10 @@ final class MinerModule extends GathererModule {
         boolean obsidian = targets.contains(net.minecraft.world.level.block.Blocks.OBSIDIAN);
         for (BlockPos p : found) {
             if (isSkipped(p)) continue;
+            // Eight given up in a minute with nothing mined: nothing round here is reachable (logs over water, ore behind
+            // lava: one miner skipped 247 in twelve minutes, each after a failed path search). Nothing within 48 blocks of
+            // where it stood then, for three minutes: it goes to look somewhere else.
+            if (areaBad != null && ticks < areaBadUntil && (p.getX() - areaBad.getX()) * (p.getX() - areaBad.getX()) + (p.getZ() - areaBad.getZ()) * (p.getZ() - areaBad.getZ()) < 48 * 48) continue;
             // Not where one of the crew was just killed: a dark cave with the iron in it took eight of them in fifteen
             // minutes, each one back to the same ore as soon as it respawned (run 1119c). Ten minutes, then again.
             if (a.nearDeathSpot(p.getX(), p.getY(), p.getZ(), 20)) { deathSkipped++; continue; }
@@ -692,7 +700,7 @@ final class MinerModule extends GathererModule {
             a.lookAt(target.getX() + 0.5, target.getY() + 0.5, target.getZ() + 0.5);
             int t = a.dig(target.getX(), target.getY(), target.getZ());
             if (t < 0) { skip(a, "it can't be broken"); return; }
-            mined++; skipRun = 0;
+            mined++; skipRun = 0; skipTicks.clear();
             minedAt = target;
             pickupTried.clear();
             uncovered.clear();
@@ -819,7 +827,7 @@ final class MinerModule extends GathererModule {
             if (!safeToDig(w, target)) { skip(a, "it touches lava or water"); return; }
             int t = a.dig(target.getX(), target.getY(), target.getZ());
             if (t < 0) { skip(a, "it can't be broken"); return; }
-            mined++; skipRun = 0;
+            mined++; skipRun = 0; skipTicks.clear();
             minedAt = target;
             pickupTried.clear();
             uncovered.clear();
@@ -1471,6 +1479,15 @@ final class MinerModule extends GathererModule {
 
     private void skip(AgentHandle a, String why) {
         if (target != null) skipped.put(target, ticks);
+        if (why != null) {
+            skipTicks.addLast(ticks);
+            while (!skipTicks.isEmpty() && ticks - skipTicks.peekFirst() > 1200) skipTicks.pollFirst();
+            if (skipTicks.size() >= 8) {
+                skipTicks.clear();
+                areaBad = BlockPos.containing(a.x(), a.y(), a.z()); areaBadUntil = ticks + 3600;
+                a.log("§eeight " + targetName + " given up in a minute: nothing within 48 blocks of here for three minutes");
+            }
+        }
         if (why != null && ++skipRun >= 6) {
             skipRun = 0; badSpot = target != null ? target : BlockPos.containing(a.x(), a.y(), a.z()); badUntil = ticks + 20 * 120;
             a.log("§esix " + targetName + " in a row out of reach here: looking somewhere else");
