@@ -3270,7 +3270,7 @@ public final class Agent implements AgentHandle {
                         if (slot == net.minecraft.world.entity.EquipmentSlot.MAINHAND) t.mainHand = st;
                         else if (slot == net.minecraft.world.entity.EquipmentSlot.OFFHAND) t.offHand = st;
                         if (slot == net.minecraft.world.entity.EquipmentSlot.HEAD) t.bannerHead = !st.isEmpty() && net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(st.getItem()).getPath().endsWith("_banner");
-                        else if (slot.getType() == net.minecraft.world.entity.EquipmentSlot.Type.HUMANOID_ARMOR) {
+                        if (slot.getType() == net.minecraft.world.entity.EquipmentSlot.Type.HUMANOID_ARMOR) { // the helmet too: an "else" here left the head out of every armor count
                             int bit = 1 << slot.getIndex();
                             t.armorPieces = st.isEmpty() ? t.armorPieces & ~bit : t.armorPieces | bit;
                             if (slot.getIndex() >= 0 && slot.getIndex() < 4) t.armor[slot.getIndex()] = st;
