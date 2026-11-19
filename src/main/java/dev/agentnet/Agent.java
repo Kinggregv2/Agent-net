@@ -1684,6 +1684,10 @@ public final class Agent implements AgentHandle {
             predicted.remove(e);
             chunks.blockChanged(e.pos.getX(), e.pos.getY(), e.pos.getZ(), e.was);
             digSlow = Math.min(6.5, digSlow * 1.6);
+            // The same block refused again and again is not about time: three times, and it is left alone for two minutes
+            // (run 1119j: one stone block refused 76 times, a gravel block 70, a crafting table 34; 502 in 40 minutes).
+            int n = refusedAt.merge(e.pos, 1, Integer::sum);
+            if (n == 3) { refusedUntil.put(e.pos, System.currentTimeMillis() + 120_000); Vec3 eye = pos.position().add(0, 1.62, 0); AgentNet.LOG.info("[{}] the server refused {} at {} three times ({} blocks from its eyes): leaving it for two minutes", name, e.was.getBlock().getDescriptionId().replace("block.minecraft.", ""), e.pos.toShortString(), String.format("%.1f", Math.sqrt(e.pos.distToCenterSqr(eye.x, eye.y, eye.z)))); }
             if (System.currentTimeMillis() - digSlowSaidAt > 30_000) { digSlowSaidAt = System.currentTimeMillis(); AgentNet.LOG.info("[{}] the server refused its dig as too fast: its digs now take {} times as long", name, String.format("%.2f", digSlow)); }
             AgentNet.LOG.info("[{}] the server kept the {} at {}: back in its picture of the blocks", name, e.was.getBlock().getDescriptionId().replace("block.minecraft.", ""), e.pos.toShortString());
         }
@@ -1712,6 +1716,11 @@ public final class Agent implements AgentHandle {
         if (state == null || state.isAir()) return -1;
         float hardness = state.getDestroySpeed(net.minecraft.world.level.EmptyBlockGetter.INSTANCE, BlockPos.ZERO);
         if (hardness < 0) return -1; // bedrock & co.
+        { BlockPos rp = new BlockPos(x, y, z); Long until = refusedUntil.get(rp); if (until != null) { if (System.currentTimeMillis() < until) return -1; refusedUntil.remove(rp); refusedAt.remove(rp); } }
+        // A block in its own column over its head with sand or gravel resting on it: that falls on its head next (run
+        // 1119j: the main suffocated twice in its first 25 minutes, the first time right after gravel). Not dug.
+        { Vec3 me = pos.position(); int mx = (int) Math.floor(me.x), mz = (int) Math.floor(me.z), my = (int) Math.floor(me.y + 0.01);
+          if (x == mx && z == mz && y > my && world != null) { BlockState over = world.get(x, y + 1, z); if (over != null && over.getBlock() instanceof net.minecraft.world.level.block.FallingBlock) return -1; } }
         // Never the base: whatever asks for it (a miner's tunnel, room for a crafting table, a way out), a block that is
         // part of the building stays, unless it is the builder's own work or the last-resort way out of a hole in it. The
         // one gate for every dig (the user saw a hunter dig a hole through its own house; each caller had its own check,
@@ -2577,6 +2586,9 @@ public final class Agent implements AgentHandle {
     /** Until then an escape may dig through the base too (see the stuck steps). */
     private volatile long baseBreakUntil;
     private long diagAt, baseDigSaidAt, effectOddAt;
+    /** Blocks the server refused to let it dig: how often, and (after three) until when it leaves them alone. */
+    private final Map<BlockPos, Integer> refusedAt = new ConcurrentHashMap<>();
+    private final Map<BlockPos, Long> refusedUntil = new ConcurrentHashMap<>();
 
     private boolean escapeDiggable(BlockState s, int x, int y, int z) {
         if (natural(s)) return true;
