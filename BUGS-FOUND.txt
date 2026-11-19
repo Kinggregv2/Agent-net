@@ -1,7 +1,7 @@
 AGENTNET BUGS (kept up to date by Claude: open ones first, then what was fixed)
 ================================================================================
 A bug = any unintended behaviour, including deaths that could have been prevented.
-Last updated: 2026-11-19 18:10, from crew runs "run 1118d", "run 1119a" and "run 1119b".
+Last updated: 2026-11-19 18:40, from crew runs "run 1118d", "run 1119a", "run 1119b" and "run 1119c".
 
 --- OPEN (found, not fixed yet) --------------------------------------------------
 
@@ -29,6 +29,19 @@ O10. Helpers sit "making itself an iron chestplate" for minutes without moving (
 O11. Old ones from 2026-11-16 that nobody has re-checked: keeper hiring loop (old 2), idle
     farmers / no fishing rod (old 3, 4), healing potions unused (old 5), kill order far
     away does nothing (old 7), "kill" task stays after a role change (old 8).
+O12. EIGHT AGENTS KILLED IN ONE CAVE IN 15 MINUTES (run 1119c, the iron at about -50 44 8:
+    3 creepers, 3 skeletons, 2 zombies). Each respawned and walked straight back to the same
+    ore. Fix written 18:35 (miners leave ore within 20 blocks of a crew death alone for ten
+    minutes), not yet seen working. The list of death spots is forgotten when the game is
+    restarted. Unarmed miners at half health still "fight" what they cannot outrun.
+O13. DIGS REFUSED BY THE SERVER, AGAIN: 212 in 23 minutes in run 1119c, single agents on the
+    same block every 1.7 s (probably while the server does not have them on the ground:
+    "standing on air" lines). The first fix (F3) used one stretch factor for the whole crew,
+    which hit its cap and slowed everybody's digging threefold. Changed 18:38 to a factor
+    per agent with room for the server's five-times air penalty; not yet seen working.
+O14. A MINER SKIPPED LOGS 247 TIMES IN 12 MINUTES ("every way there is blocked"), each with a
+    failed path search. The "six in a row: look elsewhere" rule (F11) does not stop it when
+    the unreachable targets are spread out.
 
 --- FIXED ON 2026-11-19 (seen working in a run unless it says otherwise) ----------
 
@@ -66,7 +79,10 @@ F14. Chains of elytra-mace smashes were cut off after 60 s while still landing h
 F15. A facing-only packet while gliding reset the server's fall count (mace dives that
     counted 4 blocks instead of 9+).
 F16. Old 1 (distributor crash on dimension()), fixed 2026-11-16.
-    Written, not yet seen working: logs sawn into planks before fuelling a furnace; hitting
+F17. Seen working in run 1119c: logs sawn into planks before fuelling a furnace (4 times), the
+    distributor time estimate (3 requests not sent), the civ not counting a stuck distributor
+    and a stuck miner (2 times).
+    Written, not yet seen working: hitting
     a mob on its lava bridge instead of walking into it; keeping away from hoglins/piglins.
 
 ================================================================================
