@@ -853,8 +853,10 @@ public final class Agent implements AgentHandle {
 
     /** True while eating (the role's work waits). */
     private boolean tickFood() {
-        if (eatTicks > 0) { eatTicks--; return true; }
+        if (eatTicks > 0) { if (underwaterTicks > 10) { eatTicks = 0; releaseUse(); return false; } eatTicks--; return true; } // under water: stop eating and swim
         if (++foodTicks % 20 != 0 || !isOnline()) return false;
+        // Not with its head under water: eating takes 1.6 s it does not have, and it drowned eating (run 1120d).
+        if (underwaterTicks > 0) return false;
         if (module != null && module.fighting()) return false; // the fight comes first
         int food = food();
         float hp = health(), max = Math.max(1f, maxHealth());
