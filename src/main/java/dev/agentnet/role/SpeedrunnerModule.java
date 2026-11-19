@@ -432,7 +432,7 @@ public final class SpeedrunnerModule implements RoleModule {
                     upTrip = a.goUp();
                     if (upTrip) { fetchStand = null; status = "up to the surface first"; a.log("[speedrun] underground: up to the surface first"); return; }
                 }
-            } else if (upTrip && !a.isNavigating()) upTrip = false;
+            } // (upTrip stays set between tries: cleared here, the count of climbs that got nowhere never started)
         }
         // Back in the overworld (it died down there and came back at spawn): the run goes on from what it carries.
         if (!nether(a) && stage == Stage.NETHER && ticks > 100) { rodDrop = null; blazeId = -1; spawner = null; foe = -1; go(a, Stage.IRON); }
