@@ -247,6 +247,10 @@ public final class Agent implements AgentHandle {
         if (Float.isFinite(yaw) && Float.isFinite(pitch)) pitch = offEnderman(pos.position().add(0, 1.62, 0), yaw, pitch);
         pos = pos.withRotation(yaw, pitch);
         if (!Float.isFinite(yaw) || !Float.isFinite(pitch)) { badMove("look " + yaw + " " + pitch); return; }
+        // Gliding: no packet of its own, this tick's position carries the new facing. A facing-only packet has no movement
+        // in it; the server took that tick for "not going down", and a glide that isn't going down fast has its fall set
+        // back to 1 block: a third of the mace dives arrived with 4 blocks of fall instead of 9 or more.
+        if (airVel != null && gliding) return;
         // Mid-air this must say onGround=false: "true" makes the server land us right here (fall damage).
         send(new ServerboundMovePlayerPacket.Rot(yaw, pitch, airVel == null, false));
     }
