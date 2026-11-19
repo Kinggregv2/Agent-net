@@ -375,7 +375,7 @@ public final class Civ {
         Agent pick = null;
         long now0 = System.currentTimeMillis();
         for (Agent a : crew) {
-            if (a.role() != null && !java.util.Set.of(Role.WARRIOR, Role.RESCUER, Role.SPEEDRUNNER, Role.FALLOFF, Role.BREWER, Role.PICKUP, Role.FARMER, Role.KEEPER).contains(a.role()) && a.moduleIdle()) idleSince.putIfAbsent(a.name, now0); // waiting is their job
+            if (a.role() != null && !java.util.Set.of(Role.DISTRIBUTOR, Role.WARRIOR, Role.RESCUER, Role.SPEEDRUNNER, Role.FALLOFF, Role.BREWER, Role.PICKUP, Role.FARMER, Role.KEEPER).contains(a.role()) && a.moduleIdle()) idleSince.putIfAbsent(a.name, now0); // waiting is their job
             else idleSince.remove(a.name);
         }
         for (Agent a : crew) {
@@ -396,6 +396,15 @@ public final class Civ {
                     if (r == Role.MINER && a.task != null && a.task.contains("iron_ore")) continue;
                     pick = a; break;
                 }
+                if (pick != null) break;
+            }
+        }
+        // No distributor at all: one of the gatherers carries, cap or no cap (the user, 2026-11-19: "no distributors at all,
+        // distributors are vital"). Run 1119c: five distributors became miners and hunters one by one, each "idle" between
+        // deliveries when the speedrunner wanted iron or someone was hungry, and at the cap none could be hired back.
+        if (pick == null && n.role() == Role.DISTRIBUTOR && crew.stream().noneMatch(x -> x.role() == Role.DISTRIBUTOR && !stalled.contains(x.name))) {
+            for (Role r : List.of(Role.LOOTER, Role.PICKUP, Role.MINER, Role.FISHER, Role.HUNTER, Role.BUILDER)) {
+                for (Agent a : crew) { if (pickedThisRound.contains(a.name) || a.role() != r) continue; pick = a; break; }
                 if (pick != null) break;
             }
         }
@@ -484,7 +493,7 @@ public final class Civ {
         for (Agent a : crew) if (a.role() != null) count.merge(a.role(), 1, Integer::sum);
         if (first(need)) {
             // The base and its storage outrank a second distributor, then one guard.
-            for (Agent a : crew) if (a.role() == Role.DISTRIBUTOR && count.getOrDefault(Role.DISTRIBUTOR, 0) > 1) return a;
+            for (Agent a : crew) if (a.role() == Role.DISTRIBUTOR && count.getOrDefault(Role.DISTRIBUTOR, 0) > 2) return a; // never below two
             for (Agent a : crew) if (a.role() == Role.WARRIOR) return a;
         }
         for (Agent a : crew) {
