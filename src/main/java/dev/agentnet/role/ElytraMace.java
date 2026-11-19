@@ -31,6 +31,13 @@ final class ElytraMace {
     /** How the target moves, blocks a tick (smoothed): the drop is aimed at where it will be. */
     private net.minecraft.world.phys.Vec3 lastEnemy;
     private double evx, evz, evy;
+    /** The ground the target last stood on, and when: thrown up by a smash, it comes back down to it (an arc, not a flight). */
+    private double groundY = Double.NaN, rawVy;
+    private int groundAt = -1000;
+    /** The dive is on: no more climbing first because it is "too low" (it gets lower all the way down). */
+    private boolean committed;
+    /** How far over the target a chained dive starts: the server counts the fall only once it is going down fast. */
+    private static final double DIVE_UP = Double.parseDouble(System.getProperty("agentnet.diveUp", "9"));
     private int reglides, confirmedAt, chain;
     private double lastX = Double.NaN, lastZ;
     int cooldown;
@@ -81,9 +88,13 @@ final class ElytraMace {
             double mx = enemy.pos().x - lastEnemy.x, mz = enemy.pos().z - lastEnemy.z;
             double my = enemy.pos().y - lastEnemy.y;
             if (mx * mx + mz * mz < 9) { evx += (mx - evx) * 0.35; evz += (mz - evz) * 0.35; evy += (my - evy) * 0.35; }
-        } else { evx = 0; evz = 0; evy = 0; }
+            rawVy = Math.abs(my) < 4 ? my : 0;
+            if (Math.abs(my) < 0.003) { groundY = enemy.pos().y; groundAt = total; }
+        } else { evx = 0; evz = 0; evy = 0; rawVy = 0; groundY = Double.NaN; groundAt = -1000; }
+        // Thrown up (by our own smash, or a jump): it stood on the ground a moment ago and comes back down to it.
+        boolean arc = !Double.isNaN(groundY) && total - groundAt < 70;
         // A target that runs or flies (a "bird"): chased on the elytra, not climbed over.
-        boolean moving = Math.hypot(evx, evz) > 0.45 || Math.abs(evy) > 0.3;
+        boolean moving = Math.hypot(evx, evz) > 0.45 || !arc && Math.abs(evy) > 0.3;
         lastEnemy = enemy.pos();
         lastFlat = enemy.distance(); // in all three directions: a target in the air can be right overhead and 20 blocks up
         targetId = enemy.id();
@@ -138,19 +149,27 @@ final class ElytraMace {
                 double upNow = a.y() - enemy.pos().y;
                 double t = Math.min(40, Math.sqrt(flat * flat + upNow * upNow) / Math.max(0.8, sp));
                 // Where it will be when we get there: along the ground and up or down.
-                double tx = enemy.pos().x + evx * t, ty = enemy.pos().y + evy * t, tz = enemy.pos().z + evz * t;
+                // Thrown up, it flies an arc back to the ground it stood on; a straight line put the aim far over or under it,
+                // and the dive at a Dummy the Wind Burst had thrown up missed every other time.
+                if (arc && !committed) t += 3; // the turn at the top
+                double tx = enemy.pos().x + evx * (arc ? Math.min(t, 6) : t), ty = arc ? arcY(enemy.pos().y, rawVy, (int) Math.round(t)) : enemy.pos().y + evy * t, tz = enemy.pos().z + evz * (arc ? Math.min(t, 6) : t);
                 double off = Math.hypot(tx - a.x(), tz - a.z()), up = a.y() - ty, d3 = Math.sqrt(off * off + up * up);
                 double keep = moving ? 7 : height(a);
                 // A dive only from above: arriving level with it or under it there is nothing to smash with (against
                 // the_guy7 it got within 1.2 and 1.5 blocks that way and had to pull up). Under 4 blocks over it: climb first.
-                if (off > up + 2 || up < 4) {
+                // In a chain (thrown up by Wind Burst) higher: the server counts the fall only from where it goes down fast,
+                // and a dive from 8 over it came to 4.6 blocks of fall, too little to pop a totem through Protection IV.
+                double minUp = topped && !moving ? DIVE_UP : 4;
+                if (!committed && (off > up + 2 || up < minUp)) {
                     tactic = String.format("flying at %s (%.0f out, %.0f up)", enemy.name(), off, up);
                     a.lookAt(tx, ty + keep, tz);
-                    if (up < keep - 2 && off < 14) a.look(a.yaw(), off < 6 ? -60f : -40f); // too low for a dive: gain height as it closes
+                    if (!moving && off < 6) a.look(yaw, -86f); // right over it: straight up, so the dive is straight down
+                    else if (up < keep - 2 && off < 14) a.look(a.yaw(), off < 6 ? -60f : -40f); // too low for a dive: gain height as it closes
                     if (a.rocketLeft() <= 0 && slot(a, Items.FIREWORK_ROCKET) >= 0) rocket(a, a.yaw(), a.pitch());
                     if (timer > 20 * 25) { abort(a, "couldn't catch " + enemy.name()); return false; }
                     return true;
                 }
+                committed = true;
                 tactic = String.format("diving at %s (%.0f up, %.1f out)", enemy.name(), up, off);
                 a.lookAt(tx, ty + 0.9, tz);
                 // The burn ran out on the way down and it has slowed: one more.
@@ -158,11 +177,16 @@ final class ElytraMace {
                 // Four to five ticks out, not two: the server clears "gliding" only on its next tick after the chestplate swap,
                 // and a mace swing that arrives while it still glides is no smash (it dropped 3 blocks over the target,
                 // swung the next tick, the hit did not count and the fall killed it).
-                if (d3 <= 1.2 + sp * 4.5) {
+                // With the rocket burning it is still picking up speed: the next ticks cover more than this one did (a swap
+                // timed on this tick's speed came two ticks before the hit, and the server still had it gliding: no smash).
+                double reach = 0, v = sp;
+                for (int i = 0; i < 5; i++) { if (a.rocketLeft() > i) v += 0.1 + (1.5 - Math.min(v, 1.7)) * 0.5; reach += i < 4 ? v : v * 0.5; }
+                if (d3 <= 1.2 + Math.max(sp * 4.5, reach)) {
                     // On it: elytra off, smash. Wide of it or under it: stay on the elytra, pull up, come round again.
                     if (off <= 2.2 + sp && up > 0.5) { go(State.SWAP); return true; }
                     a.log(String.format("§7elytra mace: dive %.1f blocks wide of %s: pulling up", off, enemy.name()));
                     a.look(yaw, -75f);
+                    committed = false;
                     go(State.CLIMB);
                     return true;
                 }
@@ -306,9 +330,12 @@ final class ElytraMace {
                 }
                 if (!a.startGliding()) { go(State.FALL); return true; }
                 // Already in the sky (after the top, or thrown up by Wind Burst): no climb, straight down at it on a firework.
+                // High enough over it already (after the top): straight down. In a chain: up first, the dive decides when.
+                boolean high = a.y() - (arc ? arcY(enemy.pos().y, rawVy, 8) : enemy.pos().y) >= DIVE_UP;
                 topped = true;
-                a.lookAt(enemy.pos().x, enemy.pos().y + 0.9, enemy.pos().z);
-                if (a.y() - enemy.pos().y >= 4 && slot(a, Items.FIREWORK_ROCKET) >= 0) rocket(a, a.yaw(), a.pitch());
+                committed = false;
+                if (high) a.lookAt(enemy.pos().x, enemy.pos().y + 0.9, enemy.pos().z); else a.look(yaw, -86f);
+                if (a.rocketLeft() <= 2 && slot(a, Items.FIREWORK_ROCKET) >= 0) rocket(a, a.yaw(), a.pitch());
                 go(State.DIVE);
             }
             case CONFIRM -> {
@@ -345,6 +372,16 @@ final class ElytraMace {
         int m = slot(a, Items.MACE);
         int density = m < 0 ? 0 : Gear.level(a.inventory().get(m), net.minecraft.world.item.enchantment.Enchantments.DENSITY);
         return Math.max(8, Math.min(HEIGHT + 6, 28 / (1 + density * 0.5))); // measured: 8 blocks pops 87% of smashes through Prot IV netherite at 0.80/s; 12 blocks pops 95% but only 0.67/s
+    }
+
+    /** Where a thrown target is in t ticks: gravity 0.08, drag 0.98, no lower than the ground it stood on. */
+    private double arcY(double y, double vy, int t) {
+        for (int i = 0; i < t; i++) {
+            vy = (vy - 0.08) * 0.98;
+            y += vy;
+            if (y <= groundY) return groundY;
+        }
+        return y;
     }
 
     /** Blocks of air under its feet (up to 16). */
@@ -422,7 +459,7 @@ final class ElytraMace {
         cooldown = 20 * 5;
     }
 
-    private void go(State s) { state = s; timer = 0; }
+    private void go(State s) { if (s == State.DIVE && state != State.DIVE) committed = false; state = s; timer = 0; }
 
     private static int slot(AgentHandle a, net.minecraft.world.item.Item item) {
         List<ItemStack> inv = a.inventory();
