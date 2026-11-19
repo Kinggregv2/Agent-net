@@ -507,7 +507,9 @@ public final class Agent implements AgentHandle {
         }
         burrowTicks++;
         var w = openWorld();
-        if (w == null) return true;
+        // No world data any more (freed while it waited): nothing to do in a hole it can't see. Out of the burrow, so its
+        // role runs and the reconnect for its chunks can happen (it sat "dug in" with no world for 50 minutes).
+        if (w == null || !hasWorldHere()) { if (burrowTicks > 100) { log("§7no world data in its hole: out of the burrow"); endBurrow(60_000); return false; } return true; }
         Vec3 me = pos.position();
         int feet = (int) Math.floor(me.y + 0.01);
         switch (burrow) {
