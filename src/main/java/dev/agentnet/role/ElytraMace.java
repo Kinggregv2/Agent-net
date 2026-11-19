@@ -33,7 +33,7 @@ final class ElytraMace {
     private double evx, evz, evy;
     /** The ground the target last stood on, and when: thrown up by a smash, it comes back down to it (an arc, not a flight). */
     private double groundY = Double.NaN, rawVy;
-    private int groundAt = -1000;
+    private int groundAt = -1000, still;
     /** The dive is on: no more climbing first because it is "too low" (it gets lower all the way down). */
     private boolean committed;
     /** How far over the target a chained dive starts: the server counts the fall only once it is going down fast. */
@@ -88,9 +88,16 @@ final class ElytraMace {
             double mx = enemy.pos().x - lastEnemy.x, mz = enemy.pos().z - lastEnemy.z;
             double my = enemy.pos().y - lastEnemy.y;
             if (mx * mx + mz * mz < 9) { evx += (mx - evx) * 0.35; evz += (mz - evz) * 0.35; evy += (my - evy) * 0.35; }
-            rawVy = Math.abs(my) < 4 ? my : 0;
-            if (Math.abs(my) < 0.003) { groundY = enemy.pos().y; groundAt = total; }
-        } else { evx = 0; evz = 0; evy = 0; rawVy = 0; groundY = Double.NaN; groundAt = -1000; }
+            // Its position comes in every other tick: a tick with no news is not "standing still". Its speed is the last
+            // change over the ticks it took; it stands on the ground once nothing has changed for four ticks.
+            if (Math.abs(my) < 0.003 && mx * mx + mz * mz < 1e-5) {
+                if (++still >= 4) { groundY = enemy.pos().y; groundAt = total; rawVy = 0; }
+                else if (still >= 2) rawVy = (rawVy - 0.08) * 0.98; // no news for a while: it goes on falling meanwhile
+            } else {
+                if (Math.abs(my) < 4) rawVy = my / (still + 1);
+                still = 0;
+            }
+        } else { evx = 0; evz = 0; evy = 0; rawVy = 0; still = 0; groundY = Double.NaN; groundAt = -1000; }
         // Thrown up (by our own smash, or a jump): it stood on the ground a moment ago and comes back down to it.
         boolean arc = !Double.isNaN(groundY) && total - groundAt < 70;
         // A target that runs or flies (a "bird"): chased on the elytra, not climbed over.
@@ -144,7 +151,8 @@ final class ElytraMace {
                 // for gravity. The elytra comes off about two ticks before it gets there (the server has to see it
                 // closed for the smash to count); the dive is its fall. Against a target that runs or flies it is a
                 // chase first: on the elytra, a few blocks over it, nose down only when it is nearly overhead.
-                if (!a.gliding()) { abort(a, "landed"); return false; }
+                // Still in the air with the elytra on but no longer gliding (it brushed something): open it again.
+                if (!a.gliding() && !(a.airborne() && a.armor().get(1).getItem() == Items.ELYTRA && a.startGliding())) { abort(a, "landed"); return false; }
                 double sp = Math.max(0.6, Math.sqrt(a.horizontalSpeed() * a.horizontalSpeed() + a.verticalSpeed() * a.verticalSpeed()));
                 double upNow = a.y() - enemy.pos().y;
                 double t = Math.min(40, Math.sqrt(flat * flat + upNow * upNow) / Math.max(0.8, sp));
@@ -173,15 +181,18 @@ final class ElytraMace {
                 tactic = String.format("diving at %s (%.0f up, %.1f out)", enemy.name(), up, off);
                 a.lookAt(tx, ty + 0.9, tz);
                 // The burn ran out on the way down and it has slowed: one more.
-                if (a.rocketLeft() <= 0 && sp < 1.0 && up > 8 && slot(a, Items.FIREWORK_ROCKET) >= 0) rocket(a, a.yaw(), a.pitch());
+                // Or it is still going up from the climb: without a burn the turn at the top took nine ticks and ten blocks.
+                if (a.rocketLeft() <= 0 && (sp < 1.0 && up > 8 || a.verticalSpeed() > -0.5 && up > 5) && slot(a, Items.FIREWORK_ROCKET) >= 0) rocket(a, a.yaw(), a.pitch());
                 // Four to five ticks out, not two: the server clears "gliding" only on its next tick after the chestplate swap,
                 // and a mace swing that arrives while it still glides is no smash (it dropped 3 blocks over the target,
                 // swung the next tick, the hit did not count and the fall killed it).
                 // With the rocket burning it is still picking up speed: the next ticks cover more than this one did (a swap
                 // timed on this tick's speed came two ticks before the hit, and the server still had it gliding: no smash).
-                double reach = 0, v = sp;
+                // Only the speed toward it counts: right after the turn it is still going up, fast, and is nowhere near.
+                double toward = d3 < 0.01 ? 0 : (mvx * (tx - a.x()) + mvz * (tz - a.z()) + a.verticalSpeed() * (ty - a.y())) / d3;
+                double reach = 0, v = Math.max(0, toward);
                 for (int i = 0; i < 5; i++) { if (a.rocketLeft() > i) v += 0.1 + (1.5 - Math.min(v, 1.7)) * 0.5; reach += i < 4 ? v : v * 0.5; }
-                if (d3 <= 1.2 + Math.max(sp * 4.5, reach)) {
+                if (toward > 0.4 && d3 <= 1.2 + Math.max(toward * 4.5, reach)) {
                     // On it: elytra off, smash. Wide of it or under it: stay on the elytra, pull up, come round again.
                     if (off <= 2.2 + sp && up > 0.5) { go(State.SWAP); return true; }
                     a.log(String.format("§7elytra mace: dive %.1f blocks wide of %s: pulling up", off, enemy.name()));
