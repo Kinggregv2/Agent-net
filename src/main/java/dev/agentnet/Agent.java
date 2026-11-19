@@ -1717,10 +1717,12 @@ public final class Agent implements AgentHandle {
         float hardness = state.getDestroySpeed(net.minecraft.world.level.EmptyBlockGetter.INSTANCE, BlockPos.ZERO);
         if (hardness < 0) return -1; // bedrock & co.
         { BlockPos rp = new BlockPos(x, y, z); Long until = refusedUntil.get(rp); if (until != null) { if (System.currentTimeMillis() < until) return -1; refusedUntil.remove(rp); refusedAt.remove(rp); } }
-        // A block in its own column over its head with sand or gravel resting on it: that falls on its head next (run
-        // 1119j: the main suffocated twice in its first 25 minutes, the first time right after gravel). Not dug.
+        // Sand or gravel over its head, in its own column: dug like a player does it, one block at a time, and it does not
+        // move up into the gap for a second, while the next block falls into it (moving up into falling sand is what
+        // suffocates; refusing to dig it left an agent under water under a sand ceiling with no way out, run 1119k).
         { Vec3 me = pos.position(); int mx = (int) Math.floor(me.x), mz = (int) Math.floor(me.z), my = (int) Math.floor(me.y + 0.01);
-          if (x == mx && z == mz && y > my && world != null) { BlockState over = world.get(x, y + 1, z); if (over != null && over.getBlock() instanceof net.minecraft.world.level.block.FallingBlock) return -1; } }
+          if (x == mx && z == mz && y > my && world != null) { BlockState over = world.get(x, y + 1, z);
+            if (state.getBlock() instanceof net.minecraft.world.level.block.FallingBlock || over != null && over.getBlock() instanceof net.minecraft.world.level.block.FallingBlock) fallSettleUntil = System.currentTimeMillis() + 1500; } }
         // Never the base: whatever asks for it (a miner's tunnel, room for a crafting table, a way out), a block that is
         // part of the building stays, unless it is the builder's own work or the last-resort way out of a hole in it. The
         // one gate for every dig (the user saw a hunter dig a hole through its own house; each caller had its own check,
@@ -2492,11 +2494,12 @@ public final class Agent implements AgentHandle {
             if (over == null || !over.getFluidState().isEmpty()) return false;
             // Sand or gravel resting on it would fall on the agent, and the next block of it after that: it dug up under
             // sand, the sand came down on its head, it dug again, and suffocated (run 1119d, the main, 8 minutes in).
-            if (over.getBlock() instanceof net.minecraft.world.level.block.FallingBlock || s.getBlock() instanceof net.minecraft.world.level.block.FallingBlock) return false;
+            // (Sand or gravel: dug like anything else; dig() makes it wait for the next block to fall before it climbs.)
             dev.agentnet.role.Gear.holdBestFor(this, s);
             dig(fx, fy + dy, fz);
             return true;
         }
+        if (System.currentTimeMillis() < fallSettleUntil) return true; // sand or gravel still coming down over it: wait
         if (!feet.getFluidState().isEmpty() || dev.agentnet.pathing.Rules.canWalkThrough(under)) return false; // must stand on something to place against
         if (spawnProtected(fx, fz) || inBuilding(fx, fz) && !underBase(fy)) return false; // never a pillar inside the building; in front of it is fine
         int slot = -1;
@@ -2586,6 +2589,8 @@ public final class Agent implements AgentHandle {
     /** Until then an escape may dig through the base too (see the stuck steps). */
     private volatile long baseBreakUntil;
     private long diagAt, baseDigSaidAt, effectOddAt;
+    /** Sand or gravel was just dug over its head: until then it does not move up into the gap. */
+    private volatile long fallSettleUntil;
     /** Blocks the server refused to let it dig: how often, and (after three) until when it leaves them alone. */
     private final Map<BlockPos, Integer> refusedAt = new ConcurrentHashMap<>();
     private final Map<BlockPos, Long> refusedUntil = new ConcurrentHashMap<>();
@@ -2688,6 +2693,7 @@ public final class Agent implements AgentHandle {
         if (now - underwaterSaidAt > 10_000) { underwaterSaidAt = now; log("§eunder water: swimming straight up for air"); }
         BlockState above = w.get(x, hy + 1, z);
         if (above == null) return true;
+        if (System.currentTimeMillis() < fallSettleUntil) return true; // sand coming down over its head: not up into it yet
         if (openWater(above) || dev.agentnet.pathing.Rules.canWalkThrough(above)) {
             // Off the middle of its column, a shoulder is under the next column's ceiling: the server stops the rise there
             // and puts it back, every tick, until it drowns (run 1119c: 67 put-backs in two minutes, then "drowned"; two
