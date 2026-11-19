@@ -333,7 +333,9 @@ final class Fight {
             if (srv == null) return "(not your own world)";
             var p = srv.getPlayerList().getPlayerByName(a.name());
             if (p == null) return "(no such player)";
-            return String.format("fall distance %.2f, y %.2f (ours %.2f), on ground %s, gliding %s, holding %s", p.fallDistance, p.getY(), a.y(), p.onGround(), p.isFallFlying(), Gear.id(p.getMainHandItem()).replace("minecraft:", ""));
+            return String.format("fall distance %.2f, y %.2f (ours %.2f), on ground %s, gliding %s, holding %s, charge %.2f, sprinting %s, vy %.2f, damage dealt so far %.1f", p.fallDistance, p.getY(), a.y(), p.onGround(), p.isFallFlying(), Gear.id(p.getMainHandItem()).replace("minecraft:", ""),
+                    p.getAttackStrengthScale(0.5f), p.isSprinting(), p.getDeltaMovement().y,
+                    p.getStats().getValue(net.minecraft.stats.Stats.CUSTOM.get(net.minecraft.stats.Stats.DAMAGE_DEALT)) / 10.0);
         } catch (RuntimeException e) { return "(" + e + ")"; }
     }
 

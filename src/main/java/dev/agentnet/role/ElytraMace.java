@@ -290,7 +290,7 @@ final class ElytraMace {
                     }
                     struck = true;
                     struckAt = total;
-                    dev.agentnet.AgentNet.LOG.info("[{}] smash swing: {} ticks after the elytra came off, {} away, {} up, falling {} a tick, target blocking: {}, holding {}", a.name(), timer, String.format("%.1f", enemy.distance()), String.format("%.1f", a.y() - enemy.pos().y), String.format("%.2f", a.verticalSpeed()), enemy.blocking(), Gear.id(a.inventory().get(a.selectedSlot())));
+                    dev.agentnet.AgentNet.LOG.info("[{}] smash swing: {} ticks after the elytra came off, {} away, {} up, falling {} a tick, target blocking: {}, holding {}", a.name(), timer, String.format("%.1f", enemy.distance()), String.format("%.1f", a.y() - enemy.pos().y), String.format("%.2f", a.verticalSpeed()), enemy.blocking(), Gear.id(a.inventory().get(a.selectedSlot())) + "; the server has: " + Fight.serverSide(a));
                 }
             }
             case REGLIDE -> {
