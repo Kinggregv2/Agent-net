@@ -1587,7 +1587,12 @@ public final class Agent implements AgentHandle {
     }
 
     /** The server said what is at this block: no prediction of ours stands for it any more. */
-    private void serverBlock(BlockPos p) { if (!predicted.isEmpty()) predicted.removeIf(e -> e.pos.equals(p)); }
+    private void serverBlock(BlockPos p) { if (!predicted.isEmpty() && predicted.removeIf(e -> e.pos.equals(p))) DIG_SLOW = Math.max(1.0, DIG_SLOW * 0.99); }
+
+    /** How much longer than vanilla's time a dig is given (all agents: they share the one server). Up a quarter with each
+     *  dig the server refuses, to 3 times at most; back down 1% with each it accepts. */
+    private static volatile double DIG_SLOW = 1.0;
+    private static volatile long digSlowSaidAt;
 
     /** The server acked our actions up to this sequence: predictions it didn't confirm with an update go back. */
     private void ackedUpTo(int sequence) {
@@ -1595,6 +1600,8 @@ public final class Agent implements AgentHandle {
             if (e.sequence > sequence) continue;
             predicted.remove(e);
             chunks.blockChanged(e.pos.getX(), e.pos.getY(), e.pos.getZ(), e.was);
+            DIG_SLOW = Math.min(3.0, DIG_SLOW * 1.25);
+            if (System.currentTimeMillis() - digSlowSaidAt > 30_000) { digSlowSaidAt = System.currentTimeMillis(); AgentNet.LOG.info("[AgentNet] the server refused a dig as too fast: digs now take {} times as long", String.format("%.2f", DIG_SLOW)); }
             AgentNet.LOG.info("[{}] the server kept the {} at {}: back in its picture of the blocks", name, e.was.getBlock().getDescriptionId().replace("block.minecraft.", ""), e.pos.toShortString());
         }
     }
@@ -1639,7 +1646,11 @@ public final class Agent implements AgentHandle {
         if (perTick >= 1f) { predictAir(p, state, useSequence); return 0; }
         digState = state;
         digPos = p;
-        digTicksLeft = (int) Math.ceil(1f / perTick) + 1; // one tick of margin so the server never says "too fast"
+        // Stretched by how often the server has been refusing digs lately: it counts its own ticks, and with the machine busy
+        // (fourteen agents, a second game open) those run slower than ours, so a dig timed on our clock ends "too fast",
+        // the block stays, and the agent walks into it and is put back (run 1119a: 100 refused digs in six minutes, one agent
+        // put back 250 times at one spot).
+        digTicksLeft = (int) Math.ceil(1f / perTick * DIG_SLOW) + 1; // one tick of margin so the server never says "too fast"
         return digTicksLeft;
     }
 
