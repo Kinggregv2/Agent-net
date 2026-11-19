@@ -20,6 +20,9 @@ From chat on 2026-11-19 (not started):
 
 Make speedrunners looking for a lava pool be able to detect lava pools underground
 
+   SEEN WORKING 2026-11-20 00:53 (run 1120d): the main found a pool 60 blocks down at the pool
+   stage (11 min), dug its own staircase all the way and reached the pool (y 4) at 17 min. Not yet
+   seen: the portal built down there. Earlier notes:
    Progress (Claude, 2026-11-19 22:05; built; first try in run 1119i found a pool 44 blocks down
    at once but its staircase began in a lake and stuck; now it starts on dry ground; not yet seen
    reaching a pool, so the line above stays): the pool
