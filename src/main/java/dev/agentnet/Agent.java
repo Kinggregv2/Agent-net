@@ -3434,6 +3434,7 @@ public final class Agent implements AgentHandle {
         if (navigator.busy()) navigator.stop();
         escapeGoal = null; escapeStep = null; escapeMoves.clear();
         airVel = null;
+        forageId = -1; foragePickup = false; // the animal it was after is somewhere else now
         if (role != null) {
             stopModule();
             module = role.createModule();
