@@ -785,6 +785,28 @@ public final class SpeedrunnerModule implements RoleModule {
         if (fall) FALLOFF_RODS.put(a.name(), rods);
         if ((main ? rods : mainRods) >= RODS) { if (!fall) { pearls(a); return; } if (falloff(a)) return; }
         if (!(a.openWorld() instanceof BlockView w)) return;
+        // Hoglins, and piglins while it wears no gold: round them, never through them. Walking on toward its fortress it
+        // went into a crimson forest, swung at a piglin and a hoglin, and was dead 26 seconds after entering the nether
+        // (run 1119b, 70 minutes in, the spawner just found). Not while it stands at the spawner fighting blazes.
+        if (spawner == null || spawner.distToCenterSqr(a.x(), a.y(), a.z()) > 24 * 24) {
+            boolean gold = false;
+            for (ItemStack s : a.armor()) if (Gear.id(s).contains("golden_")) gold = true;
+            Seen beast = null;
+            for (Seen s : a.entitiesNear(14)) {
+                String nm = s.name();
+                if (!(nm.equals("hoglin") || nm.equals("piglin_brute") || nm.equals("piglin") && !gold)) continue;
+                if (beast == null || s.distance() < beast.distance()) beast = s;
+            }
+            if (beast != null) {
+                foe = -1;
+                if (blocking) { a.releaseUse(); blocking = false; }
+                double bdx = a.x() - beast.pos().x, bdz = a.z() - beast.pos().z, bd = Math.max(0.5, Math.hypot(bdx, bdz));
+                if (!a.isNavigating() || ticks % 20 == 0) a.navigate((int) Math.floor(a.x() + bdx / bd * 20), (int) Math.floor(a.y() + 0.2), (int) Math.floor(a.z() + bdz / bd * 20), 4);
+                hopAt = ticks; hopGoal = null; // no hop back toward it right away
+                status = "keeping away from a " + beast.name().replace('_', ' ');
+                return;
+            }
+        }
         if (!main && rods > 0 && !(fall && mainRods >= RODS) && handOver(a, "minecraft:blaze_rod")) return; // a falloff keeps its own once the main has its rods
         // A rod where the last blaze fell: walk over it (items are picked up by walking into them). Not with a blaze close
         // by: that one first.
