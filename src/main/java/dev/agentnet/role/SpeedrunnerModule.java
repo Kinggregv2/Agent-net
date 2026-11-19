@@ -3247,6 +3247,65 @@ public final class SpeedrunnerModule implements RoleModule {
         };
     }
 
+    /** Lava near the surface that anyone in the crew has seen (overworld): where the main goes when it has no pool yet. */
+    private static final java.util.List<BlockPos> CREW_LAVA = new java.util.concurrent.CopyOnWriteArrayList<>();
+    private static final java.util.Map<String, Long> LAVA_LOOKED = new java.util.concurrent.ConcurrentHashMap<>();
+    private BlockPos crewPool;
+    private int crewPoolAt;
+    private double poolHeading = Double.NaN;
+
+    /**
+     * Every agent, every ten seconds, while the main still has no portal: lava near the surface in what it can see (ten or
+     * more sources, open to the sky) is told to the crew. The main searched 50 minutes for a pool alone (run 1119c) while
+     * thirteen others walked about seeing far more ground than it did. Called from the agent's own tick.
+     */
+    public static void crewLavaLook(AgentHandle a) {
+        if (MAIN == null || beaten() || mainStage.ordinal() > Stage.POOL.ordinal() || a.name().equalsIgnoreCase(MAIN)) return;
+        if (a.dimension() == null || !a.dimension().endsWith("overworld") || !a.isOnline()) return;
+        long now = System.currentTimeMillis();
+        Long last = LAVA_LOOKED.get(a.name());
+        if (last != null && now - last < 10_000) return;
+        LAVA_LOOKED.put(a.name(), now);
+        if (!(a.openWorld() instanceof BlockView w)) return;
+        int fx = (int) Math.floor(a.x()), fz = (int) Math.floor(a.z());
+        List<BlockPos> lava = w.findAll(fx, fz, 64, SpeedrunnerModule::lavaSource, 400, null);
+        List<BlockPos> top = new ArrayList<>();
+        for (BlockPos p : lava) {
+            if (p.getY() < 50) continue;
+            boolean sky = true;
+            for (int up = 1; up <= 12 && sky; up++) { BlockState s = w.get(p.getX(), p.getY() + up, p.getZ()); sky = s != null && s.isAir(); }
+            if (sky) top.add(p);
+        }
+        if (top.size() < 10) return;
+        BlockPos at = top.get(0);
+        for (BlockPos k : CREW_LAVA) if (k.distSqr(at) < 48 * 48) return; // known already
+        CREW_LAVA.add(at);
+        a.log("§a[speedrun] lava near the surface at " + at.toShortString() + " (" + top.size() + " blocks of it): told to " + MAIN);
+    }
+
+    /** A hop of about this far along its heading, over land; the heading turns when the way is water. True if it set off. */
+    private boolean wanderAhead(AgentHandle a, BlockView w, int dist) {
+        if (Double.isNaN(poolHeading)) poolHeading = Math.random() * Math.PI * 2;
+        int ay = (int) Math.floor(a.y());
+        for (int tries = 0; tries < 8; tries++) {
+            double ang = poolHeading + (Math.random() - 0.5) * 0.5; // about 15 degrees either way: on, not back and forth
+            int tx = (int) (a.x() + Math.cos(ang) * dist), tz = (int) (a.z() + Math.sin(ang) * dist);
+            boolean wet = false, known = false;
+            for (int y = ay + 24; y >= ay - 24; y--) {
+                BlockState s = w.get(tx, y, tz);
+                if (s == null) break;
+                known = true;
+                if (s.isAir()) continue;
+                wet = !s.getFluidState().isEmpty();
+                break;
+            }
+            if (known && wet) { poolHeading += Math.PI / 3; continue; } // water that way: sixty degrees round
+            a.navigate(tx, ay, tz, 8);
+            return true;
+        }
+        return false;
+    }
+
     /**
      * A straight piece of pool edge: 4 lava blocks in a row with flat shore behind them (2 deep, level with the
      * lava), lava in the row behind too, and the pool one block deep under the middle two.
@@ -3296,7 +3355,25 @@ public final class SpeedrunnerModule implements RoleModule {
         }
         if (site == null) {
             status = lava.isEmpty() ? "looking for a lava pool near the surface" : "no straight pool edge (4 lava blocks, flat shore behind, 1 deep)";
-            if (stageTicks % 400 == 1) wanderOnLand(a, w, 48);
+            // Lava one of the crew has seen: there, before any more looking about. One it stood at and could not use is
+            // dropped from the list.
+            if (crewPool != null && (crewPool.distToCenterSqr(a.x(), crewPool.getY(), a.z()) < 30 * 30 && ticks - crewPoolAt > 600 || ticks - crewPoolAt > 20 * 240)) {
+                a.log("§e[speedrun] no usable pool edge at the lava the crew saw at " + crewPool.toShortString() + ": looking on");
+                CREW_LAVA.remove(crewPool); crewPool = null;
+            }
+            if (crewPool == null && !CREW_LAVA.isEmpty()) {
+                BlockPos best = null;
+                for (BlockPos k : CREW_LAVA) if (best == null || k.distToCenterSqr(a.x(), a.y(), a.z()) < best.distToCenterSqr(a.x(), a.y(), a.z())) best = k;
+                crewPool = best; crewPoolAt = ticks;
+                a.log("§a[speedrun] going to the lava the crew saw at " + best.toShortString() + " (" + Math.round(Math.sqrt(best.distToCenterSqr(a.x(), a.y(), a.z()))) + " blocks)");
+            }
+            if (crewPool != null) {
+                status = "going to the lava the crew saw at " + crewPool.toShortString();
+                if (!a.isNavigating() && stageTicks % 100 == 1) a.navigate(crewPool.getX(), crewPool.getY() + 1, crewPool.getZ(), 6);
+                return;
+            }
+            // On along one heading, 64 blocks a hop: hops in random directions kept it within 300 blocks of where it began.
+            if (stageTicks % 400 == 1) wanderAhead(a, w, 64);
             return;
         }
         pool = site;

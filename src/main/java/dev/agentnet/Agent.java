@@ -1066,6 +1066,7 @@ public final class Agent implements AgentHandle {
                 if (replayTask) { replayTask = false; if (!task.equals("idle")) module.onTask(this, task); }
             }
             module.tick(this);
+            dev.agentnet.role.SpeedrunnerModule.crewLavaLook(this); // every agent is a lava-pool scout for the main (cheap: once in ten seconds)
         } catch (RuntimeException e) {
             AgentNet.LOG.warn("[{}] {} module failed, removing role", name, role, e);
             log("§c" + role.id() + " module crashed: " + e);
