@@ -267,7 +267,9 @@ public final class Civ {
         // Someone to bring a pickaxe to agents stuck deep underground without one, once the crew is big enough to lose some.
         // One rescuer from the start (the user: "one of the guys that should spawn in right away when autopilot is turned on"):
         // a broken pickaxe at the bottom of a mine strands an agent from the first minutes on.
-        if (roles.getOrDefault(Role.RESCUER, 0) < 1) needs.add(new Need(Role.RESCUER, null, "one to rescue those stranded underground without a pickaxe (from the start)"));
+        // No rescuer any more (the user, 2026-11-19: "get rid of the rescuer, he is no longer needed"): agents without a
+        // pickaxe dig themselves out or make their own now. One still in the crew from before goes mining instead.
+        for (Agent a : crew) if (a.role() == Role.RESCUER) { decide(a.name + " was the rescuer: that job is gone, it mines now"); AgentNetClient.changeRole(a.name, "miner"); }
         if (roles.getOrDefault(Role.HUNTER, 0) < wantHunters) needs.add(new Need(Role.HUNTER, "hunt", "meat for " + warriors + " guards"));
         // Hungry agents with no food and nobody making any (run 1118d: four runners, two falloffs, a rescuer, a distributor
         // and a builder filled the cap of 10; the farmer waits for the base, so four agents starved and the distributor died
