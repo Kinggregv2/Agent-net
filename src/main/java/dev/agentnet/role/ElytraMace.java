@@ -182,7 +182,7 @@ final class ElytraMace {
                 // the_guy7 it got within 1.2 and 1.5 blocks that way and had to pull up). Under 4 blocks over it: climb first.
                 // In a chain (thrown up by Wind Burst) higher: the server counts the fall only from where it goes down fast,
                 // and a dive from 8 over it came to 4.6 blocks of fall, too little to pop a totem through Protection IV.
-                double minUp = topped && !moving ? DIVE_UP : 4;
+                double minUp = topped && !moving ? diveUp(a, enemy) : 4;
                 // Just hit: its new speed (thrown up, or knocked down out of the air) takes a few ticks to show. Diving at
                 // once on the old one met it halfway down, after 4 blocks of fall instead of 9: no pop.
                 boolean settling = smashes > 0 && total - struckAt < SETTLE;
@@ -210,8 +210,10 @@ final class ElytraMace {
                 // Only the speed toward it counts: right after the turn it is still going up, fast, and is nowhere near.
                 double toward = d3 < 0.01 ? 0 : (mvx * (tx - a.x()) + mvz * (tz - a.z()) + a.verticalSpeed() * (ty - a.y())) / d3;
                 double reach = 0, v = Math.max(0, toward);
-                for (int i = 0; i < 5; i++) { if (a.rocketLeft() > i) v += 0.1 + (1.5 - Math.min(v, 1.7)) * 0.5; reach += i < 4 ? v : v * 0.5; }
-                if (toward > 0.4 && d3 <= 1.2 + Math.max(toward * 4.5, reach)) {
+                for (int i = 0; i < 6; i++) { if (a.rocketLeft() > i) v += 0.1 + (1.5 - Math.min(v, 1.7)) * 0.5; reach += i < 5 ? v : v * (SWAP_TICKS - 5); }
+                // A good five ticks out: at four and a half, a target a block lower than expected meant the ground came a
+                // tick before the swing could (two chains of 27 and 6 smashes ended that way, each a new take-off).
+                if (toward > 0.4 && d3 <= 1.2 + Math.max(toward * SWAP_TICKS, reach)) {
                     // On it: elytra off, smash. Wide of it or under it: stay on the elytra, pull up, come round again.
                     if (off <= 2.2 + sp && up > 0.5) { go(State.SWAP); return true; }
                     a.log(String.format("§7elytra mace: dive %.1f blocks wide of %s: pulling up", off, enemy.name()));
@@ -405,6 +407,27 @@ final class ElytraMace {
         int m = slot(a, Items.MACE);
         int density = m < 0 ? 0 : Gear.level(a.inventory().get(m), net.minecraft.world.item.enchantment.Enchantments.DENSITY);
         return Math.max(8, Math.min(HEIGHT + 6, 28 / (1 + density * 0.5))); // measured: 8 blocks pops 87% of smashes through Prot IV netherite at 0.80/s; 12 blocks pops 95% but only 0.67/s
+    }
+
+    private static final double SWAP_TICKS = Double.parseDouble(System.getProperty("agentnet.swapTicks", "5.3"));
+
+    /**
+     * How far over the target a chained dive starts: enough fall to take all its health in one smash through full
+     * Protection IV netherite (about 30% of the damage gets through), so the hit pops its totem instead of leaving it on
+     * half a heart. A target just popped has a heart and its 8 of absorption left: the short dive. One at full health:
+     * about twice as high. No crit in it: the mace was only just taken in hand, the swing has no charge.
+     */
+    private static double diveUp(AgentHandle a, Seen enemy) {
+        float hp = a.healthOf(enemy.id());
+        if (Float.isNaN(hp) || hp <= 6) return DIVE_UP;
+        int m = slot(a, Items.MACE);
+        int density = m < 0 ? 0 : Gear.level(a.inventory().get(m), net.minecraft.world.item.enchantment.Enchantments.DENSITY);
+        double need = (hp + 1) / 0.30;
+        for (double h = DIVE_UP - 2.5; h <= 18; h += 0.5) {
+            double smash = h <= 3 ? 4 * h : h <= 8 ? 12 + 2 * (h - 3) : 22 + (h - 8);
+            if (1.2 + smash + 0.5 * density * h >= need) return Math.min(20, h + 2.5);
+        }
+        return 20;
     }
 
     /** Where a thrown target is in t ticks: gravity 0.08, drag 0.98, no lower than the ground it stood on. */
