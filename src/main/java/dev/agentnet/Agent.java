@@ -1038,6 +1038,8 @@ public final class Agent implements AgentHandle {
         volatile boolean angry;
         volatile ItemStack mainHand = ItemStack.EMPTY, offHand = ItemStack.EMPTY;
         volatile int armorPieces;
+        /** What it wears, by armor slot index (feet, legs, chest, head): for how much of a hit its armor takes. */
+        final ItemStack[] armor = { ItemStack.EMPTY, ItemStack.EMPTY, ItemStack.EMPTY, ItemStack.EMPTY };
         /** A banner on its head: a raid captain (drops an ominous bottle). */
         volatile boolean bannerHead;
         Tracked(int id, net.minecraft.world.entity.EntityType<?> type, UUID uuid, Vec3 pos) {
@@ -1264,6 +1266,15 @@ public final class Agent implements AgentHandle {
     private final Map<String, Long> effects = new ConcurrentHashMap<>();
 
     @Override public boolean captain(int entityId) { Tracked t = tracked.get(entityId); return t != null && t.bannerHead; }
+
+    private final Map<String, Integer> effectLevels = new ConcurrentHashMap<>();
+
+    @Override public int effectLevel(String id) {
+        String k = id.contains(":") ? id : "minecraft:" + id;
+        return hasEffect(k) ? effectLevels.getOrDefault(k, 1) : 0;
+    }
+
+    @Override public List<ItemStack> armorOf(int entityId) { Tracked t = tracked.get(entityId); return t == null ? List.of() : List.of(t.armor); }
 
     @Override public boolean hasEffect(String id) {
         Long until = effects.get(id.contains(":") ? id : "minecraft:" + id);
@@ -3262,6 +3273,7 @@ public final class Agent implements AgentHandle {
                         else if (slot.getType() == net.minecraft.world.entity.EquipmentSlot.Type.HUMANOID_ARMOR) {
                             int bit = 1 << slot.getIndex();
                             t.armorPieces = st.isEmpty() ? t.armorPieces & ~bit : t.armorPieces | bit;
+                            if (slot.getIndex() >= 0 && slot.getIndex() < 4) t.armor[slot.getIndex()] = st;
                         }
                     }
                 }
@@ -3321,6 +3333,7 @@ public final class Agent implements AgentHandle {
                     AgentNet.LOG.info("[{}] hit entity #{}", name, p.entityId());
                 }
             } else if (packet instanceof net.minecraft.network.protocol.game.ClientboundUpdateMobEffectPacket p) {
+                if (p.getEntityId() == myEntityId) p.getEffect().unwrapKey().ifPresent(k -> effectLevels.put(k.identifier().toString(), p.getEffectAmplifier() + 1));
                 if (p.getEntityId() == myEntityId) p.getEffect().unwrapKey().ifPresent(k -> effects.put(k.identifier().toString(), System.currentTimeMillis() + (p.getEffectDurationTicks() < 0 ? 3_600_000L : p.getEffectDurationTicks() * 50L)));
             } else if (packet instanceof net.minecraft.network.protocol.game.ClientboundRemoveMobEffectPacket p) {
                 if (p.entityId() == myEntityId) p.effect().unwrapKey().ifPresent(k -> effects.remove(k.identifier().toString()));

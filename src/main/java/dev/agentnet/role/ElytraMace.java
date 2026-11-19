@@ -38,8 +38,7 @@ final class ElytraMace {
     private int groundAt = -1000, still;
     /** The dive is on: no more climbing first because it is "too low" (it gets lower all the way down). */
     private boolean committed;
-    /** How far over the target a chained dive starts: the server counts the fall only once it is going down fast. */
-    private static final double DIVE_UP = Double.parseDouble(System.getProperty("agentnet.diveUp", "9"));
+
     private static final boolean TRACE = Boolean.getBoolean("agentnet.diveTrace");
     private static final int SETTLE = Integer.getInteger("agentnet.settle", 7);
     private int reglides, confirmedAt, chain;
@@ -364,7 +363,7 @@ final class ElytraMace {
                 if (!a.startGliding()) { go(State.FALL); return true; }
                 // Already in the sky (after the top, or thrown up by Wind Burst): no climb, straight down at it on a firework.
                 // High enough over it already (after the top): straight down. In a chain: up first, the dive decides when.
-                boolean high = a.y() - (arc ? arcY(enemy.pos().y, rawVy, 8) : enemy.pos().y) >= DIVE_UP;
+                boolean high = a.y() - (arc ? arcY(enemy.pos().y, rawVy, 8) : enemy.pos().y) >= diveUp(a, enemy);
                 topped = true;
                 committed = false;
                 if (high) a.lookAt(enemy.pos().x, enemy.pos().y + 0.9, enemy.pos().z); else a.look(yaw, -86f);
@@ -412,23 +411,52 @@ final class ElytraMace {
     private static final double SWAP_TICKS = Double.parseDouble(System.getProperty("agentnet.swapTicks", "5.3"));
 
     /**
-     * How far over the target a chained dive starts: enough fall to take all its health in one smash through full
-     * Protection IV netherite (about 30% of the damage gets through), so the hit pops its totem instead of leaving it on
-     * half a heart. A target just popped has a heart and its 8 of absorption left: the short dive. One at full health:
-     * about twice as high. No crit in it: the mace was only just taken in hand, the swing has no charge.
+     * How far over the target a chained dive starts: just enough fall for one smash to take all the health it has, through
+     * the armor it wears, so the hit pops its totem instead of leaving it on half a heart. Vanilla's own sums: the mace's
+     * fall bonus (4 a block for 3 blocks, 2 for the next 5, then 1, plus half of Density a block), our Strength (3 a
+     * level) on the mace's 6, the target's armor points and toughness, then its Protection (4% a level, 80% at most).
+     * No crit in it and a fifth of the base damage: the mace was only just taken in hand, the swing has no charge.
+     * The less it wears, the lower the dive: 5 blocks is enough for bare skin, about 18 for full Protection IV netherite
+     * at full health. A target just popped has a heart and its 8 of absorption: the short dive again.
      */
-    private static double diveUp(AgentHandle a, Seen enemy) {
+    private double diveUp(AgentHandle a, Seen enemy) {
         float hp = a.healthOf(enemy.id());
-        if (Float.isNaN(hp) || hp <= 6) return DIVE_UP;
+        if (Float.isNaN(hp)) hp = 20;
+        double need = hp + (hp <= 6 ? 8 : 0) + 1;
+        double armor = 0, tough = 0;
+        int prot = 0;
+        for (ItemStack s : a.armorOf(enemy.id())) {
+            if (s.isEmpty()) continue;
+            for (var e : s.getOrDefault(net.minecraft.core.component.DataComponents.ATTRIBUTE_MODIFIERS, net.minecraft.world.item.component.ItemAttributeModifiers.EMPTY).modifiers()) {
+                if (e.attribute().is(net.minecraft.world.entity.ai.attributes.Attributes.ARMOR)) armor += e.modifier().amount();
+                else if (e.attribute().is(net.minecraft.world.entity.ai.attributes.Attributes.ARMOR_TOUGHNESS)) tough += e.modifier().amount();
+            }
+            prot += Gear.level(s, net.minecraft.world.item.enchantment.Enchantments.PROTECTION);
+        }
         int m = slot(a, Items.MACE);
         int density = m < 0 ? 0 : Gear.level(a.inventory().get(m), net.minecraft.world.item.enchantment.Enchantments.DENSITY);
-        double need = (hp + 1) / 0.30;
-        for (double h = DIVE_UP - 2.5; h <= 18; h += 0.5) {
+        double base = (6 + 3 * a.effectLevel("strength")) * 0.2;
+        double h = 2;
+        for (; h <= 24; h += 0.5) {
             double smash = h <= 3 ? 4 * h : h <= 8 ? 12 + 2 * (h - 3) : 22 + (h - 8);
-            if (1.2 + smash + 0.5 * density * h >= need) return Math.min(20, h + 2.5);
+            double dmg = base + smash + 0.5 * density * h;
+            double worn = Math.max(armor * 0.2, Math.min(20, armor - dmg / (2 + tough / 4)));
+            dmg *= 1 - Math.min(20, worn) / 25;
+            dmg *= 1 - Math.min(20, prot) / 25.0;
+            if (dmg >= need) break;
         }
-        return 20;
+        // The turn at the top and the first ticks of the dive are not counted as fall: three blocks on top.
+        double up = Math.max(MIN_UP, Math.min(26, h + 3));
+        if (Math.abs(up - saidUp) >= 1) {
+            saidUp = up;
+            a.log(String.format("§7elytra mace: diving from %.0f blocks: %s has %.0f health, %.0f armor (toughness %.0f, Protection %d), our Strength %d", up, enemy.name(), hp, armor, tough, prot, a.effectLevel("strength")));
+        }
+        return up;
     }
+
+    private double saidUp = -9;
+    /** The lowest a chained dive starts: under this the server counts too little of the fall for a smash at all. */
+    private static final double MIN_UP = Double.parseDouble(System.getProperty("agentnet.minUp", "5"));
 
     /** Where a thrown target is in t ticks: gravity 0.08, drag 0.98, no lower than the ground it stood on. */
     private double arcY(double y, double vy, int t) {

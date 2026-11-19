@@ -223,6 +223,10 @@ public interface AgentHandle {
     boolean raining();
     /** One of our own active effects ("strength", "minecraft:speed"...). */
     boolean hasEffect(String id);
+    /** Its level (Strength II = 2); 0 without it. */
+    default int effectLevel(String id) { return hasEffect(id) ? 1 : 0; }
+    /** What an entity wears (feet, legs, chest, head) as the server last sent it; empty if unknown. */
+    default java.util.List<ItemStack> armorOf(int entityId) { return java.util.List.of(); }
     /** This mob wears a banner on its head: a raid captain. */
     default boolean captain(int entityId) { return false; }
     /** Horizontal speed in the air (blocks per tick), 0 on the ground. */
