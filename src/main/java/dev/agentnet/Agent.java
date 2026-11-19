@@ -2446,6 +2446,19 @@ public final class Agent implements AgentHandle {
                         shape.isEmpty() ? " (no collision)" : String.format(" (collision up to %.3f)", shape.max(net.minecraft.core.Direction.Axis.Y)),
                         seen == null ? "?" : seen.toString().replace("Block{minecraft:", "").replace("}", ""), same ? "" : "   <-- DIFFERENT"));
             }
+            // The server's own picture as a grid too: rows z-1..z+1, columns x-1..x+1 (# full block, p partial, . open).
+            for (int dy = 2; dy >= -1; dy--) {
+                sb.append(String.format("%n  y%d:", by + dy));
+                for (int dz = -1; dz <= 1; dz++) {
+                    sb.append(' ');
+                    for (int dx = -1; dx <= 1; dx++) {
+                        var p = new BlockPos(bx + dx, by + dy, bz + dz);
+                        var sh = level.getBlockState(p).getCollisionShape(level, p);
+                        sb.append(sh.isEmpty() ? '.' : sh.max(net.minecraft.core.Direction.Axis.Y) == 1.0 && sh.min(net.minecraft.core.Direction.Axis.X) == 0.0 && sh.max(net.minecraft.core.Direction.Axis.X) == 1.0 ? '#' : 'p');
+                    }
+                }
+            }
+            sb.append(String.format("%n  navigating %s, escaping %s, digging %s, burrow %s, air %s", navigator.busy(), escapeGoal != null, isDigging(), burrow, airVel != null));
             for (var e : level.getEntities(sp, sp.getBoundingBox().inflate(1.5), x -> x.canBeCollidedWith(sp) || x instanceof net.minecraft.world.entity.vehicle.boat.AbstractBoat))
                 sb.append(String.format("%n  entity in the way: %s at %.2f %.2f %.2f", e.getType().toShortString(), e.getX(), e.getY(), e.getZ()));
             return sb.toString();
