@@ -1,7 +1,7 @@
 AGENTNET BUGS (kept up to date by Claude: open ones first, then what was fixed)
 ================================================================================
 A bug = any unintended behaviour, including deaths that could have been prevented.
-Last updated: 2026-11-19 21:40, from crew runs "run 1118d" and "run 1119a" to "run 1119h".
+Last updated: 2026-11-19 22:05, from crew runs "run 1118d" and "run 1119a" to "run 1119i".
 
 --- OPEN (found, not fixed yet) --------------------------------------------------
 
@@ -136,6 +136,23 @@ F21. A PICKAXE FOR EVERYONE (asked by the user 20:57: "every single role should 
     chops the logs went "bored" and gave the agent a task of its own, which turned the main
     speedrunner into a miner one minute in (a helper took over as main only at 15 minutes).
     Fixed 21:33: helper miners inside another role never hand out tasks. Not yet seen working.
+F22. UNDERGROUND LAVA POOLS ("to add", the user, 21:24). Run 1119i: the main picked one 44 blocks
+    down the moment it reached the pool stage (9.3 min), but began its staircase in a lake and
+    stood on step 1 in the water until the run was closed. Fixed 22:00: the staircase starts on
+    the nearest dry ground 6 to 20 blocks from the pool. Not yet seen working.
+F23. AGENTS CANNOT WORK UNDER WATER, AND NOW KNOW IT (the user, 21:55: "they should know they can't
+    swim underwater"). Since 22:00 a miner leaves any target with water over it alone, without
+    trying a path first; the staircase down to a pool never starts in water (F22). Other jobs
+    that pick targets (builder, looter, farmer) are not checked yet.
+F24. THE NETHER KIT (the user, 21:56: "make it a requirement to be in full iron with a golden
+    helmet to go into the nether"). Since 22:00 the main does not walk into its portal, and no
+    helper or falloff follows it, without an iron chestplate, leggings and boots and a golden
+    helmet on. Each mines, smelts, makes and puts on its own (19 iron and 5 gold; gold ore needs
+    an iron pickaxe first). Helpers start on it as soon as they have their shield. This will make
+    the Nether come later in a run. Not yet seen working.
+F25. A BRANCH FOR EVERY CHANGE (the user, 21:57). Every build now also pushes a branch
+    "build-<date>-<time>" with the code as it was; changes to these notes alone get a branch
+    "notes-<date>-<time>". "main" still has the latest.
 
 ================================================================================
 OLDER REPORT, kept for reference
