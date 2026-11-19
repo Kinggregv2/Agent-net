@@ -459,7 +459,7 @@ public final class Agent implements AgentHandle {
     private enum Burrow { NONE, DIG, ROOF, WAIT, OUT }
     private Burrow burrow = Burrow.NONE;
     private int burrowX, burrowY, burrowZ, burrowTicks, burrowCheck, burrowDigs;
-    private long burrowAgainAt;
+    private long burrowAgainAt, burrowMoveSaidAt;
 
     private static final java.util.Set<String> BURROW_BLOCKS = java.util.Set.of("minecraft:dirt", "minecraft:cobblestone", "minecraft:cobbled_deepslate",
             "minecraft:stone", "minecraft:netherrack", "minecraft:granite", "minecraft:diorite", "minecraft:andesite", "minecraft:tuff", "minecraft:coarse_dirt");
@@ -496,7 +496,26 @@ public final class Agent implements AgentHandle {
             boolean fresh = System.currentTimeMillis() - diedAt < 120_000;
             if (!phantom && (near == null ? !fresh : near.distance() < 4)) return false;
             int x = (int) Math.floor(me.x), y = (int) Math.floor(me.y + 0.01), z = (int) Math.floor(me.z);
-            if (!burrowable(w, x, y, z)) { burrowAgainAt = System.currentTimeMillis() + 15_000; return false; }
+            if (!burrowable(w, x, y, z)) {
+                // A spot a few steps away that can be dug: walk there and try again (run 1118d: the main came back from a
+                // death at night onto ground it couldn't dig, went off for logs, and a stray killed it within a minute).
+                int bx = 0, bz = 0, by = 0; double bd = 99;
+                for (int dx = -3; dx <= 3; dx++) for (int dz = -3; dz <= 3; dz++) for (int dy = -1; dy <= 1; dy++) {
+                    if (dx == 0 && dz == 0 && dy == 0) continue;
+                    BlockState feetAt = w.get(x + dx, y + dy, z + dz), headAt = w.get(x + dx, y + dy + 1, z + dz);
+                    if (feetAt == null || headAt == null || !dev.agentnet.pathing.Rules.canWalkThrough(feetAt) || !dev.agentnet.pathing.Rules.canWalkThrough(headAt)) continue;
+                    double d = Math.hypot(dx, dz) + Math.abs(dy);
+                    if (d < bd && burrowable(w, x + dx, y + dy, z + dz)) { bd = d; bx = x + dx; by = y + dy; bz = z + dz; }
+                }
+                if (bd < 99 && !navigator.busy()) {
+                    if (System.currentTimeMillis() - burrowMoveSaidAt > 20_000) { burrowMoveSaidAt = System.currentTimeMillis(); log("§7can't dig in right here: a spot " + Math.round(bd) + " blocks over"); }
+                    navigate(bx, by, bz, 0);
+                    burrowAgainAt = System.currentTimeMillis() + 2_000;
+                    return true;
+                }
+                if (System.currentTimeMillis() - burrowMoveSaidAt > 20_000) { burrowMoveSaidAt = System.currentTimeMillis(); log("§7nowhere to dig in within 3 blocks" + (spawnProtected(x, z) ? " (spawn protection)" : inBase(x, y, z) ? " (the base)" : "")); }
+                burrowAgainAt = System.currentTimeMillis() + 15_000; return false;
+            }
             burrow = Burrow.DIG; burrowX = x; burrowY = y; burrowZ = z; burrowTicks = 0; burrowDigs = 0;
             failedGoal = null; // the trip it was on waits for the morning
             pendingGoal = null; // and no trip waiting to start either: one did, its "boxed in" dug it back out of its hole and a zombie killed it
