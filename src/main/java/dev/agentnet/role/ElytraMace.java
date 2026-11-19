@@ -69,6 +69,7 @@ final class ElytraMace {
         state = State.EQUIP;
         timer = 0;
         total = 0;
+        struckAt = 0;
         struck = false;
         confirmed = false;
         topped = false;
@@ -86,7 +87,8 @@ final class ElytraMace {
     boolean tick(AgentHandle a, Seen enemy) {
         if (state == State.OFF) return false;
         timer++;
-        if (++total > 20 * 60) { abort(a, "took too long"); return false; }
+        // A minute with nothing landed, not a minute in all: a chain that lands a smash every second was cut off at 60 s.
+        if (++total - Math.min(total, Math.max(0, struckAt)) > 20 * 60) { abort(a, "took too long"); return false; }
         double dx = enemy.pos().x - a.x(), dz = enemy.pos().z - a.z(), flat = Math.sqrt(dx * dx + dz * dz);
         if (lastEnemy != null && targetId == enemy.id()) {
             double mx = enemy.pos().x - lastEnemy.x, mz = enemy.pos().z - lastEnemy.z;
