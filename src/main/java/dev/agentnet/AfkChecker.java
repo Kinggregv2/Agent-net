@@ -48,7 +48,8 @@ final class AfkChecker {
         IDLE.keySet().removeIf(n -> !AgentNetClient.AGENTS.containsKey(n));
         for (Agent a : AgentNetClient.AGENTS.values()) {
             String key = a.name.toLowerCase();
-            if (!a.isOnline()) { IDLE.remove(key); continue; }
+            // Dug in for the night: still on purpose, not idle (it showed as AFK and looked stuck).
+            if (!a.isOnline() || a.dugIn()) { IDLE.remove(key); continue; }
             int inv = signature(a);
             Seen s = IDLE.get(key);
             if (s == null || a.isDigging() || inv != s.inv() || sq(a.x() - s.x()) + sq(a.y() - s.y()) + sq(a.z() - s.z()) > 2.5 * 2.5) {

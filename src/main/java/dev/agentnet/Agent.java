@@ -464,12 +464,41 @@ public final class Agent implements AgentHandle {
     private Burrow burrow = Burrow.NONE;
     private int burrowX, burrowY, burrowZ, burrowTicks, burrowCheck, burrowDigs;
     private long burrowAgainAt, burrowMoveSaidAt, burrowWalkUntil;
+    private boolean burrowRejoinChecked;
 
     private static final java.util.Set<String> BURROW_BLOCKS = java.util.Set.of("minecraft:dirt", "minecraft:cobblestone", "minecraft:cobbled_deepslate",
             "minecraft:stone", "minecraft:netherrack", "minecraft:granite", "minecraft:diorite", "minecraft:andesite", "minecraft:tuff", "minecraft:coarse_dirt");
 
     private boolean tickBurrow() {
         if (burrow == Burrow.NONE) {
+            // Just joined, sealed in a one-block hole with a roof on it: its own night hole from before the game was closed
+            // (what it was doing is not kept over a restart). Back to waiting in it, or out of it if it is day. Taken for
+            // "stuck", it dug about in the dark or stood there for good (the user: "agents bury themselves a block below the
+            // ground and get stuck"; six were, after one evening of restarts).
+            if (!burrowRejoinChecked && onlineFor() > 4_000 && hasWorldHere()) {
+                burrowRejoinChecked = true;
+                var bw = openWorld();
+                Vec3 at = pos.position();
+                int bx = (int) Math.floor(at.x), by = (int) Math.floor(at.y + 0.01), bz = (int) Math.floor(at.z);
+                boolean walled = bw != null && String.valueOf(dimension()).endsWith("overworld");
+                if (walled) for (int[] d : new int[][]{{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) for (int dy = 0; dy <= 1; dy++) {
+                    BlockState s = bw.get(bx + d[0], by + dy, bz + d[1]);
+                    if (s == null || dev.agentnet.pathing.Rules.canWalkThrough(s)) walled = false;
+                }
+                int roofY = Integer.MIN_VALUE;
+                if (walled) for (int dy = 2; dy <= 3; dy++) {
+                    BlockState s = bw.get(bx, by + dy, bz);
+                    if (s != null && !dev.agentnet.pathing.Rules.canWalkThrough(s)) { roofY = by + dy; break; }
+                }
+                if (walled && roofY != Integer.MIN_VALUE && roofY - by <= 3) {
+                    burrowX = bx; burrowZ = bz; burrowY = roofY + 1; burrowTicks = 0;
+                    burrow = night() ? Burrow.WAIT : Burrow.OUT;
+                    if (navigator.busy()) navigator.stop();
+                    escapeGoal = null; escapeStep = null; escapeMoves.clear(); failedGoal = null; pendingGoal = null;
+                    log(night() ? "§7back in its night hole: waiting for morning" : "§7back in its night hole, and it is day: coming out");
+                    return true;
+                }
+            }
             if (System.currentTimeMillis() < burrowWalkUntil && navigator.busy()) return true; // on its way to a spot it can dig
             if (++burrowCheck % 10 != 0 || System.currentTimeMillis() < burrowAgainAt || !night()) return false;
             // A phantom about: under a roof, whoever it is. It flies and swoops faster than anything runs, and a fighter swinging
@@ -3105,6 +3134,7 @@ public final class Agent implements AgentHandle {
         RegistryAccess.Frozen registries = pickRegistries();
         gameRegistries = registries;
         onlineSince = System.currentTimeMillis();
+        burrowRejoinChecked = false;
         connection.setupInboundProtocol(
                 GameProtocols.CLIENTBOUND_TEMPLATE.bind(RegistryFriendlyByteBuf.decorator(registries)),
                 proxy(ClientGamePacketListener.class, new GameHandler()));

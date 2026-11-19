@@ -109,6 +109,40 @@ final class BuilderModule implements RoleModule {
     private long stuckWarnedAt;
     private BlockPos unloaded;
 
+    private final MinerModule ownMiner = new MinerModule();
+    private boolean selfMining;
+    private int selfTarget;
+
+    /**
+     * Waiting for cobblestone: it mines some itself meanwhile (the user, watching a builder stand on its marked-out site:
+     * "he doesn't have the cobblestone to make the floor but he can start mining it"). A load of up to 48, then back to
+     * building with it; the miners and distributors still bring the rest. True while it is at it.
+     */
+    private boolean selfMine(AgentHandle a) {
+        int have = 0;
+        for (ItemStack s : a.inventory()) { String id = Gear.id(s); if (id.equals("minecraft:cobblestone") || id.equals("minecraft:cobbled_deepslate")) have += s.getCount(); }
+        if (!selfMining) {
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("([0-9]+)x cobblestone").matcher(status);
+            if (!status.startsWith("waiting for materials") || !m.find()) return false;
+            int need = Integer.parseInt(m.group(1));
+            if (need <= 0) return false;
+            selfTarget = have + Math.min(need, 48);
+            selfMining = true;
+            ownMiner.onTask(a, "mine " + Math.min(need, 48) + " stone");
+            a.log("no cobblestone for the base yet: mining " + Math.min(need, 48) + " itself while it waits");
+        }
+        if (have >= selfTarget || ownMiner.idle() && ownMiner.status().startsWith("done") && timer > 100) {
+            ownMiner.onTask(a, "idle");
+            selfMining = false;
+            cursor = 0; passProgress = 0;
+            go(State.NEXT);
+            return true;
+        }
+        status = "mining its own cobblestone for the base (" + have + " of " + selfTarget + ")";
+        ownMiner.tick(a);
+        return true;
+    }
+
     @Override
     public boolean idle() { return state == State.IDLE || state == State.DONE; }
 
@@ -129,7 +163,7 @@ final class BuilderModule implements RoleModule {
                 if (t.contains("stone") || t.contains("logs") || t.contains("coal")) Links.mark(a.name(), h.name(), Links.Kind.WAITING, "waiting for its " + t.replace("mine ", ""));
             }
         }
-        if (leash(a)) return;
+        if (!selfMining && leash(a)) return;
         if (fetchAt != null) {
             // A load left for it a few blocks off (the deliverer couldn't get the last bit): go and get it.
             boolean there = fetchAt.distToCenterSqr(a.x(), a.y(), a.z()) <= 2.5 * 2.5;
@@ -157,6 +191,7 @@ final class BuilderModule implements RoleModule {
             case CHECK -> check(a);
             case DIG -> { if (!a.isDigging() && timer > 2) go(State.PLACE); }
             case WAIT_MATERIALS -> {
+                if (selfMine(a)) return;
                 if (timer == 2 && status.startsWith("waiting for materials")) waitOutside(a);
                 if (timer > 20 * 15) { cursor = 0; passProgress = 0; go(State.NEXT); }
             }
