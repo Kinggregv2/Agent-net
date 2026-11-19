@@ -1,7 +1,7 @@
 AGENTNET BUGS (kept up to date by Claude: open ones first, then what was fixed)
 ================================================================================
 A bug = any unintended behaviour, including deaths that could have been prevented.
-Last updated: 2026-11-19 21:00, from crew runs "run 1118d" and "run 1119a" to "run 1119g".
+Last updated: 2026-11-19 21:35, from crew runs "run 1118d" and "run 1119a" to "run 1119g".
 
 --- OPEN (found, not fixed yet) --------------------------------------------------
 
@@ -15,7 +15,8 @@ O3. "PUT BACK BY THE SERVER" LOOPS: the main cause was found 19:05 (391 put-back
     A boxed-in agent was told to start from "a standing spot next to it", and that could be a
     diagonal one behind a solid corner: it walked into the corner, was put back, planned the
     same again. Fixed in the planner 19:06. SEEN WORKING: 1 put-back in 6 minutes (was 391 in 28).
-    (F3 and F4 were lesser causes.) Keep an eye on it for a few more rounds before closing.
+    (F3 and F4 were lesser causes.) Run 1119e: 20 in 17 minutes; run 1119g: 77 in 24 minutes, so
+    it is much lower but not gone. The rest is not diagnosed.
 O7. THE DISTRIBUTOR OFTEN DELIVERS NOTHING ("0 collected, 0 delivered" with 7 to 12 jobs
     queued). Digging in is gone (O16). Seen 20:46 in run 1119e: a distributor with a pickaxe sat
     at -46 43 33 underground, "no way (closed in)" every ten seconds for minutes, though a step up
@@ -123,14 +124,18 @@ F18. (was O4 and O14) Miners retried targets they could not reach, each after a 
     to look elsewhere. Written, not yet seen working.
 F19. (was O5) A builder skipped block after block as "can't get within reach" (412 in ten
     minutes): it was the builder that was stuck. Since 20:50: after five in a row it goes back to
-    the base's drop-off and tries those five again. Written, not yet seen working.
+    the base's drop-off and tries those five again. Seen firing 7 times in run 1119g.
 F20. (was O6) Bots dug into the base. Since 20:52 there is one gate for every dig: a block of
     the building is never dug by anyone but the builder (and the last-resort way out of a hole
-    in it). Written, not yet seen working.
+    in it). Seen in run 1119g: it stopped 3 digs into the base.
 F21. A PICKAXE FOR EVERYONE (asked by the user 20:57: "every single role should get a pickaxe,
     even base guys"). Since 21:00 any agent of any role with no pickaxe makes one before it goes
     on with its job: stone with three cobblestone, else wood, chopping three logs first if it
-    has no wood. Overworld only. Written, not yet seen working.
+    has no wood. Overworld only. SEEN in run 1119g: 13 agents got their pickaxe this way; 6 found
+    no wood in three minutes and went on without. IT BROKE THE RUN, though: the helper miner that
+    chops the logs went "bored" and gave the agent a task of its own, which turned the main
+    speedrunner into a miner one minute in (a helper took over as main only at 15 minutes).
+    Fixed 21:33: helper miners inside another role never hand out tasks. Not yet seen working.
 
 ================================================================================
 OLDER REPORT, kept for reference
