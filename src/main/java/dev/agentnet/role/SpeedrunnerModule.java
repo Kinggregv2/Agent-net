@@ -3324,7 +3324,12 @@ public final class SpeedrunnerModule implements RoleModule {
             if (badSpots.contains(p)) continue;
             // Near its own level only: the lava lakes at the bottom of the world are everywhere under it, and it stood
             // on the surface for minutes "getting into place" for one 118 blocks down.
-            if (p.getY() < a.y() - 12 || p.getY() > a.y() + 12) continue;
+            // Underground pools count too (the user, in "to add" on GitHub, 2026-11-19): down to 70 blocks under it. It
+            // goes there by its own staircase (see descend). Near its own level still comes first: a deep one costs as much
+            // as fifty blocks more walking.
+            if (p.getY() < a.y() - 70 || p.getY() > a.y() + 12) continue;
+            boolean deep = p.getY() < a.y() - 12;
+            if (deep) d += 2500;
             for (int[] out : dirs) for (int sgn : new int[]{1, -1}) {
                 int ax = out[1] * sgn, az = out[0] * sgn; // along the edge: square to "out" (toward the shore)
                 boolean ok = true;
@@ -3332,7 +3337,15 @@ public final class SpeedrunnerModule implements RoleModule {
                 for (int k = 0; k <= 3 && ok; k++) {
                     int x = p.getX() + ax * k, z = p.getZ() + az * k, y = p.getY();
                     ok = lavaSource(w.get(x, y, z)) && lavaSource(w.get(x - out[0], y, z - out[1]));
-                    for (int up = 1; up <= 6 && ok; up++) ok = open(w.get(x, y + up, z)) && open(w.get(x - out[0], y + up, z - out[1]));
+                    // Open over the lava, or rock that can be dug away (a cave's roof over an underground pool): the frame
+                    // needs five blocks of height. Water or lava over it, bedrock, obsidian: not this one.
+                    for (int up = 1; up <= 6 && ok; up++) for (int in = 0; in <= 1 && ok; in++) {
+                        BlockPos over = new BlockPos(x - out[0] * in, y + up, z - out[1] * in);
+                        BlockState s = w.get(over.getX(), over.getY(), over.getZ());
+                        if (open(s)) continue;
+                        if (deep && solid(s) && s.getBlock() != Blocks.BEDROCK && s.getBlock() != Blocks.OBSIDIAN && !(s.getBlock() instanceof net.minecraft.world.level.block.FallingBlock)) need.add(over);
+                        else ok = false;
+                    }
                     // The shore: ground level with the lava. A natural pool sits a block below the land around it, so
                     // what stands on the shore (dirt, stone) is dug away first instead of the pool being passed over.
                     for (int back = 1; back <= 2 && ok; back++) {
@@ -3347,11 +3360,12 @@ public final class SpeedrunnerModule implements RoleModule {
                     }
                 }
                 if (!ok) continue;
+                if (need.size() > 70) continue; // too much rock to move
                 double score = d + need.size() * 16; // a shore that needs no digging is worth a few blocks more walking
                 if (score >= sd) continue;
                 need.sort((p1, p2) -> p2.getY() - p1.getY()); // from the top down
                 clear.clear(); clear.addAll(need); clearTicks = 0;
-                sd = score; site = p; alongX = ax; alongZ = az; inX = -out[0]; inZ = -out[1];
+                sd = score; site = p; alongX = ax; alongZ = az; inX = -out[0]; inZ = -out[1]; siteDeep = deep;
             }
         }
         if (site == null) {
@@ -3381,6 +3395,8 @@ public final class SpeedrunnerModule implements RoleModule {
         origin = site;
         plan();
         step = 0; stepTicks = 0; tries = 0;
+        poolDeep = siteDeep; stairOrigin = null; descendSaid = false;
+        if (poolDeep) a.log("§a[speedrun] a lava pool underground at " + origin.toShortString() + " (" + Math.round(a.y() - origin.getY()) + " blocks down): its own staircase down to it");
         a.log("[speedrun] building its portal in the pool edge at " + origin.toShortString() + " (" + steps.size() + " steps" + (clear.isEmpty() ? "" : ", " + clear.size() + " blocks to clear off the shore first") + ")");
         go(a, Stage.CAST);
     }
@@ -3664,10 +3680,39 @@ public final class SpeedrunnerModule implements RoleModule {
     private int lavaWait;
     private boolean mapped;
 
+    /** The pool it chose lies underground: it goes down to it first. */
+    private boolean poolDeep, siteDeep, descendSaid;
+
+    /**
+     * Down to an underground pool: to a spot above the shore (eight blocks back from the lava, so the stairs do not come
+     * out in it), then its own spiral staircase down to the pool's level. Lava or water it meets on the way is plugged
+     * (the staircase does that). True while it is on its way.
+     */
+    private boolean descend(AgentHandle a) {
+        if (!poolDeep || origin == null) return false;
+        if (a.y() <= origin.getY() + 3.5) { poolDeep = false; stairOrigin = null; a.log("§a[speedrun] down at the lava pool (y " + origin.getY() + ")"); return false; }
+        if (!(a.openWorld() instanceof BlockView w)) return true;
+        int tx = origin.getX() - inX * 8, tz = origin.getZ() - inZ * 8;
+        double hd = Math.hypot(a.x() - (tx + 0.5), a.z() - (tz + 0.5));
+        if (stairOrigin == null && hd > 4) {
+            status = "walking to above the underground lava pool (" + Math.round(hd) + " blocks)";
+            if (!a.isNavigating() && stepTicks % 40 == 1) a.navigate(tx, (int) Math.floor(a.y()), tz, 3);
+            // A long way and no getting nearer (water, a cliff): down from here, the tunnel does the rest.
+            if (stepTicks > 20 * 120 && hd < 24) stepTicks = 0; else if (stepTicks > 20 * 120) { fail(a, "could not get above the underground pool at " + origin.toShortString()); return true; }
+            if (hd > 4 && !(stepTicks > 20 * 90 && hd < 24)) return true;
+        }
+        if (a.isNavigating() && stairOrigin == null) a.stopNavigation();
+        status = "digging down to the lava pool (y " + origin.getY() + ", it is at " + (int) Math.floor(a.y()) + ")";
+        if (!descendSaid) { descendSaid = true; dryDone = true; }
+        if (!staircase(a, w, origin.getY() + 1) && a.y() > origin.getY() + 3.5 && stairOrigin == null) { fail(a, "could not dig down to the pool at " + origin.toShortString()); }
+        return true;
+    }
+
     private void cast(AgentHandle a) {
         BlockSource w = a.openWorld();
         if (w == null) return;
         stepTicks++;
+        if (descend(a)) return;
         if (!clear.isEmpty()) {
             BlockPos b = clear.get(0);
             BlockState cs = w.get(b.getX(), b.getY(), b.getZ());
