@@ -32,7 +32,29 @@ public final class PickaxeKit {
     public static boolean tick(AgentHandle a) {
         Kit k = KITS.computeIfAbsent(a.name().toLowerCase(), n -> new Kit());
         k.ticks++;
-        if (Gear.bestTool(a.inventory(), "pickaxe") >= 0) {
+        int best = Gear.bestTool(a.inventory(), "pickaxe");
+        if (best >= 0) {
+            // A wooden one wears out in a few dozen blocks, and then there is none and no way to get cobblestone for a better
+            // one (run 1119o: a helper's broke within a minute and it stood "no pickaxe" for good). So: three stone with
+            // the wooden one, straight away, and a stone pickaxe from them.
+            if (Gear.id(a.inventory().get(best)).equals("minecraft:wooden_pickaxe") && a.dimension() != null && a.dimension().endsWith("overworld") && !a.airborne()) {
+                if (k.crafter.busy()) { k.crafter.tick(a); return true; }
+                int cob = 0;
+                for (ItemStack s : a.inventory()) { String id = Gear.id(s); if (id.equals("minecraft:cobblestone") || id.equals("minecraft:cobbled_deepslate")) cob += s.getCount(); }
+                if (cob >= 3) {
+                    if (k.mining) { k.miner.onTask(a, "idle"); k.mining = false; }
+                    if (k.ticks - k.lastTry >= 60) { k.lastTry = k.ticks; if (k.crafter.queueTool(a, "minecraft:stone_pickaxe")) a.log("§7three cobblestone: a stone pickaxe before the wooden one wears out"); }
+                    return k.crafter.busy();
+                }
+                if (k.ticks >= k.pausedUntil) {
+                    if (k.mining && k.miner.idle() && k.miner.status().startsWith("done") && k.ticks - k.jobAt > 100) k.mining = false;
+                    if (!k.mining) { k.mining = true; k.jobAt = k.ticks; if (k.mineStart == 0 || k.ticks - k.mineStart > 20 * 600) k.mineStart = k.ticks; k.miner.onTask(a, "mine 3 stone"); }
+                    if (k.ticks - k.mineStart > 20 * 120) { k.miner.onTask(a, "idle"); k.mining = false; k.pausedUntil = k.ticks + 20 * 300; return false; }
+                    k.miner.tick(a);
+                    return true;
+                }
+                return false;
+            }
             if (k.mining) { k.miner.onTask(a, "idle"); k.mining = false; }
             if (k.said) { k.said = false; a.log("§ahas its pickaxe"); }
             if (k.crafter.busy()) { k.crafter.tick(a); return true; } // its table goes back into its pack
@@ -41,7 +63,7 @@ public final class PickaxeKit {
         if (a.dimension() == null || !a.dimension().endsWith("overworld") || a.airborne()) return false;
         if (k.crafter.busy()) { k.crafter.tick(a); return true; }
         if (k.ticks < k.pausedUntil) return false;
-        int wood = 0, cobble = 0;
+        int wood = 0, cobble = 0, sticks = 0;
         boolean table = false;
         for (ItemStack s : a.inventory()) {
             if (s.isEmpty()) continue;
@@ -50,9 +72,10 @@ public final class PickaxeKit {
             else if ((id.endsWith("_log") || id.endsWith("_stem")) && !id.contains("stripped")) wood += 4 * s.getCount();
             else if (id.equals("minecraft:cobblestone") || id.equals("minecraft:cobbled_deepslate")) cobble += s.getCount();
             else if (id.equals("minecraft:crafting_table")) table = true;
+            else if (id.equals("minecraft:stick")) sticks += s.getCount();
         }
         // A wooden pickaxe is 3 planks and 2 sticks (2 planks make 4); a table to make it on, 4 more.
-        int need = cobble >= 3 ? 2 : 5;
+        int need = (cobble >= 3 ? 0 : 3) + (sticks >= 2 ? 0 : 2);
         if (!table) need += 4;
         if (wood >= need) {
             if (k.mining) { k.miner.onTask(a, "idle"); k.mining = false; }
