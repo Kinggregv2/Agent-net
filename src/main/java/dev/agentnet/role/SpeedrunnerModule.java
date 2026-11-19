@@ -2802,6 +2802,9 @@ public final class SpeedrunnerModule implements RoleModule {
         if (goodAxe && goodPick) { if ("mine 8 stone".equals(minerJob)) mine(a, null); return false; }
         if (count(a, "minecraft:cobblestone") + count(a, "minecraft:cobbled_deepslate") >= 3) {
             if ("mine 8 stone".equals(minerJob)) mine(a, null);
+            // A crafting table to make it on (carried, near, or the wood for one): without, it queued the axe every 5 s for
+            // minutes, "making itself a stone axe", and stood still (run 1120c).
+            if (tableKit(a)) return true;
             String tool = goodAxe ? "minecraft:stone_pickaxe" : "minecraft:stone_axe";
             if (ticks - helperGearAt > 200) { helperGearAt = ticks; if (!crafter.queueTool(a, tool)) return false; a.log("[speedrun] making itself a " + tool.substring(10).replace('_', ' ') + " while " + MAIN + " gears up"); }
             status = "making a " + tool.substring(10).replace('_', ' ');
