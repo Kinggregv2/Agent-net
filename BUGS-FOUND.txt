@@ -1,7 +1,7 @@
 AGENTNET BUGS (kept up to date by Claude: open ones first, then what was fixed)
 ================================================================================
 A bug = any unintended behaviour, including deaths that could have been prevented.
-Last updated: 2026-11-19 21:50, from crew runs "run 1118d" and "run 1119a" to "run 1119h".
+Last updated: 2026-11-19 21:40, from crew runs "run 1118d" and "run 1119a" to "run 1119h".
 
 --- OPEN (found, not fixed yet) --------------------------------------------------
 

@@ -20,7 +20,7 @@ From chat on 2026-11-19 (not started):
 
 Make speedrunners looking for a lava pool be able to detect lava pools underground
 
-   Progress (Claude, 2026-11-19 21:50, built, NOT TESTED yet, so the line above stays): the pool
+   Progress (Claude, 2026-11-19 21:40, built, NOT TESTED yet, so the line above stays): the pool
    search now also takes lava pools up to 70 blocks under the runner. Rock over the lava (a
    cave's roof) is dug away for the frame, and the runner walks to a spot above the shore and digs
    its own spiral staircase down. A pool near the surface is still preferred when there is one.
