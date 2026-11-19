@@ -1,1 +1,13 @@
+TO ADD (features asked for and not built yet; Claude removes an entry once it is built and tested)
+Write new requests anywhere in this file, one per paragraph.
 
+From chat on 2026-11-19 (not started):
+
+1. Hitlist sighting. Any agent, even a farmer in the middle of nowhere, that sees a player on
+   the hitlist reports it. The fighters go after that player, by elytra if they have one. The
+   agent that saw them gets a "following" job: it keeps the target inside its render distance
+   and keeps reporting the updated position.
+
+2. Explorers spawn by default, as lava-pool scouts. Their main goal is a lava pool where a
+   nether portal can be made, so the speedrunners do not have to look for one. After finding
+   it they mark the location, jump into the lava pool and never join again.

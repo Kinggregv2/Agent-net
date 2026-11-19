@@ -1,3 +1,78 @@
+AGENTNET BUGS (kept up to date by Claude: open ones first, then what was fixed)
+================================================================================
+A bug = any unintended behaviour, including deaths that could have been prevented.
+Last updated: 2026-11-19 18:10, from crew runs "run 1118d", "run 1119a" and "run 1119b".
+
+--- OPEN (found, not fixed yet) --------------------------------------------------
+
+O1. THE MAIN SPEEDRUNNER STILL DIES AND LOSES ITS KIT. Every death costs a full regear
+    (10 to 30 minutes). Causes seen on 2026-11-19: night mobs in the overworld (skeleton,
+    spider, creeper, zombie pack), a piglin + hoglin 26 s after entering the Nether (fix
+    for that one written 18:05, not yet seen working), a magma cube on its own lava
+    bridge (fix written, not yet seen working), a fall in the Nether onto a block that was
+    not there on the server (run 1118d, cause unknown).
+O2. IT ENTERED THE NETHER WITHOUT A SHIELD ("shield false" in its nether status) in run
+    1119b at 70 min. The kit check before the portal only looks for a pickaxe and a weapon.
+O3. SHORT "PUT BACK BY THE SERVER" LOOPS still happen (1 to 3 per agent in 6 minutes; were
+    250 at one spot). Two causes were fixed (see F3, F4); what is left is not diagnosed.
+O4. MINERS TRY ORE THEY CANNOT REACH for minutes ("skipping iron_ore: every way there is
+    blocked", 75 times in 10 minutes for one agent) before moving on.
+O5. BUILDER "can't get within reach" of its own block 42 times in 10 minutes.
+O6. BOTS SOMETIMES MINE THE BASE (a hunter dug a hole through its own house). Low priority
+    (the user: just write it down).
+O7. THE DISTRIBUTOR OFTEN DELIVERS NOTHING ("0 collected, 0 delivered" with 7 to 12 jobs
+    queued), partly because it digs in for the night like everyone else.
+O8. NO TREES NEAR SOME SPAWNS (snowy mountains): the whole crew is short of wood and the
+    "looking further out" hops find none for a long time.
+O9. ELYTRA MACE: the fighter read its own Strength as 0 while it had Strength II (so it
+    dives a block or two higher than needed). The dive height from the target's armor,
+    health and our Strength is written but not tested in-game.
+O10. Helpers sit "making itself an iron chestplate" for minutes without moving (AFK line).
+O11. Old ones from 2026-11-16 that nobody has re-checked: keeper hiring loop (old 2), idle
+    farmers / no fishing rod (old 3, 4), healing potions unused (old 5), kill order far
+    away does nothing (old 7), "kill" task stays after a role change (old 8).
+
+--- FIXED ON 2026-11-19 (seen working in a run unless it says otherwise) ----------
+
+F1. Helpers never mined: two routines shared one flag and started/stopped the miner every
+    tick (8 400 times in 6 minutes). Now they mine and hand iron to the main.
+F2. Agent with no pickaxe sealed in a one-block shaft refused to dig at all. Now digs out
+    level or upward by hand.
+F3. Digs refused by the server as "too fast" (the server ran slower than the agents'
+    clocks), so agents walked into blocks that were still there. Dig time now stretches
+    with every refusal. 100 refusals in 6 minutes -> 1 or 2.
+F4. Walker clipped a block beside the path after being pushed off-centre. It now lines up
+    on the centre line first.
+F5. Agents dug in for the night forgot it across a restart and sat sealed in their holes.
+    They now go back to waiting (or climb out by day); dug-in agents no longer show as AFK.
+F6. Shield took 4 minutes every regear: 3 planks + 3 logs, and the craft does not saw logs.
+    Now 1 second.
+F7. Bucket stage waited on a crafting table it could not reach / had left behind. Now it
+    chops logs and makes one.
+F8. "Up to the surface" climb restarted every 10 s and never finished. Now a climb under
+    way is left alone, and after 6 that gain nothing it searches from where it is.
+F9. Back from a death it walked through its finished portal with empty hands. Now it gears
+    up first.
+F10. Tank helper stood in the Nether portal "holding the blazes" with no blaze and no
+    fortress. Now it travels with the group until there is one.
+F11. Miner stood on a beach trying 65 stone blocks under water. Now it leaves an area after
+    six unreachable targets in a row.
+F12. Armed speedrunner always fought at night, even four mobs at once. Now it digs in when
+    two or more come, or a creeper.
+F13. Rescuer restarted its mining job every 5 s; then the role was removed altogether (the
+    user's call): the civ hires none and turns a saved one into a miner.
+F14. Chains of elytra-mace smashes were cut off after 60 s while still landing hits; the
+    target's helmet was never counted as armor.
+F15. A facing-only packet while gliding reset the server's fall count (mace dives that
+    counted 4 blocks instead of 9+).
+F16. Old 1 (distributor crash on dimension()), fixed 2026-11-16.
+    Written, not yet seen working: logs sawn into planks before fuelling a furnace; hitting
+    a mob on its lava bridge instead of walking into it; keeping away from hoglins/piglins.
+
+================================================================================
+OLDER REPORT, kept for reference
+================================================================================
+
 AGENTNET BUG TEST RESULTS (2026-11-16, nothing fixed, only observed)
 =====================================================================
 Test run: potions, Wind Burst elytra mace, cart PvP, then 9 minutes of autopilot
