@@ -2227,6 +2227,8 @@ public final class Agent implements AgentHandle {
 
     @Override public boolean goUp() { surfaceTriedAt = 0; return toSurface(null, System.currentTimeMillis()); }
     @Override public boolean escaping() { return escapeGoal != null; }
+    /** In its hole for the night (on purpose: not stuck). */
+    public boolean dugIn() { return burrow != Burrow.NONE; }
     @Override public void cancelEscape() { escapeGoal = null; escapeStep = null; escapeMoves.clear(); }
 
     private boolean toSurface(PathFinder.Node goal, long now) {

@@ -122,6 +122,9 @@ public final class Civ {
 
     private record Need(Role role, String task, String why) {}
 
+    /** Agents stuck on the job right now (not counted for their role), and those it has said so about. */
+    private static final java.util.Set<String> stalled = new java.util.HashSet<>(), stalledSaid = new java.util.HashSet<>();
+
     /** A job for the speedrunner (top priority until the dragon is dead). */
     private static boolean runnerNeed(Need n) { return n.why().startsWith("the speedrunner needs ") && n.why().contains("iron"); }
 
@@ -143,6 +146,25 @@ public final class Civ {
         CivLearning.judge(crew); // how did the jobs handed out 5 minutes ago go?
         Map<Role, Integer> roles = new EnumMap<>(Role.class);
         for (Agent a : crew) if (a.role() != null) roles.merge(a.role(), 1, Integer::sum);
+        // Stuck on the job: not counted for its role, so the rules below bring in another (the user, 2026-11-19, watching one
+        // distributor serve the whole crew while the other stood stuck: "detect when there is not enough of a specific
+        // role"). Stuck = it has not moved, dug or had its pack change for two minutes, it is not dug in for the night, and
+        // it is not waiting on purpose. Only the roles that supply the crew: more runners or guards are not the answer to
+        // a stuck one.
+        stalled.clear();
+        for (Agent a : crew) {
+            Role r = a.role();
+            if (r != Role.DISTRIBUTOR && r != Role.MINER && r != Role.HUNTER && r != Role.FARMER && r != Role.FISHER) continue;
+            if (!AfkChecker.afk(a.name) || a.dugIn() || a.onlineFor() < 150_000) continue;
+            String st = String.valueOf(a.moduleStatus());
+            if (st.contains("waiting")) continue;
+            if (r == Role.DISTRIBUTOR && st.contains(" 0 pickup(s), 0 deliver(ies)")) continue; // nothing asked of it
+            stalled.add(a.name);
+            roles.merge(r, -1, Integer::sum);
+            if (stalledSaid.add(a.name)) AgentNet.LOG.info("[Civ] {}", a.name + " (" + r.id() + ") has been stuck for " + AfkChecker.idleMs(a.name) / 60_000 + " min (" + st + "): not counted as a " + r.id() + " until it moves again");
+        }
+        stalledSaid.retainAll(stalled);
+        roles.values().removeIf(v -> v <= 0);
         // Hired but still connecting (up to 2 minutes): their jobs are taken. Counting only the agents already in the game
         // hired a second speedrunner while the first was joining, and one of them was later moved to another job.
         long nowJ = System.currentTimeMillis();
@@ -255,6 +277,15 @@ public final class Civ {
         int feeders = roles.getOrDefault(Role.FARMER, 0) + roles.getOrDefault(Role.HUNTER, 0) + roles.getOrDefault(Role.FISHER, 0);
         if (hungry >= 2 && feeders == 0) needs.add(new Need(Role.HUNTER, "hunt", HUNGRY + hungry + " agents with no food and nobody making any"));
         if (roles.getOrDefault(Role.DISTRIBUTOR, 0) > 0 && roles.getOrDefault(Role.DISTRIBUTOR, 0) < wantDistributors) needs.add(new Need(Role.DISTRIBUTOR, null, crew.size() + " agents to supply: " + wantDistributors + " distributors wanted"));
+        // One more when those at work cannot keep up: more than six pick-ups and deliveries waiting on each of them.
+        int carriers = roles.getOrDefault(Role.DISTRIBUTOR, 0), backlog = 0;
+        for (Agent a : crew) {
+            if (a.role() != Role.DISTRIBUTOR || stalled.contains(a.name)) continue;
+            java.util.regex.Matcher mt = java.util.regex.Pattern.compile("([0-9]+) pickup[(]s[)], ([0-9]+) deliver").matcher(String.valueOf(a.moduleStatus()));
+            if (mt.find()) backlog += Integer.parseInt(mt.group(1)) + Integer.parseInt(mt.group(2));
+        }
+        if (carriers > 0 && backlog > 6 * carriers && needs.stream().noneMatch(n -> n.role() == Role.DISTRIBUTOR))
+            needs.add(new Need(Role.DISTRIBUTOR, null, backlog + " pick-ups and deliveries waiting on " + carriers + " distributor(s): too much for them"));
         // Gear: guards without iron armor want iron (24 each: a set and a sword), then diamonds (27 each).
         int noIron = 0, noDiamond = 0;
         for (Agent a : crew) {
