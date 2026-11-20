@@ -4039,7 +4039,10 @@ public final class SpeedrunnerModule implements RoleModule {
                 // its staircase for 6 minutes until it gave the pool up (run 1120p; run 1120d too).
                 if (shoreTunnelOn || clearTicks > 60 && !a.isNavigating()) {
                     if (!shoreTunnelOn) { shoreTunnelOn = true; shoreTunnel.reset(); if (a.isNavigating()) a.stopNavigation(); a.log("[speedrun] tunnelling to the pool's shore at " + b.toShortString()); }
+                    if (a.escaping()) a.cancelEscape(); // its own tunnel, not a dig-out the stuck watch started (run 1120zi: 7 minutes for 16 blocks)
+                    int before = shoreTunnel.steps();
                     Tunnel.Result r = shoreTunnel.tick(a, b);
+                    if (shoreTunnel.steps() > before) clearTicks = Math.max(0, clearTicks - 20 * 20); // a step made: the clearing clock waits (it ran out on the way, run 1120zi)
                     if (r == Tunnel.Result.BLOCKED) { shoreTunnelOn = false; clearTicks = Math.max(clearTicks, 61); a.log("§e[speedrun] the tunnel to the shore is blocked (" + shoreTunnel.problem() + "): walking again"); }
                     return;
                 }
