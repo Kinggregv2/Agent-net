@@ -164,7 +164,7 @@ final class MasterScreen extends Screen {
             boolean hover = mouseX >= x0 && mouseX <= x1 && mouseY >= ry && mouseY < ry + ROW_H;
             if (a.name.equals(selected)) g.fill(x0, ry, x1, ry + ROW_H - 1, ACCENT_DIM);
             else if (hover) g.fill(x0, ry, x1, ry + ROW_H - 1, 0x20FFFFFF);
-            int roleColor = a.role() == null ? 0xFF555E70 : 0xFF000000 | a.role().color;
+            int roleColor = a.role() == null ? 0xFF555E70 : 0xFF000000 | Math.max(0, AgentNetClient.roleColor(a.name));
             g.fill(x0, ry, x0 + 3, ry + ROW_H - 1, roleColor);
             g.fill(x0 + 7, ry + 5, x0 + 11, ry + 9, a.isOnline() ? GOOD : 0xFF555E70);
             String role = a.role() == null ? "-" : AgentNetClient.roleName(a);

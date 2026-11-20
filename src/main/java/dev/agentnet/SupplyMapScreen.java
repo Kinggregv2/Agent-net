@@ -73,7 +73,14 @@ final class SupplyMapScreen extends Screen {
             if (over) hover = nd;
             if (AfkChecker.afk(nd.agent().name)) g.fill(x - DOT / 2 - 2, y - DOT / 2 - 2, x + DOT / 2 + 2, y + DOT / 2 + 2, AFK);
             if (over) g.fill(x - DOT / 2 - 1, y - DOT / 2 - 1, x + DOT / 2 + 1, y + DOT / 2 + 1, 0xFFFFFFFF);
-            int c = nd.agent().role() == null ? 0xFF8A93A6 : 0xFF000000 | nd.agent().role().color;
+            // The same colours as the names: the main speedrunner deep purple with a crown and a white rim, its helpers light
+            // purple (all four were one purple here: the user could not tell the main apart).
+            int rc = AgentNetClient.roleColor(nd.agent().name);
+            int c = rc < 0 ? 0xFF8A93A6 : 0xFF000000 | rc;
+            if (AgentNetClient.isMainRunner(nd.agent().name)) {
+                g.fill(x - DOT / 2 - 2, y - DOT / 2 - 2, x + DOT / 2 + 2, y + DOT / 2 + 2, 0xFFFFFFFF);
+                g.centeredText(font, "265B", x, y - DOT / 2 - 11, 0xFFFFFFFF);
+            }
             g.fill(x - DOT / 2, y - DOT / 2, x + DOT / 2, y + DOT / 2, c);
         }
         if (hover != null) tooltip(g, hover, links, mouseX, mouseY);
