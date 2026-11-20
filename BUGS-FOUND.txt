@@ -464,6 +464,13 @@ O83. THE MAIN TRIED THE SAME UNREACHABLE IRON ORE EVERY 30 S (run 1120zk, 11:44-
     Built, run 1120zl (run 1120zk stopped: its main was stuck there for 10 minutes, 58 min in, all
     its kit but the pickaxe, the shield and the food done).
 
+O84. THE STUCK WATCH TOOK THE MAIN OUT OF ITS SHORE TUNNEL AND OUT OF THE GAME (run 1120zl, 12:08-
+    12:11: down at a pool 16 blocks under at 9.9 min, "tunnelling to the pool's shore", then
+    "stuck for 20/40/60 s ... straight up to the surface ... leaving and coming straight back", and
+    the pool was lost): O77's "digging in place is not stuck" was not enough, the tunnel's steps
+    walk too. Fixed 12:15: the staircase and the shore tunnel switch the general stuck watch off
+    while they run (they have their own stuck checks). Built, not deployed (run 1120zl left running).
+
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
     Fixed 03:35: stopped only once it has its shield. Built, run 1120n.
