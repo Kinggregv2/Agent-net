@@ -245,7 +245,8 @@ final class MinerModule extends GathererModule {
         }
         amount = n;
         mined = 0;
-        skipped.clear();
+        // (Not cleared on a new job: the speedrunner restarts its job often, and the same unreachable iron ore was picked again
+        // every 30 s for 10 minutes, run 1120zk. Skips run out by themselves after five minutes.)
         stepFails = 0;
         a.log("mining " + (amount > 0 ? amount + "x " : "") + targetName
                 + (blocks.size() > 1 ? " (deepslate too)" : ""));
