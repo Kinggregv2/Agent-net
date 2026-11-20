@@ -748,11 +748,19 @@ final class MakerModule implements RoleModule {
         }
         java.util.function.Predicate<String> cobble = id -> id.equals("minecraft:cobblestone") || id.equals("minecraft:cobbled_deepslate") || id.equals("minecraft:blackstone");
         java.util.function.Predicate<String> iron = id -> id.equals("minecraft:iron_ingot");
+        java.util.function.Predicate<String> gold = id -> id.equals("minecraft:gold_ingot");
         return switch (item) {
             case "minecraft:furnace" -> Map.of(1, cobble, 2, cobble, 3, cobble, 4, cobble, 6, cobble, 7, cobble, 8, cobble, 9, cobble);
             case "minecraft:chest" -> Map.of(1, planks, 2, planks, 3, planks, 4, planks, 6, planks, 7, planks, 8, planks, 9, planks);
             case "minecraft:shield" -> Map.of(1, planks, 2, iron, 3, planks, 4, planks, 5, planks, 6, planks, 8, planks);
             case "minecraft:bucket" -> Map.of(4, iron, 6, iron, 8, iron);
+            // Armor by hand (the recipe book only has it once the advancement fires: a helper with 7 iron ingots stood
+            // "making its iron leggings" for 5 minutes, run 1120e). Grid slots 1-9, rows top to bottom.
+            case "minecraft:iron_helmet" -> Map.of(1, iron, 2, iron, 3, iron, 4, iron, 6, iron);
+            case "minecraft:iron_chestplate" -> Map.of(1, iron, 3, iron, 4, iron, 5, iron, 6, iron, 7, iron, 8, iron, 9, iron);
+            case "minecraft:iron_leggings" -> Map.of(1, iron, 2, iron, 3, iron, 4, iron, 6, iron, 7, iron, 9, iron);
+            case "minecraft:iron_boots" -> Map.of(4, iron, 6, iron, 7, iron, 9, iron);
+            case "minecraft:golden_helmet" -> Map.of(1, gold, 2, gold, 3, gold, 4, gold, 6, gold);
             default -> null;
         };
     }

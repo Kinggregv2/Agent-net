@@ -4050,7 +4050,7 @@ public final class SpeedrunnerModule implements RoleModule {
             if (kitMining) { mine(a, null); kitMining = false; }
             if (tableKit(a)) return true; // a table to make it on first
             status = "making its " + name + " (the nether kit)";
-            if (ticks - kitAt > 200) { kitAt = ticks; crafter.queueTool(a, item); }
+            if (ticks - kitAt > 200) { kitAt = ticks; if (!crafter.queueTool(a, item)) crafter.queue(a, item); } // not in its recipe book: by hand on a table
             return true;
         }
         if (ingots + rawN >= cost) {
