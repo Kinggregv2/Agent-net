@@ -1,7 +1,7 @@
 AGENTNET BUGS (kept up to date by Claude: open ones first, then what was fixed)
 ================================================================================
 A bug = any unintended behaviour, including deaths that could have been prevented.
-Last updated: 2026-11-20 01:37, from crew runs "run 1118d" to "run 1120e".
+Last updated: 2026-11-20 01:46, from crew runs "run 1118d" to "run 1120f".
 
 --- OPEN (found, not fixed yet) --------------------------------------------------
 
@@ -17,6 +17,10 @@ O3. "PUT BACK BY THE SERVER" LOOPS: the main cause was found 19:05 (391 put-back
     same again. Fixed in the planner 19:06. SEEN WORKING: 1 put-back in 6 minutes (was 391 in 28).
     (F3 and F4 were lesser causes.) Run 1119e: 20 in 17 minutes; run 1119g: 77 in 24 minutes, so
     it is much lower but not gone. The rest is not diagnosed.
+    01:45: one more cause (run 1120f, 44 put-backs for one agent): the same "spot next to it" fallback
+    took a spot a block LOWER beside it through a one-high gap; the walker goes across at its own
+    height first and hit its head. Now such a step down needs room for its whole body at its own
+    height. Built and on GitHub; in the game from the next new world.
 O7. THE DISTRIBUTOR OFTEN DELIVERS NOTHING ("0 collected, 0 delivered" with 7 to 12 jobs
     queued). Digging in is gone (O16). Seen 20:46 in run 1119e: a distributor with a pickaxe sat
     at -46 43 33 underground, "no way (closed in)" every ten seconds for minutes, though a step up
