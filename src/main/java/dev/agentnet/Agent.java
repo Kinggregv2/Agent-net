@@ -1728,7 +1728,6 @@ public final class Agent implements AgentHandle {
     }
 
     private long inBlockSaidAt;
-    private final java.util.Map<BlockPos, Integer> reflexTries = new java.util.HashMap<>();
     private final java.util.Map<BlockPos, Long> reflexSkip = new java.util.HashMap<>();
     private long reachSaidAt;
 
@@ -1757,9 +1756,9 @@ public final class Agent implements AgentHandle {
             long nowR = System.currentTimeMillis();
             Long skip = reflexSkip.get(at);
             if (skip != null && nowR < skip) continue;
-            int tries = reflexTries.merge(at, 1, Integer::sum);
-            if (tries > 4) { reflexTries.remove(at); reflexSkip.put(at, nowR + 60_000); AgentNet.LOG.info("[{}] {} in its {} space four times and the server keeps it: leaving it a minute; the server: {}", name, s.getBlock().getDescriptionId().replace("block.minecraft.", ""), y == ys[0] ? "head" : "feet", serverDig(at)); continue; }
-            refusedUntil.remove(at); refusedAt.remove(at); // its life, not a block to leave for two minutes
+            int tries = refusedAt.getOrDefault(at, 0); // refusals only: sand falling in again is not one (ackedUpTo)
+            if (tries >= 4) { refusedAt.remove(at); reflexSkip.put(at, nowR + 60_000); AgentNet.LOG.info("[{}] {} in its {} space four times and the server keeps it: leaving it a minute; the server: {}", name, s.getBlock().getDescriptionId().replace("block.minecraft.", ""), y == ys[0] ? "head" : "feet", serverDig(at)); continue; }
+            refusedUntil.remove(at); // its life, not a block to leave for two minutes (the refusals still counted, above)
             baseBreakUntil = Math.max(baseBreakUntil, System.currentTimeMillis() + 2_000);
             dev.agentnet.role.Gear.holdBestFor(this, s);
             if (dig(x, y, z) < 0) return false;
