@@ -1,7 +1,7 @@
 AGENTNET BUGS (kept up to date by Claude: open ones first, then what was fixed)
 ================================================================================
 A bug = any unintended behaviour, including deaths that could have been prevented.
-Last updated: 2026-11-20 01:16, from crew runs "run 1118d" to "run 1120e".
+Last updated: 2026-11-20 01:37, from crew runs "run 1118d" to "run 1120e".
 
 --- OPEN (found, not fixed yet) --------------------------------------------------
 
@@ -210,6 +210,10 @@ F24. THE NETHER KIT (the user, 21:56: "make it a requirement to be in full iron 
     an iron pickaxe first). Helpers start on it as soon as they have their shield. This will make
     (run 1119j, 40 min: nobody reached the Nether yet; the main died twice before it got that far.)
     the Nether come later in a run. Not yet seen working.
+    SEEN WORKING in run 1120e: portal lit at 18.6 min; the main and a helper made and put on iron
+    chestplates and leggings. Bug found: iron leggings (and other armor) cannot be made while the
+    recipe is not in the agent's recipe book; a helper with 7 ingots stood 5 minutes "making". Fixed
+    01:35: iron and golden armor can now be made by hand on a crafting table. Not yet seen working.
 F25. A BRANCH FOR EVERY CHANGE (the user, 21:57). Every build now also pushes a branch
     "build-<date>-<time>" with the code as it was; changes to these notes alone get a branch
     "notes-<date>-<time>". "main" still has the latest.
