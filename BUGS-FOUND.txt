@@ -497,6 +497,10 @@ O88. THE MAIN LEFT THE GAME AGAIN AND AGAIN, HURT (run 1120zl, 13:23-13:29: back
     off, it stays and eats instead. Built, not deployed. In run 1120zl it was healed by hand
     (instant health and regeneration at its rejoin) so the run goes on.
 
+O89. THE KIT'S 32 FOOD COULD NEVER STAY AT 32 (found 13:35): it eats from it to heal, and at 31 the
+    kit counted as unfinished again, so it went back to "getting food" over and over. Fixed 13:35:
+    once a kit has been complete, 16 food is enough. Built, not deployed.
+
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
     Fixed 03:35: stopped only once it has its shield. Built, run 1120n.
