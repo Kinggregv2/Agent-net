@@ -1700,12 +1700,32 @@ public final class Agent implements AgentHandle {
             // The same block refused again and again is not about time: three times, and it is left alone for two minutes
             // (run 1119j: one stone block refused 76 times, a gravel block 70, a crafting table 34; 502 in 40 minutes).
             int n = refusedAt.merge(e.pos, 1, Integer::sum);
-            if (n == 3) { refusedUntil.put(e.pos, System.currentTimeMillis() + 120_000); Vec3 eye = pos.position().add(0, 1.62, 0); AgentNet.LOG.info("[{}] the server refused {} at {} three times ({} blocks from its eyes): leaving it for two minutes", name, e.was.getBlock().getDescriptionId().replace("block.minecraft.", ""), e.pos.toShortString(), String.format("%.1f", Math.sqrt(e.pos.distToCenterSqr(eye.x, eye.y, eye.z)))); }
+            if (n == 3) { refusedUntil.put(e.pos, System.currentTimeMillis() + 120_000); Vec3 eye = pos.position().add(0, 1.62, 0); AgentNet.LOG.info("[{}] the server refused {} at {} three times ({} blocks from its eyes): leaving it for two minutes; the server: {}", name, e.was.getBlock().getDescriptionId().replace("block.minecraft.", ""), e.pos.toShortString(), String.format("%.1f", Math.sqrt(e.pos.distToCenterSqr(eye.x, eye.y, eye.z))), serverDig(e.pos)); }
             if (System.currentTimeMillis() - digSlowSaidAt > 30_000) { digSlowSaidAt = System.currentTimeMillis(); AgentNet.LOG.info("[{}] the server refused its dig as too fast: its digs now take {} times as long", name, String.format("%.2f", digSlow)); }
             AgentNet.LOG.info("[{}] the server kept the {} at {}: back in its picture of the blocks", name, e.was.getBlock().getDescriptionId().replace("block.minecraft.", ""), e.pos.toShortString());
         }
     }
 
+
+    /**
+     * On your own world: why the server may have refused a dig here (its block, its idea of where the agent is, on the
+     * ground, under water, mining fatigue, its dig speed for that block, spawn protection). For the logs.
+     */
+    private String serverDig(BlockPos at) {
+        try {
+            var srv = net.minecraft.client.Minecraft.getInstance().getSingleplayerServer();
+            if (srv == null) return "(not your own world)";
+            var p = srv.getPlayerList().getPlayerByName(name);
+            if (p == null) return "(no such player)";
+            var lvl = p.level();
+            BlockState s = lvl.getBlockState(at);
+            return String.format("block %s, at %.2f %.2f %.2f (ours %.2f %.2f %.2f), on ground %s, eyes under water %s, fatigue %s, speed %.2f (hardness %.2f), held %s, spawn-protected %s",
+                    s.getBlock().getDescriptionId().replace("block.minecraft.", ""), p.getX(), p.getY(), p.getZ(), pos.position().x, pos.position().y, pos.position().z,
+                    p.onGround(), p.isEyeInFluid(net.minecraft.tags.FluidTags.WATER), p.hasEffect(net.minecraft.world.effect.MobEffects.MINING_FATIGUE),
+                    p.getDestroySpeed(s), s.getDestroySpeed(lvl, at), dev.agentnet.role.Gear.id(p.getMainHandItem()),
+                    srv.isUnderSpawnProtection((net.minecraft.server.level.ServerLevel) lvl, at, p));
+        } catch (RuntimeException e) { return "(" + e + ")"; }
+    }
     private boolean groundUnder() {
         var w = openWorld();
         if (w == null) return true;
