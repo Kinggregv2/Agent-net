@@ -432,6 +432,15 @@ final class DistributorModule implements RoleModule {
             Message m = deliveries.peekFirst();
             AgentHandle to = GathererModule.find(m.from());
             if (to == null || !to.isOnline()) { deliveries.pollFirst(); continue; }
+            // One it could not reach a few minutes ago, still about where it was: the rest of its orders too (it asks again
+            // once it is somewhere reachable). Each one tried for 2 minutes in turn kept a distributor tunnelling toward the
+            // main's underground pool for 20 minutes with ten food orders (run 1120g: melon16).
+            Unreached u = unreached.get(m.from());
+            if (u != null && System.currentTimeMillis() - u.at() < 4 * 60_000 && Math.abs(to.x() - u.x()) + Math.abs(to.z() - u.z()) < 24) {
+                deliveries.pollFirst();
+                warn(a, "§edropped " + m.from() + "'s orders: it couldn't be reached where it is now");
+                continue;
+            }
             String item = m.get("item");
             if (item != null && item.startsWith("pickaxe:")) {
                 if (pickaxeFromStock(a, m)) return;
@@ -832,7 +841,11 @@ final class DistributorModule implements RoleModule {
 
     private void goDeliver(AgentHandle a) {
         AgentHandle to = GathererModule.find(job.from());
-        if (to == null || !to.isOnline() || timer > 20 * 120) { fail(a, "couldn't reach " + job.from()); return; }
+        if (to == null || !to.isOnline() || timer > 20 * 120) {
+            if (to != null) unreached.put(job.from(), new Unreached(System.currentTimeMillis(), to.x(), to.z()));
+            fail(a, "couldn't reach " + job.from());
+            return;
+        }
         double d = Math.sqrt(AgentBus.distSq(a, to));
         if (d <= THROW_DIST) {
             if (a.isNavigating()) a.stopNavigation();
@@ -1438,6 +1451,10 @@ final class DistributorModule implements RoleModule {
         state = next;
         timer = 0;
     }
+
+    private record Unreached(long at, double x, double z) {}
+    /** Who it last failed to reach in time, when, and where that one was then. */
+    private final Map<String, Unreached> unreached = new java.util.HashMap<>();
 
     private void fail(AgentHandle a, String why) {
         a.log(why);
