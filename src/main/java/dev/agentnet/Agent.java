@@ -1101,7 +1101,13 @@ public final class Agent implements AgentHandle {
                 // Came back after a reconnect: pick the job up where it was (mine X, explore...).
                 if (replayTask) { replayTask = false; if (!task.equals("idle")) module.onTask(this, task); }
             }
-            if (dev.agentnet.role.PickaxeKit.tick(this)) return; // a pickaxe first, whatever the job
+            if (role == Role.SPEEDRUNNER) dev.agentnet.role.SpeedrunnerModule.noteStart(name);
+            // A pickaxe first, whatever the job; not the main speedrunner (or a speedrunner while there is no main yet): it
+            // makes its own in its first stage, and the kit kept every speedrunner's own code from running for 2 minutes, so
+            // there was no main at all and the first to join was not it (run 1120zb).
+            String mr = dev.agentnet.role.SpeedrunnerModule.mainRunner();
+            boolean runnerFirst = role == Role.SPEEDRUNNER && (mr == null || mr.equalsIgnoreCase(name));
+            if (!runnerFirst && dev.agentnet.role.PickaxeKit.tick(this)) return;
             module.tick(this);
             dev.agentnet.role.SpeedrunnerModule.crewLavaLook(this); // every agent is a lava-pool scout for the main (cheap: once in ten seconds)
         } catch (RuntimeException e) {

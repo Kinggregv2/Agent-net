@@ -2896,6 +2896,9 @@ public final class SpeedrunnerModule implements RoleModule {
     /** The main speedrunner (null before there is one): its name is drawn in the role's purple, the helpers' lighter. */
     public static String mainRunner() { return MAIN; }
 
+    /** A speedrunner is online: when it first was, for the first-is-main rule (before anything else it does). */
+    public static void noteStart(String name) { FIRST_SEEN.putIfAbsent(name, System.currentTimeMillis()); }
+
     /** The main has its portal frame up (or is past it): from then on the falloffs are worth hiring. */
     public static boolean mainAtPortal() { return MAIN != null && mainStage.ordinal() >= Stage.LIGHT.ordinal(); }
 
