@@ -1833,6 +1833,8 @@ public final class Agent implements AgentHandle {
     private void tickCircling() {
         if (++circleTicks % 200 != 0 || closed || role == null || !hasWorldHere()) return;
         if (burrow != Burrow.NONE || airVel != null || myVehicle >= 0) return;
+        // Jobs that go back to the same place on purpose (the base, storage, a field, a fishing spot): not circling.
+        if (java.util.EnumSet.of(Role.DISTRIBUTOR, Role.KEEPER, Role.BUILDER, Role.FARMER, Role.FISHER, Role.WARRIOR, Role.PICKUP, Role.BREWER, Role.MAKER, Role.TRADER).contains(role)) return;
         long now = System.currentTimeMillis();
         Vec3 here = pos.position();
         visits.addLast(new Visit(here, now));
@@ -1847,7 +1849,7 @@ public final class Agent implements AgentHandle {
                 if (d > 6) away = true;
                 else if (d < 2.5 && away) { returns++; away = false; }
             }
-            if (returns >= 3) {
+            if (returns >= 3 && !inCrewBase((int) Math.floor(spot.at().x), (int) Math.floor(spot.at().y), (int) Math.floor(spot.at().z))) { // (the base itself: a place to come back to)
                 circledAt = now;
                 String where = (int) Math.floor(spot.at().x) + " " + (int) Math.floor(spot.at().y) + " " + (int) Math.floor(spot.at().z);
                 log("§egoing in circles: back at " + where + " " + returns + " times in " + (now - spot.when()) / 60_000 + " min: counts as stuck, trying something else");
