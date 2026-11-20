@@ -112,7 +112,9 @@ final class ExplorerModule implements RoleModule {
 
     /** True while the scout part has the agent. */
     private boolean scoutTick(AgentHandle a) {
-        if (DONE.contains(a.name().toLowerCase())) { status = "retiring"; AgentNetClient().accept(a); return true; }
+        // Done: retired once it has died in the lava (it comes back with a fresh module, out of the lava), not while it
+        // stands in it: retired at once, it only disconnected in the lava (run 1120q).
+        if (DONE.contains(a.name().toLowerCase()) && !inLava(a)) { status = "retiring"; AgentNetClient().accept(a); return true; }
         if (pool == null) {
             pool = SpeedrunnerModule.crewLavaNear(a.x(), a.z(), 192);
             if (pool == null) return false; // nothing yet: explore on
@@ -145,6 +147,12 @@ final class ExplorerModule implements RoleModule {
         a.stepToward(pool.getX() + 0.5, pool.getZ() + 0.5);
         if (poolTicks > 20 * 30) { DONE.add(a.name().toLowerCase()); a.log("§7[scout] couldn't step into the lava: leaving for good anyway"); }
         return true;
+    }
+
+    private static boolean inLava(AgentHandle a) {
+        var w = a.openWorld();
+        var feet = w == null ? null : w.get((int) Math.floor(a.x()), (int) Math.floor(a.y() + 0.1), (int) Math.floor(a.z()));
+        return feet != null && feet.getFluidState().is(net.minecraft.tags.FluidTags.LAVA);
     }
 
     private static java.util.function.Consumer<AgentHandle> AgentNetClient() { return dev.agentnet.AgentNetClient::retire; }
