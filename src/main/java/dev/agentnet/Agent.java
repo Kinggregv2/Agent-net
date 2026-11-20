@@ -546,7 +546,9 @@ public final class Agent implements AgentHandle {
                 if (!(creeperNear && !weapon) && !mobbed && (weapon && thp >= 8 || tool && thp >= 12)) return false; // it fights
                 // Away and back hurt, again and again (being away heals nothing): with food and the mob not on top of it, it eats
                 // first (the main left the game four times in four minutes at 5-7 HP with 32 steak, run 1120zl).
-                if (AWAY_RUNS.getOrDefault(name.toLowerCase(), 0) >= 2 && hasFood() && threat.distance() > 5 && !creeperNear) { burrowAgainAt = System.currentTimeMillis() + 8_000; return false; }
+                // Not with an archer about: it shoots from 12 blocks (the main came back at 7 HP and was shot dead in 2 s, run 1120zm).
+                boolean archerT = threat.name().equals("skeleton") || threat.name().equals("stray") || threat.name().equals("bogged") || threat.name().equals("pillager");
+                if (AWAY_RUNS.getOrDefault(name.toLowerCase(), 0) >= 2 && hasFood() && threat.distance() > 5 && !creeperNear && !archerT) { burrowAgainAt = System.currentTimeMillis() + 8_000; return false; }
                 callForHelp(threat);
                 int runs = AWAY_RUNS.merge(name.toLowerCase(), 1, Integer::sum);
                 long away = Math.min(120_000L, 45_000L * runs);
