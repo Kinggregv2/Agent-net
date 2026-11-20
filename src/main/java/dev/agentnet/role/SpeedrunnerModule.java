@@ -2959,10 +2959,11 @@ public final class SpeedrunnerModule implements RoleModule {
         // iron and gold are. Before, they had nothing to do from here and five of them stood round the main's pond for
         // minutes (the user: "this isn't a funeral, leave the lake alone").
         if (mainStage.ordinal() >= Stage.CAST.ordinal()) {
-            if (ownMining) { mine(a, null); ownMining = false; }
             // No shield yet: that first (below), then the kit. (Without one it skipped both and stood by the main for
             // minutes, run 1120g.)
-            if (hasShield(a)) return !netherKit(a) && netherArmor(a);
+            // Its iron mining stopped only once it has the shield: stopped here every tick and started again below, it said
+            // "mining 8x iron_ore" / "stopped mining" 5208 times (run 1120m).
+            if (hasShield(a)) { if (ownMining) { mine(a, null); ownMining = false; } return !netherKit(a) && netherArmor(a); }
         }
         if (wearArmor(a)) return true;
         // A shield first, then the whole nether kit (full iron, a golden helmet): ready when the main's portal is.

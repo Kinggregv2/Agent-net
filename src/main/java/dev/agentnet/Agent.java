@@ -1728,6 +1728,8 @@ public final class Agent implements AgentHandle {
     }
 
     private long inBlockSaidAt;
+    private final java.util.Map<BlockPos, Integer> reflexTries = new java.util.HashMap<>();
+    private final java.util.Map<BlockPos, Long> reflexSkip = new java.util.HashMap<>();
     private long reachSaidAt;
 
     /**
@@ -1749,6 +1751,14 @@ public final class Agent implements AgentHandle {
             BlockPos at = new BlockPos(x, y, z);
             if (at.equals(digPos)) return true; // digging it already
             if (isNavigating()) stopNavigation();
+            // Four tries at the same block that the server would not let go: not sand on its head but a picture of the
+            // blocks (or of where it is) the server does not share. It says what the server has, and leaves it a minute
+            // (run 1120m: one agent dug at "stone in its head space" 79 times, 158 refusals).
+            long nowR = System.currentTimeMillis();
+            Long skip = reflexSkip.get(at);
+            if (skip != null && nowR < skip) continue;
+            int tries = reflexTries.merge(at, 1, Integer::sum);
+            if (tries > 4) { reflexTries.remove(at); reflexSkip.put(at, nowR + 60_000); AgentNet.LOG.info("[{}] {} in its {} space four times and the server keeps it: leaving it a minute; the server: {}", name, s.getBlock().getDescriptionId().replace("block.minecraft.", ""), y == ys[0] ? "head" : "feet", serverDig(at)); continue; }
             refusedUntil.remove(at); refusedAt.remove(at); // its life, not a block to leave for two minutes
             baseBreakUntil = Math.max(baseBreakUntil, System.currentTimeMillis() + 2_000);
             dev.agentnet.role.Gear.holdBestFor(this, s);
