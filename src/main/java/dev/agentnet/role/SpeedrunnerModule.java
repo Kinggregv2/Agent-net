@@ -2960,7 +2960,7 @@ public final class SpeedrunnerModule implements RoleModule {
             if (ownMining) { mine(a, null); ownMining = false; }
             if (tableKit(a)) return true; // a table to make it on first
             status = "making itself a " + name;
-            if (ticks - ownAt > 200) { ownAt = ticks; if (crafter.queueTool(a, item)) a.log("[speedrun] making itself a " + name + " while " + MAIN + " works on its own"); }
+            if (ticks - ownAt > 200) { ownAt = ticks; if (crafter.queueTool(a, item) || queueByHand(a, item)) a.log("[speedrun] making itself a " + name + " while " + MAIN + " works on its own"); }
             return true;
         }
         if (ingots + raw >= cost) {
@@ -4020,6 +4020,9 @@ public final class SpeedrunnerModule implements RoleModule {
         if (on.size() < 4) return false;
         return Gear.id(on.get(0)).equals("minecraft:golden_helmet") && ironOrBetter(on.get(1)) && ironOrBetter(on.get(2)) && ironOrBetter(on.get(3));
     }
+
+    /** Not in its recipe book: queued to be made by hand on a crafting table (the pattern is known to the crafter). */
+    private boolean queueByHand(AgentHandle a, String item) { crafter.queue(a, item); return true; }
 
     private boolean kitMining;
     private String kitSaid;
