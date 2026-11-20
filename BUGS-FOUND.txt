@@ -274,14 +274,20 @@ O53. AGENTS HANDING THINGS OVER DID NOT LOOK OUT FOR MOBS (run 1120r: ZarkaTheEm
 
 O54. THE MAIN GATHERS ITS NETHER KIT ALONE (run 1120s, 17.6 min: 5 iron of the 19 its chestplate,
     leggings and boots take): the crew was asked for iron only up to the lighter. Since 05:45 the
-    kit's iron short is asked of the crew too, from the portal frame on. Built, not deployed yet.
+    kit's iron short is asked of the crew too, from the portal frame on. Deployed in run 1120t.
 
 O55. TWO DISTRIBUTORS SUFFOCATED PILLARING UP THROUGH GRAVEL (run 1120s: melon16 05:48,
     sweaty_ranger 05:53; "gravel in its feet space" a second before): digging their way out toward a
     goal 6 blocks up, they pillared, the gravel came down into the head space while they were in the
     air, and the O33 reflex skipped agents in the air. Fixed 05:55: no pillaring up a column with
     sand or gravel over it (it goes sideways instead), and the reflex now also works in the air
-    (sand and gravel only, so a jump under a ceiling is not dug). Built, not deployed yet.
+    (sand and gravel only, so a jump under a ceiling is not dug). Deployed in run 1120t.
+
+O56. KIT DONE, THEN "THE PORTAL DIDN'T LIGHT" AT ONCE (run 1120s, 31.5 min): the golden helmet on,
+    140 blocks from its finished frame (the gold took it there), and the 90 s lighting clock had
+    run on all the while it made the kit, so it gave the frame up and started building it again.
+    Fixed 06:05: the clock waits while the kit is made, and it gets a second more for each block
+    it has to walk back. Built, run 1120t.
 
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
