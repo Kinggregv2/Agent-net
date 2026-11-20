@@ -1528,6 +1528,7 @@ public final class SpeedrunnerModule implements RoleModule {
         // Its own steps, not a dig-out the stuck watch started: while one runs its steps do nothing (stepToward waits for it),
         // so it stood beside the next step, "stuck", and the watch started another (run 1120zf, 2 minutes on one step).
         if (a.escaping()) a.cancelEscape();
+        a.holdStuckWatch(3_000); // its own stuck check per step (30 s) does the job; the general one sent it up to the surface (run 1120zl)
         if (a.isDigging()) { stairWhy = "digging"; return true; }
         if ((int) Math.floor(a.x()) == feet.getX() && (int) Math.floor(a.z()) == feet.getZ() && Math.abs(a.y() - feet.getY()) < 0.6) { stairK++; stairAt = ticks; return true; }
         // Over its step but higher, with air under it: it hovers (the fall only starts when it moves, and it is already
@@ -4052,6 +4053,7 @@ public final class SpeedrunnerModule implements RoleModule {
                 if (shoreTunnelOn || clearTicks > 60 && !a.isNavigating()) {
                     if (!shoreTunnelOn) { shoreTunnelOn = true; shoreTunnel.reset(); if (a.isNavigating()) a.stopNavigation(); a.log("[speedrun] tunnelling to the pool's shore at " + b.toShortString()); }
                     if (a.escaping()) a.cancelEscape(); // its own tunnel, not a dig-out the stuck watch started (run 1120zi: 7 minutes for 16 blocks)
+                    a.holdStuckWatch(3_000); // and the stuck watch out of it: it escalated to "straight up to the surface" and leaving the game mid-tunnel (run 1120zl)
                     int before = shoreTunnel.steps();
                     Tunnel.Result r = shoreTunnel.tick(a, b);
                     if (shoreTunnel.steps() > before) clearTicks = Math.max(0, clearTicks - 20 * 20); // a step made: the clearing clock waits (it ran out on the way, run 1120zi)

@@ -193,6 +193,8 @@ public interface AgentHandle {
     /** The elytra came off mid-air: plain falling from here. */
     void stopGliding();
     boolean gliding();
+    /** Its job watches its own progress for a while (a staircase, a tunnel): the general stuck watch stays out of it. */
+    default void holdStuckWatch(long ms) {}
     /** On an elytra trip (a long navigate flown instead of walked). */
     default boolean flying() { return false; }
     /** A firework rocket was just used while gliding: push along the look direction for its burn time. */
