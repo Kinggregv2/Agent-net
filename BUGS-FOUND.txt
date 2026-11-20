@@ -309,6 +309,15 @@ O60. THE SUPPLY MAP DOES NOT SAY WHAT IS BEING COLLECTED (the user, 2026-11-20, 
     delivery line does say it: "waiting for 1x water_bucket"). Not fixed yet (the user: "don't
     worry about that now").
 
+O61. THE MAIN "GOES UP TO THE SURFACE" WHILE ON THE SURFACE (the user, 2026-11-20, important):
+    open to the sky, it still thought it was underground and climbed. The check went by each
+    block's item name: blocks with no item of their own (or another name) over it counted as rock,
+    and grass, snow layers and the like counted as a ceiling for the climb. Fixed 07:46: by the
+    block itself: air, water, leaves, logs and anything without a collision box (grass, vines, moss,
+    snow layers, leaf litter) are sky; only something solid over its head is a roof. The same in
+    the climb's own "already at the surface" check. (7 times "up to the surface first" in run
+    1120zc before the fix.) Built, run 1120zd.
+
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
     Fixed 03:35: stopped only once it has its shield. Built, run 1120n.
