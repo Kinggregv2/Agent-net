@@ -445,6 +445,12 @@ O80. A MINER "UPGRADING TO A STONE PICKAXE" EVERY FEW SECONDS (run 1120zk, Ririn
     made). Fixed 11:05: no table and under 4 planks' worth of wood, it fetches 2 logs first. Built,
     not deployed (run 1120zk left running).
 
+O81. A HUNTER STUCK INSIDE A FENCE (run 1120zk, lynxorca, after a sheep in a pen: its feet in an
+    oak fence's block at y 74.5; "the server keeps putting it back" 237 times, "moved wrongly" 88;
+    leaving and coming back put it in the same place). Fixed 11:15: a fence, wall or pane where
+    its feet or head are is dug out at once (with the reflex that digs sand off its head). Built,
+    not deployed (run 1120zk left running).
+
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
     Fixed 03:35: stopped only once it has its shield. Built, run 1120n.
