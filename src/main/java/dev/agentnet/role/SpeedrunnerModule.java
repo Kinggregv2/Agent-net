@@ -4202,11 +4202,14 @@ public final class SpeedrunnerModule implements RoleModule {
     public void circling(AgentHandle a, String where) {
         // Its mining (iron for its kit, its own or for the main) started afresh: a new ore, a new way. A helper stood 8 minutes
         // "mining iron for its iron leggings" with nothing happening (run 1120zh).
+        if ("AFK".equals(where) && isMain(a) && (stage == Stage.CAST && origin != null && !poolDeep || stage == Stage.LIGHT && !kitMining)) return; // casting or lighting: standing still on purpose
         mine(a, null); minerJob = null; kitMining = false; ownMining = false; helperMining = false;
         if (a.isNavigating()) a.stopNavigation();
         a.log("[speedrun] stuck (" + where + "): starting its job afresh");
         if (!isMain(a)) return;
-        if (origin != null && (stage == Stage.CAST || stage == Stage.POOL)) fail(a, "going in circles round " + where);
+        // Only going in circles gives the site up: the AFK watch fires while it stands still casting the frame (lava and
+        // water settling), and threw away a portal frame it was finishing, 82 minutes in (run 1120zl).
+        if (!"AFK".equals(where) && origin != null && (stage == Stage.CAST || stage == Stage.POOL)) fail(a, "going in circles round " + where);
     }
     private void fail(AgentHandle a, String why) {
         SAVED.remove(a.name());
