@@ -2977,6 +2977,21 @@ public final class SpeedrunnerModule implements RoleModule {
         int cost = item.endsWith("shield") ? 1 : item.endsWith("chestplate") ? 8 : 5;
         int ingots = count(a, "minecraft:iron_ingot"), raw = count(a, "minecraft:raw_iron");
         if (ingots >= cost) {
+            // A shield is 6 planks and an iron ingot: short of wood (no logs to turn into planks), it chops some first. With
+            // 5 planks it tried to make one every 10 s for minutes and never said why (run 1120m: NETHERComet, 53 times).
+            if (item.endsWith("shield")) {
+                int wood = 0;
+                for (ItemStack s : a.inventory()) { String id = Gear.id(s); if (id.endsWith("_planks")) wood += s.getCount(); else if ((id.endsWith("_log") || id.endsWith("_stem")) && !id.contains("stripped")) wood += 4 * s.getCount(); }
+                if (wood < 6) {
+                    status = "chopping wood for its own shield (" + wood + " of 6 planks)";
+                    if (!status.equals(ownSaid)) { ownSaid = status; a.log("[speedrun] " + status); }
+                    if (minerJob != null && miner.idle() && miner.status().startsWith("done") && ticks - jobRestart > 100) { minerJob = null; jobRestart = ticks; }
+                    mine(a, "mine 2 logs");
+                    ownMining = true;
+                    miner.tick(a);
+                    return true;
+                }
+            }
             if (ownMining) { mine(a, null); ownMining = false; }
             if (tableKit(a)) return true; // a table to make it on first
             status = "making itself a " + name;
