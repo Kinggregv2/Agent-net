@@ -353,7 +353,10 @@ final class MakerModule implements RoleModule {
         }
         if (kind != Kind.CRAFT_2X2) {
             // Carrying its own crafting table: use that (one seen earlier may be back up a tunnel it can't reach).
-            station = kind == Kind.CRAFT && find(a.inventory(), "minecraft:crafting_table") >= 0 ? null : findStation(a, kind);
+            // The same with its own furnace: one seen 12 blocks off down a hole it couldn't reach kept a helper walking at it,
+            // its smelting started again every 15 s, for minutes (run 1120n: sam_waffle2012, a furnace in its pack).
+            station = kind == Kind.CRAFT && find(a.inventory(), "minecraft:crafting_table") >= 0
+                    || kind == Kind.SMELT && find(a.inventory(), "minecraft:furnace") >= 0 ? null : findStation(a, kind);
             if (station == null) {
                 if (kind == Kind.CRAFT && !hand3 && fits2x2(recipe)) kind = Kind.CRAFT_2X2;
                 else if (kind == Kind.BREW && placeStation(a, "minecraft:brewing_stand")) {
