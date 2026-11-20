@@ -351,6 +351,21 @@ O66. AN AGENT STOOD IN A "PHANTOM" BLOCK (run 1120zf, melon16, minutes): its pic
     back). On someone else's server this cannot be asked; there it is as before. Built, not
     deployed (run 1120zf left running).
 
+O67. LOADS LEFT DEEP UNDERGROUND FOR THE DISTRIBUTORS (run 1120zf: the builder mining its own
+    cobblestone at y 11-16 left 132 base materials on the ground there; two distributors tunnelled
+    toward them for 4 minutes each, load after load, "closed in" 50+ times, AFK). Fixed 08:35: with
+    more than six solid blocks over its head an agent never leaves a load on the ground; it
+    carries it back up its own tunnel itself. Built, not deployed (run 1120zf left running).
+
+O68. A MINER WITH 209 COBBLESTONE WAITED FOR A PICKAXE (run 1120zf, ZarkaTheEmber, AFK: only a
+    wooden one, one plank, no sticks; "needs a better pickaxe ... asking a distributor" again and
+    again). Fixed 08:36: no wood for the handle but the cobblestone: two logs first, then it makes
+    the stone pickaxe itself. Built, not deployed.
+
+O69. THE SCOUT STOOD STILL ONCE ITS AREA WAS EXPLORED (run 1120zf, Taco_Ninja61, AFK: "everything
+    within 384 blocks is explored"). Fixed 08:37: a scout with no pool yet doubles its radius (up
+    to 1024) and goes on. Built, not deployed.
+
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
     Fixed 03:35: stopped only once it has its shield. Built, run 1120n.
