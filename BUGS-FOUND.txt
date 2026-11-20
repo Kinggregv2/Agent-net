@@ -402,6 +402,14 @@ F25. A BRANCH FOR EVERY CHANGE (the user, 21:57). Every build now also pushes a 
     "build-<date>-<time>" with the code as it was; changes to these notes alone get a branch
     "notes-<date>-<time>". "main" still has the latest.
 
+
+F26. THE LAVA-POOL SCOUT ("to add" 2, the user, 2026-11-19; built 2026-11-20 02:57, done 06:35).
+    While the main has no pool and nobody has seen one, Civ hires one explorer as a scout (crew of
+    5 or more, at the cap too). It explores; once a pool is known within 192 blocks it walks there,
+    marks it on the map (a POI "lava pool (scout <name>)"), walks into the lava, and is retired:
+    never brought back. Every agent also tells the main about surface lava it sees. Seen working end
+    to end in run 1120u (06:29-06:35: found, marked, "tried to swim in lava", retired, stayed out).
+    Its search is now 384 blocks around it (the pool it found at 1024 was 676 blocks from the main).
 ================================================================================
 OLDER REPORT, kept for reference
 ================================================================================

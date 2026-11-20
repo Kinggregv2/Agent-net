@@ -18,25 +18,6 @@ From chat on 2026-11-19 (not started):
    your player on the hitlist (the warriors would go after you), or test it yourself with
    /agent hitlist.
 
-2. Explorers spawn by default, as lava-pool scouts. Their main goal is a lava pool where a
-   nether portal can be made, so the speedrunners do not have to look for one. After finding
-   it they mark the location, jump into the lava pool and never join again.
-
-   Progress on 2 (2026-11-19 19:40, not tested yet): every agent, whatever its job, now tells the
-   main speedrunner about lava it sees near the surface, and the main walks there. Still to do
-   for this item: explorers hired by default with the pool as their goal, marking it, and the
-   jump into the lava at the end.
-
-   Progress on 2 (2026-11-20 02:57, built, not tested yet): a scout is now hired by default (crew
-   of 5 or more) while the main has no pool and nobody has seen one: an explorer with the task
-   "scout". It explores as usual; once a pool is known within 192 blocks it walks there, marks it
-   on the map as a POI ("lava pool (scout <name>)"), walks into the lava, and is retired: it never
-   joins again. Run 1120k: never hired (Civ dropped the need as unlearned; fixed 03:07). Next test:
-   run 1120l. Run 1120l: hired (seen working). Run 1120m: hired, but never handed its scout job
-   (fixed 03:27). Run 1120q (04:49-04:51): hired at the cap and handed its job; it found a pool
-   (lava at the surface, 12 blocks of it), marked it (a POI) at 04:55 and walked into the lava:
-   SEEN WORKING end to end, but it was brought back 2 s later by Civ (fixed 05:06, run 1120r).
-
 
 Make speedrunners looking for a lava pool be able to detect lava pools underground
 
