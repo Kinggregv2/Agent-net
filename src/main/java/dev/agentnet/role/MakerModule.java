@@ -232,10 +232,12 @@ final class MakerModule implements RoleModule {
      * Room for a station where there is none: a block beside its feet dug out, so the floor under it is free to put a
      * table or furnace on. Never one with water or lava next to it, never bedrock, never in spawn protection.
      */
-    private static void makeRoom(AgentHandle a) {
+    private void makeRoom(AgentHandle a) {
         if (a.isDigging()) return;
         var w = a.openWorld();
-        if (w == null || freeSpot(a, java.util.Set.of()) != null) return;
+        // The spots that failed already are not "free" (placeStation skips them too): with them counted it never dug, and
+        // said "no room for its crafting table here: digging out a spot" every 10 s for minutes (run 1120p, itsCyber).
+        if (w == null || freeSpot(a, badSpots.keySet()) != null) return;
         int fx = (int) Math.floor(a.x()), feet = (int) Math.floor(a.y() + 0.2), fz = (int) Math.floor(a.z());
         for (Direction d : Direction.Plane.HORIZONTAL) {
             int x = fx + d.getStepX(), z = fz + d.getStepZ();
