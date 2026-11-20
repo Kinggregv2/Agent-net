@@ -1792,7 +1792,10 @@ public final class Agent implements AgentHandle {
             if (s.getDestroySpeed(net.minecraft.world.level.EmptyBlockGetter.INSTANCE, BlockPos.ZERO) < 0) continue;
             // Powder snow is not "suffocating", but it freezes: the main stood in it "staying put" and froze to death (run 1120zh).
             boolean powder = s.getBlock() == net.minecraft.world.level.block.Blocks.POWDER_SNOW;
-            if (!powder && !s.isSuffocating(net.minecraft.world.level.EmptyBlockGetter.INSTANCE, BlockPos.ZERO)) continue;
+            // Inside a fence, a wall or a pane (it got into a pen after a sheep): not "suffocating", but every move from there was
+            // put back by the server, 237 times (run 1120zk). Dug out like the rest.
+            boolean fence = s.is(net.minecraft.tags.BlockTags.FENCES) || s.is(net.minecraft.tags.BlockTags.WALLS) || s.getBlock() instanceof net.minecraft.world.level.block.IronBarsBlock;
+            if (!powder && !fence && !s.isSuffocating(net.minecraft.world.level.EmptyBlockGetter.INSTANCE, BlockPos.ZERO)) continue;
             if (airborne() && !(s.getBlock() instanceof net.minecraft.world.level.block.FallingBlock)) continue; // mid-jump its eyes are in the ceiling: only sand or gravel counts then
             BlockPos at = new BlockPos(x, y, z);
             if (at.equals(digPos)) return true; // digging it already
