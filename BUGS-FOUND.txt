@@ -289,6 +289,12 @@ O56. KIT DONE, THEN "THE PORTAL DIDN'T LIGHT" AT ONCE (run 1120s, 31.5 min): the
     Fixed 06:05: the clock waits while the kit is made, and it gets a second more for each block
     it has to walk back. Built, run 1120t.
 
+O57. THREE STAIRCASES GIVEN UP IN ONE UNDERGROUND WATER LAYER (run 1120t, y 53-55, 10 minutes):
+    the water in a step was plugged with cobblestone, the plug then dug out like stone, and the
+    water ran straight back in from beside it. Fixed 06:25: water beside the three blocks of a
+    step (or over the top one) is plugged first, and the "water it cannot plug" check counts water
+    beside the step too. Built, run 1120u.
+
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
     Fixed 03:35: stopped only once it has its shield. Built, run 1120n.
