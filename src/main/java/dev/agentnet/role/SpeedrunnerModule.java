@@ -4357,7 +4357,7 @@ public final class SpeedrunnerModule implements RoleModule {
 
     /** Gets and puts on what is missing of the nether kit. True while it is busy with it; false once it wears it all. */
 
-    private int kitFoodAskAt = -100_000, kitWanderAt, kitFoodSaid = -1;
+    private int kitFoodAskAt = -100_000, kitWanderAt, kitFoodSaid = -1, kitUpAt = -100_000;
     private int waterAskAt = -100_000;
 
     /**
@@ -4371,6 +4371,12 @@ public final class SpeedrunnerModule implements RoleModule {
         status = "getting food for the nether (" + have + " of " + KIT_FOOD + ")";
         if (have / 8 != kitFoodSaid) { kitFoodSaid = have / 8; a.log("[speedrun] " + status); }
         if (ticks - kitFoodAskAt > 1200) { kitFoodAskAt = ticks; BuilderModule.requestMaterial(a, "food", KIT_FOOD - have); }
+        // Animals live up top: underground it goes up first (it hunted down in its mine at y 8-15 for 11 minutes and its food went
+        // from 8 to 7, run 1120zl).
+        if (underground(a)) {
+            if (a.escaping() || a.isNavigating() && ticks - kitUpAt < 1200) { status = "up to the surface for animals (food " + have + " of " + KIT_FOOD + ")"; return true; }
+            if (ticks - kitUpAt > 200) { kitUpAt = ticks; if (a.isNavigating()) a.stopNavigation(); if (a.goUp()) { a.log("[speedrun] no animals down here: up to the surface for food"); return true; } }
+        }
         if (feed(a, KIT_FOOD, true)) return true;
         if (!a.isNavigating() && ticks - kitWanderAt > 300 && a.openWorld() instanceof BlockView w) { kitWanderAt = ticks; wanderAhead(a, w, 24); }
         return true;
