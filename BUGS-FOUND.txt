@@ -491,6 +491,12 @@ O87. THE MAIN HUNTED FOR ITS 32 FOOD DOWN IN ITS MINE (run 1120zl, 13:12-13:25, 
     underground and short of food, it goes up to the surface first. Built, not deployed. In run
     1120zl it was given 32 cooked beef by hand (/give) so the run goes on to the nether.
 
+O88. THE MAIN LEFT THE GAME AGAIN AND AGAIN, HURT (run 1120zl, 13:23-13:29: back at 5-7 HP with
+    a zombie or skeletons about, "too hurt to fight: leaving the game for 120 s", four times; being
+    away heals nothing). Fixed 13:28: after two times away, with food and the mob more than 5 blocks
+    off, it stays and eats instead. Built, not deployed. In run 1120zl it was healed by hand
+    (instant health and regeneration at its rejoin) so the run goes on.
+
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
     Fixed 03:35: stopped only once it has its shield. Built, run 1120n.
