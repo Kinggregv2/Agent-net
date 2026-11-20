@@ -455,7 +455,14 @@ O82. THE MAIN MINED ITS SWORD'S AND PICKAXE'S IRON ALONE (run 1120zk, 11:26-11:4
     the 2 iron of its sword; its iron pickaxe from 11:22 gone by 11:35, worn out in its tunnels, and
     3 more iron to find): the crew was asked for the iron of its armour pieces only. Fixed 11:45:
     the sword's and the pickaxe's iron are asked of the crew too. Built, not deployed (run 1120zk
-    left running: it has its armour and golden helmet and sword, 48 min in).
+    run 1120zl).
+
+O83. THE MAIN TRIED THE SAME UNREACHABLE IRON ORE EVERY 30 S (run 1120zk, 11:44-11:55, mining iron
+    for its new iron pickaxe: "skipping iron_ore at 242 70 694: no progress in 30 s" over and
+    over): every new mining job cleared the list of ores given up, and the speedrunner restarts its
+    job often. Fixed 11:55: the list is kept (each skip runs out by itself after five minutes).
+    Built, run 1120zl (run 1120zk stopped: its main was stuck there for 10 minutes, 58 min in, all
+    its kit but the pickaxe, the shield and the food done).
 
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
