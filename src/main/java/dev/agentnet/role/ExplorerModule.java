@@ -74,7 +74,7 @@ final class ExplorerModule implements RoleModule {
         String[] p = task.trim().split("\\s+");
         if (p[0].equals("scout")) {
             scout = true;
-            radius = 1024;
+            radius = 384; // near the crew: at 1024 the pool it found was 676 blocks from the main (run 1120u)
             setHome(a);
             mode = Mode.FRONTIER;
             target = null;
