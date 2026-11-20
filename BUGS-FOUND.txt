@@ -471,6 +471,14 @@ O84. THE STUCK WATCH TOOK THE MAIN OUT OF ITS SHORE TUNNEL AND OUT OF THE GAME (
     walk too. Fixed 12:15: the staircase and the shore tunnel switch the general stuck watch off
     while they run (they have their own stuck checks). Built, not deployed (run 1120zl left running).
 
+O85. THE MAIN BURNED IN ITS OWN LAVA POOL (run 1120zl, 12:20, 18.7 min: tunnelling to the shore of
+    a pool 13 blocks down, the floor under it gave way and it dropped beside the lava; hurt and with
+    no food it went for a sheep, "boxed in", dug its way toward it, and "tried to swim in lava"): a
+    dig-out never dug INTO lava, but did dig blocks with lava BESIDE them, and the lava ran in.
+    Fixed 12:25: a dig-out never digs a block with lava in or beside it (that way is a wall).
+    Still open: its floor gave way while clearing the shore; it had no food at the portal stage.
+    Built, not deployed (run 1120zl left running: the main starts over).
+
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
     Fixed 03:35: stopped only once it has its shield. Built, run 1120n.
