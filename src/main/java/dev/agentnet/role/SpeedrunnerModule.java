@@ -4345,8 +4345,13 @@ public final class SpeedrunnerModule implements RoleModule {
      * pickaxe, shield and at least 32 cooked meat each"): for the main and every helper before anyone goes through.
      */
     static boolean netherKit(AgentHandle a) {
-        return netherArmorOn(a) && ironTool(a, "sword") && ironTool(a, "pickaxe") && hasShield(a) && readyFood(a) >= KIT_FOOD;
+        // Once complete, 16 food is enough: it eats from its 32 to heal, and at 31 it went back to "getting food" for good.
+        int need = KIT_DONE.contains(a.name().toLowerCase()) ? KIT_FOOD / 2 : KIT_FOOD;
+        boolean ok = netherArmorOn(a) && ironTool(a, "sword") && ironTool(a, "pickaxe") && hasShield(a) && readyFood(a) >= need;
+        if (ok) KIT_DONE.add(a.name().toLowerCase());
+        return ok;
     }
+    private static final java.util.Set<String> KIT_DONE = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     /** Not in its recipe book: queued to be made by hand on a crafting table (the pattern is known to the crafter). */
     private boolean queueByHand(AgentHandle a, String item) { crafter.queue(a, item); return true; }
@@ -4366,7 +4371,7 @@ public final class SpeedrunnerModule implements RoleModule {
      */
     private boolean kitFood(AgentHandle a) {
         int have = readyFood(a);
-        if (have >= KIT_FOOD) return false;
+        if (have >= (KIT_DONE.contains(a.name().toLowerCase()) ? KIT_FOOD / 2 : KIT_FOOD)) return false;
         if (kitMining) { mine(a, null); kitMining = false; }
         status = "getting food for the nether (" + have + " of " + KIT_FOOD + ")";
         if (have / 8 != kitFoodSaid) { kitFoodSaid = have / 8; a.log("[speedrun] " + status); }
