@@ -392,11 +392,24 @@ O73. THE MAIN FROZE TO DEATH IN POWDER SNOW (run 1120zh, 19.9 min, snowy mountai
     and every way out is water, lava, bedrock or protected: staying put") and stood in it until it
     froze. Fixed 09:35: powder snow at its feet or head is dug out at once (like sand on its head),
     and a dig-out digs through powder snow instead of stopping at it (the path finder still never
-    plans a way through it). Built, not deployed (run 1120zh left running).
+    plans a way through it). Built, run 1120zi.
 
 O74. THE MAIN GAVE ITS FURNACE TO A DISTRIBUTOR (run 1120zh, 09:28: "handing 1x furnace to
     sweaty_ranger"): any agent hands over what a distributor asks for. Fixed 09:35: speedrunners and
-    falloffs never do (all they carry is their run). Built, not deployed.
+    falloffs never do (all they carry is their run). Built, run 1120zi.
+
+O75. THE MAIN GAVE UP LOOKING FOR WATER PAST 64 BLOCKS (run 1120zh, 16+ minutes at the water stage
+    in snowy mountains: "no water it can get to within 64 blocks", then a random spot 40 blocks off
+    at its own height, always inside the rock). The user: "they shouldn't look for water within 64
+    blocks, it should look for water". Fixed 09:44: it looks through everything it has loaded (160
+    blocks); every agent now tells the crew about open-sky water it sees, and the main goes to the
+    nearest; after a while it also asks the crew for a water bucket (every 2 minutes); else it goes
+    on along its heading over land (as it does looking for a lava pool). Built, run 1120zi.
+
+O76. A HELPER STOOD 8 MINUTES "MINING IRON FOR ITS IRON LEGGINGS" (run 1120zh, BlazeDratal2006, AFK
+    twice: 6 raw iron of 7, "done: mined 1 iron_ore" without the iron reaching it, then nothing).
+    Fixed 09:45: the AFK watch now tells the agent's job, like going in circles; a speedrunner
+    starts its mining afresh (a new ore, a new way). Built, run 1120zi.
 
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
