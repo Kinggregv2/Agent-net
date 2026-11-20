@@ -784,6 +784,10 @@ public final class SpeedrunnerModule implements RoleModule {
         return true;
     }
 
+    private boolean teamGathered;
+    private int gatherFrom = -1;
+    private String gatherSaid;
+
     private void blazes(AgentHandle a) {
         if (ticks % 40 == 0) {
             int seen = 0;
@@ -985,6 +989,27 @@ public final class SpeedrunnerModule implements RoleModule {
                 bricksSeen.add(new BlockPos(best.getX() >> 3, 0, best.getZ() >> 3));
                 if (bricksSeen.size() == 1) a.log("§a[speedrun] found a nether fortress: looking for its blaze spawner");
                 a.navigate(brickGoal.getX(), brickGoal.getY(), brickGoal.getZ(), 2);
+            }
+        }
+        // The whole team into the fortress at once (the user, 2026-11-20: "the speedrunner, speedrunner helpers and falloff
+        // speedrunners should all enter the fortress at the same time"): the main waits at the first fortress bricks it sees
+        // until every helper and falloff online is in the nether and within 16 blocks of it, four minutes at most.
+        if (main && !teamGathered && !bricksSeen.isEmpty()) {
+            if (gatherFrom < 0) gatherFrom = ticks;
+            int team = 0, here = 0;
+            for (AgentHandle h : dev.agentnet.bus.AgentBus.agents.get()) {
+                if (h == a || !h.isOnline() || h.role() != Role.SPEEDRUNNER && h.role() != Role.FALLOFF) continue;
+                team++;
+                if (AgentHandle.sameDim(h.dimension(), a.dimension()) && dev.agentnet.bus.AgentBus.distSq(a, h) <= 16 * 16) here++;
+            }
+            if (here >= team || ticks - gatherFrom > 20 * 240) {
+                teamGathered = true;
+                a.log("§a[speedrun] " + (here >= team ? "the whole team is here (" + here + ")" : "waited four minutes (" + here + " of " + team + " here)") + ": into the fortress together");
+            } else {
+                if (a.isNavigating()) a.stopNavigation();
+                status = "waiting for the team at the fortress (" + here + " of " + team + " here)";
+                if (!status.equals(gatherSaid)) { gatherSaid = status; a.log("[speedrun] " + status); }
+                return;
             }
         }
         if (brickGoal != null) { status = "walking the fortress for its blaze spawner (" + rods + "/" + RODS + " rods)"; return; }
