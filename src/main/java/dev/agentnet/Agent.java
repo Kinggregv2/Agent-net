@@ -834,6 +834,17 @@ public final class Agent implements AgentHandle {
         }
         defending = false;
         if (fleeing && !threat.player() && System.currentTimeMillis() - fleeSince > 60_000) {
+            // Never back to work beside a creeper: out of the game until it has wandered off (the warriors told where).
+            // "Gave up running from the creeper: back to work", and the main was blown up ten seconds later (run 1120q).
+            if (threat.name().equals("creeper")) {
+                fleeing = false;
+                if (navigator.busy()) navigator.stop();
+                callForHelp(threat);
+                log("§ea creeper still after it after a minute of running: leaving the game for 45 s");
+                burrowAgainAt = System.currentTimeMillis() + 10_000;
+                mc.execute(() -> AgentNetClient.leaveFor(this, 45_000));
+                return true;
+            }
             // A minute of running and it's still there: back to work, and this one is ignored for a minute.
             ignoredThreats.put(threat.id(), System.currentTimeMillis() + 60_000);
             fleeing = false;
