@@ -1085,9 +1085,9 @@ public final class Agent implements AgentHandle {
         if (shieldHold > 0 && --shieldHold % 10 == 0) { if (shieldHold == 0) releaseUse(); else useOffhand(); }
         if (++baseGuardTicks % 20 == 0) guardBase();
         if (role != Role.WARRIOR && clutch.tick(this)) return; // falling: water bucket or leave clutch (warriors have their own)
-        if (tickHandOver()) return;
         if (tickBurrow()) return;  // dug in for the night
         if (tickThreats()) return; // running from a mob or a hitlist player
+        if (tickHandOver()) return; // after the threats: handing over 43 cobblestone, one agent saw the creeper at 3 blocks, too late (run 1120r)
         if (tickFood()) return;    // eating
         if (tickForage()) return;  // starving with no food: an animal for itself
         dev.agentnet.role.Sightings.look(this);              // a hitlist player in sight: told to the fighters
