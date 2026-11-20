@@ -1763,7 +1763,7 @@ public final class Agent implements AgentHandle {
      */
     private boolean inBlockReflex() {
         var w = openWorld();
-        if (w == null || airborne()) return false; // gliding or falling: not standing in anything
+        if (w == null || gliding) return false; // gliding: another pose. In the air on a pillar step, yes: gravel fell into the head space of two agents mid-jump (run 1120s)
         Vec3 p = pos.position();
         int x = (int) Math.floor(p.x), z = (int) Math.floor(p.z);
         int[] ys = {(int) Math.floor(p.y + 1.62), (int) Math.floor(p.y + 0.01)};
@@ -2631,6 +2631,9 @@ public final class Agent implements AgentHandle {
         BlockState feet = w.get(fx, fy, fz), head = w.get(fx, fy + 1, fz), above = w.get(fx, fy + 2, fz), under = w.get(fx, fy - 1, fz);
         if (feet == null || head == null || above == null || under == null) return false;
         if (!dev.agentnet.pathing.Rules.canWalkThrough(feet)) return false;
+        // Never up through sand or gravel: it comes down into its head space while it is in the air on each pillar step,
+        // and two agents suffocated that way 5 minutes apart (run 1120s). Sideways instead (the escape tries that next).
+        for (int dy = 1; dy <= 5; dy++) { BlockState s = w.get(fx, fy + dy, fz); if (s != null && s.getBlock() instanceof net.minecraft.world.level.block.FallingBlock) return false; }
         // A block over its head (a ceiling, an overhang): dig it out of the way first, then go on up. Never water,
         // lava, bedrock, traps, or anything of the base.
         for (int dy = 1; dy <= 2; dy++) {
