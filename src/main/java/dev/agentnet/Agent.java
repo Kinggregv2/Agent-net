@@ -1940,6 +1940,7 @@ public final class Agent implements AgentHandle {
             return -1;
         }
         BlockPos p = new BlockPos(x, y, z);
+        lastDigAt = System.currentTimeMillis(); // digging is progress: the stuck watch leaves it alone a while
         Direction face = faceToward(p);
         send(new ServerboundPlayerActionPacket(ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK, p, face, ++useSequence));
         if (hardness == 0) { predictAir(p, state, useSequence); return 0; }
@@ -2244,6 +2245,7 @@ public final class Agent implements AgentHandle {
      * longer match the server's); (5) drop what it was after and start its job over (another target).
      */
     private int plugAround;
+    private volatile long lastDigAt;
 
     private void tickStuckWatch() {
         // Stuck in water: the water round it blocked up, a block every 6 ticks, up to ten (the user, 2026-11-20).
@@ -2253,7 +2255,9 @@ public final class Agent implements AgentHandle {
         if (burrow != Burrow.NONE) { stuckAnchor = null; stuckLevel = 0; return; }
         Vec3 p = pos.position();
         long now = System.currentTimeMillis();
-        if (stuckAnchor == null || stuckAnchor.distanceToSqr(p) > 1.5 * 1.5 || !wantsToMove()) {
+        // Digging in place (a staircase step, a tunnel, a mine) is not being stuck: its dig-outs got in the way of the main's
+        // own staircase and shore tunnel, minutes each time (runs 1120zf, 1120zi).
+        if (stuckAnchor == null || stuckAnchor.distanceToSqr(p) > 1.5 * 1.5 || !wantsToMove() || now - lastDigAt < 5_000) {
             if (stuckLevel > 0 && stuckAnchor != null && stuckAnchor.distanceToSqr(p) > 1.5 * 1.5) log("§aunstuck: moving again");
             stuckAnchor = p; stuckSince = now; stuckActedAt = now; stuckLevel = 0;
             return;
