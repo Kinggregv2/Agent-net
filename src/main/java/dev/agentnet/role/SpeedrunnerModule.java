@@ -785,6 +785,7 @@ public final class SpeedrunnerModule implements RoleModule {
     }
 
     private boolean teamGathered;
+    private int rodsAsked;
     private int gatherFrom = -1;
     private String gatherSaid;
 
@@ -814,6 +815,20 @@ public final class SpeedrunnerModule implements RoleModule {
         boolean main = MAIN != null && MAIN.equalsIgnoreCase(a.name());
         boolean fall = !main && a.role() == Role.FALLOFF;
         if (fall) FALLOFF_RODS.put(a.name(), rods);
+        // A falloff asks for its rods to be fetched every 16 it has (the user, 2026-11-20: "so that if they die most of the
+        // blaze rods are saved"): a pickup request to the nearest distributor in the same dimension.
+        if (fall && rods >= rodsAsked + 16) {
+            rodsAsked = rods - rods % 16;
+            AgentHandle best = null;
+            for (AgentHandle h : dev.agentnet.bus.AgentBus.agents.get())
+                if (h.isOnline() && h.role() == Role.DISTRIBUTOR && AgentHandle.sameDim(h.dimension(), a.dimension())
+                        && (best == null || dev.agentnet.bus.AgentBus.distSq(a, h) < dev.agentnet.bus.AgentBus.distSq(a, best))) best = h;
+            if (best != null) {
+                dev.agentnet.bus.AgentBus.send(dev.agentnet.bus.Message.of(a.name(), best.name(), dev.agentnet.bus.Message.Type.INVENTORY_FULL, rods + " blaze rods to keep safe",
+                        java.util.Map.of("x", String.valueOf((int) Math.floor(a.x())), "y", String.valueOf((int) Math.floor(a.y())), "z", String.valueOf((int) Math.floor(a.z())), "fill", "blaze_rod")));
+                a.log("[speedrun] " + rods + " blaze rods: asked " + best.name() + " to fetch them (safe if it dies)");
+            } else a.log("§e[speedrun] " + rods + " blaze rods and no distributor in this dimension to fetch them: keeping them for now");
+        }
         if ((main ? rods : mainRods) >= RODS) { if (!fall) { pearls(a); return; } if (falloff(a)) return; }
         if (!(a.openWorld() instanceof BlockView w)) return;
         // Hoglins, and piglins while it wears no gold: round them, never through them. Walking on toward its fortress it
