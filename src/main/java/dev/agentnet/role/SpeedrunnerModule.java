@@ -1452,7 +1452,9 @@ public final class SpeedrunnerModule implements RoleModule {
         // Over its step but higher, with air under it: it hovers (the fall only starts when it moves, and it is already
         // where it wants to be; the server said "standing on air" every 10 s). A hop puts it in the air and it falls.
         if ((int) Math.floor(a.x()) == feet.getX() && (int) Math.floor(a.z()) == feet.getZ() && a.y() - feet.getY() >= 0.6 && !a.airborne()) {
-            BlockState below = w.get(feet.getX(), (int) Math.floor(a.y() - 0.01) - 1, feet.getZ());
+            // The block right under its feet (a.y 37.0 stands on y 36; the "- 1" here read y 35, solid copper ore, and it
+            // hovered over its step for 30 s until the staircase was thrown away, 4 blocks above the pool: run 1120g).
+            BlockState below = w.get(feet.getX(), (int) Math.floor(a.y() - 0.01), feet.getZ());
             if (below != null && Rules.canWalkThrough(below) && below.getFluidState().isEmpty()) { if (ticks % 10 == 0) a.jump(); return true; }
         }
         if (ticks - stairAt > 20 * 30) { // stuck on this step: say why, start again from here
@@ -1461,7 +1463,11 @@ public final class SpeedrunnerModule implements RoleModule {
             a.log("[speedrun] stuck on staircase step " + stairK + " at " + feet.toShortString() + " (it is at " + String.format("%.2f %.2f %.2f", a.x(), a.y(), a.z()) + "):" + sb + "; status " + status);
             // Stuck in water it cannot plug (no solid block beside it to place against): this start is no good. Another
             // one when it is on its way down to a pool (run 1120d: stuck on step 1 in an underground pond for minutes).
-            if (poolDeep && descendTop != null) { badDescend.add(descendTop); descendTop = null; a.log("[speedrun] water it cannot plug on its way down: another place to dig down from"); }
+            // Only when there is water in that step: stuck over dry rock, it starts the staircase again from where it is (run
+            // 1120g threw away a 27-step staircase over copper ore and climbed back to the surface).
+            boolean wet = false;
+            for (int dy = -1; dy <= 2; dy++) { BlockState s = w.get(feet.getX(), feet.getY() + dy, feet.getZ()); if (s != null && !s.getFluidState().isEmpty()) wet = true; }
+            if (wet && poolDeep && descendTop != null) { badDescend.add(descendTop); descendTop = null; a.log("[speedrun] water it cannot plug on its way down: another place to dig down from"); }
             stairOrigin = null; return true;
         }
         // Its three blocks: plugged if wet, dug if solid.
