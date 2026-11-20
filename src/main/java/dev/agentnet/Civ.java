@@ -459,7 +459,7 @@ public final class Civ {
         // No distributor at all: one of the gatherers carries, cap or no cap (the user, 2026-11-19: "no distributors at all,
         // distributors are vital"). Run 1119c: five distributors became miners and hunters one by one, each "idle" between
         // deliveries when the speedrunner wanted iron or someone was hungry, and at the cap none could be hired back.
-        if (pick == null && n.role() == Role.DISTRIBUTOR && crew.stream().noneMatch(x -> x.role() == Role.DISTRIBUTOR && !stalled.contains(x.name))) {
+        if (pick == null && !starting && n.role() == Role.DISTRIBUTOR && crew.stream().noneMatch(x -> x.role() == Role.DISTRIBUTOR && !stalled.contains(x.name))) {
             for (Role r : List.of(Role.LOOTER, Role.PICKUP, Role.MINER, Role.FISHER, Role.HUNTER, Role.BUILDER)) {
                 for (Agent a : crew) { if (pickedThisRound.contains(a.name) || a.role() != r) continue; pick = a; break; }
                 if (pick != null) break;
