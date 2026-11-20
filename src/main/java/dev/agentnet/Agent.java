@@ -2481,7 +2481,8 @@ public final class Agent implements AgentHandle {
         for (int y = fy + 1; y < dimMinY + dimHeight; y++) {
             BlockState s = w.get(fx, y, fz);
             if (s == null) break;
-            if (s.isAir() || s.is(net.minecraft.tags.BlockTags.LEAVES) || s.is(net.minecraft.tags.BlockTags.LOGS) || s.is(net.minecraft.tags.BlockTags.CLIMBABLE)) continue;
+            if (s.isAir() || s.is(net.minecraft.tags.BlockTags.LEAVES) || s.is(net.minecraft.tags.BlockTags.LOGS) || s.is(net.minecraft.tags.BlockTags.CLIMBABLE)
+                    || s.getFluidState().isEmpty() && s.getCollisionShape(net.minecraft.world.level.EmptyBlockGetter.INSTANCE, BlockPos.ZERO).isEmpty()) continue; // grass, snow layers, moss: open sky too
             top = y;
         }
         if (top <= fy + 2) return false; // open sky over it: nothing to dig up through
