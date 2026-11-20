@@ -216,6 +216,8 @@ final class ExplorerModule implements RoleModule {
                 Math.max(1, radius >> 4), failed.keySet());
         timer = 0;
         target = next;
+        // A scout with no pool yet: further out instead of standing still (run 1120zf: "everything within 384 blocks is explored", AFK).
+        if (next == null && scout && radius < 1024) { radius = Math.min(1024, radius * 2); a.log("[scout] all explored round here: looking further out, " + radius + " blocks"); return; }
         if (next == null) {
             status = "everything within " + radius + " blocks is explored";
             warn(a, "everything within " + radius + " blocks of " + homeX + " " + homeZ + " is explored (or unreachable); "
