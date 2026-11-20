@@ -40,7 +40,7 @@ final class Tunnel {
     private final Deque<BlockPos> toDig = new ArrayDeque<>();
     private List<BlockPos> stepCells = List.of();
     private final LinkedHashSet<BlockPos> floors = new LinkedHashSet<>();
-    private int redigs, stepFails, wait, timer, steps;
+    private int redigs, stepFails, wait, timer, steps, plugs;
     private String problem = "";
 
     /** Cells this tunnel must never dig or step into (a temple's TNT pit...). */
@@ -108,7 +108,7 @@ final class Tunnel {
                 stepCells = c.subList(1, c.size());
                 toDig.clear();
                 toDig.addAll(stepCells);
-                redigs = 0;
+                redigs = 0; plugs = 0;
                 s = S.DIG;
                 return Result.WORKING;
             }
@@ -120,6 +120,9 @@ final class Tunnel {
     private Result dig(AgentHandle a) {
         BlockSource w = a.openWorld();
         if (w == null) { wait = 40; return Result.WORKING; }
+        { int p = plugWater(a, w, next.below(), stepCells);
+          if (p > 0) { if (++plugs > 16) { problem = "water keeps running in"; return Result.BLOCKED; } wait = 6; return Result.WORKING; }
+          if (p < 0) { problem = "water in the way and nothing to block it with"; return Result.BLOCKED; } }
         while (!toDig.isEmpty()) {
             BlockPos c = toDig.poll();
             BlockState st = w.get(c.getX(), c.getY(), c.getZ());
@@ -187,19 +190,77 @@ final class Tunnel {
         BlockPos n = cells.get(0);
         BlockState floor = w.get(n.getX(), n.getY() - 1, n.getZ());
         if (floor == null) return "unloaded";
-        if (!solid(floor)) return !floor.getFluidState().isEmpty() ? "water or lava below" : "a drop";
+        if (!solid(floor) && !water(floor)) return lava(floor) ? "lava below" : "a drop"; // water below: plugged first
         for (int i = 1; i < cells.size(); i++) {
             BlockPos c = cells.get(i);
             if (floors.contains(c)) return "its own stairs";
             BlockState st = w.get(c.getX(), c.getY(), c.getZ());
             if (st == null) return "unloaded";
             if (passable(st)) continue;
-            if (!noFluidNear(w, c)) return "water or lava next to it";
+            if (lavaNear(w, c)) return "lava next to it"; // water next to it: plugged first
             if (st.getDestroySpeed(EmptyBlockGetter.INSTANCE, BlockPos.ZERO) < 0) return "bedrock";
         }
         return null;
     }
 
+
+    // ------------------------------------------------------------------ water: blocked up, not a wall
+    //
+    // The user, 2026-11-20 (a screenshot of the main in running water in a cave): "the agents are not capable of handling
+    // water, make them block up the water so that they can continue moving". Water beside a tunnel step, in it or under
+    // it is filled with a block from the pack (placed against something solid next to it) before the step is dug. Lava
+    // still turns a step down.
+
+    private static final String[] FILLERS = {"minecraft:cobblestone", "minecraft:cobbled_deepslate", "minecraft:dirt", "minecraft:netherrack",
+            "minecraft:andesite", "minecraft:diorite", "minecraft:granite", "minecraft:stone", "minecraft:tuff", "minecraft:deepslate", "minecraft:gravel"};
+
+    static boolean water(BlockState s) { return s != null && s.getFluidState().is(net.minecraft.tags.FluidTags.WATER); }
+    static boolean lava(BlockState s) { return s != null && s.getFluidState().is(net.minecraft.tags.FluidTags.LAVA); }
+
+    /** Lava in this block or touching it (water is no reason not to dig: it gets plugged). */
+    static boolean lavaNear(BlockSource w, BlockPos c) {
+        if (lava(w.get(c.getX(), c.getY(), c.getZ()))) return true;
+        for (Direction d : Direction.values()) if (lava(w.get(c.getX() + d.getStepX(), c.getY() + d.getStepY(), c.getZ() + d.getStepZ()))) return true;
+        return false;
+    }
+
+    /**
+     * One water block in, under or beside this step filled: 1 when a block went in (wait a moment, then again), 0 when
+     * there is no water left to fill, -1 when there is water but nothing to fill it with (or nothing to place against).
+     */
+    static int plugWater(AgentHandle a, BlockSource w, BlockPos floor, List<BlockPos> step) {
+        java.util.LinkedHashSet<BlockPos> wet = new java.util.LinkedHashSet<>();
+        if (floor != null && water(w.get(floor.getX(), floor.getY(), floor.getZ()))) wet.add(floor);
+        for (BlockPos c : step) {
+            if (water(w.get(c.getX(), c.getY(), c.getZ()))) wet.add(c);
+            for (Direction d : Direction.values()) {
+                BlockPos n = c.relative(d);
+                if (step.contains(n) || n.equals(floor) && d == Direction.DOWN && false) continue;
+                if (water(w.get(n.getX(), n.getY(), n.getZ()))) wet.add(n);
+            }
+        }
+        if (wet.isEmpty()) return 0;
+        int slot = -1;
+        List<ItemStack> inv = a.inventory();
+        for (String id : FILLERS) { for (int i = 0; i < inv.size() && i < 36; i++) if (Gear.id(inv.get(i)).equals(id)) { slot = i; break; } if (slot >= 0) break; }
+        if (slot < 0) return -1;
+        double ex = a.x(), ey = a.y() + 1.62, ez = a.z();
+        for (BlockPos t : wet) {
+            if ((t.getX() + 0.5 - ex) * (t.getX() + 0.5 - ex) + (t.getY() + 0.5 - ey) * (t.getY() + 0.5 - ey) + (t.getZ() + 0.5 - ez) * (t.getZ() + 0.5 - ez) > 4.4 * 4.4) continue;
+            for (Direction d : Direction.values()) {
+                BlockPos n = t.relative(d);
+                if (!solid(w.get(n.getX(), n.getY(), n.getZ()))) continue;
+                int hb = slot < 9 ? slot : 8;
+                if (slot >= 9) a.moveToHotbar(slot, hb);
+                if (a.selectedSlot() != hb) a.selectHotbar(hb);
+                Direction face = d.getOpposite();
+                a.lookAt(n.getX() + 0.5 + face.getStepX() * 0.5, n.getY() + 0.5 + face.getStepY() * 0.5, n.getZ() + 0.5 + face.getStepZ() * 0.5);
+                a.placeAgainst(n.getX(), n.getY(), n.getZ(), face);
+                return 1;
+            }
+        }
+        return -1;
+    }
     static boolean noFluidNear(BlockSource w, BlockPos c) {
         for (Direction d : Direction.values()) {
             BlockState st = w.get(c.getX() + d.getStepX(), c.getY() + d.getStepY(), c.getZ() + d.getStepZ());

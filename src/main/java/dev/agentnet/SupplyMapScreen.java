@@ -79,7 +79,7 @@ final class SupplyMapScreen extends Screen {
             int c = rc < 0 ? 0xFF8A93A6 : 0xFF000000 | rc;
             if (AgentNetClient.isMainRunner(nd.agent().name)) {
                 g.fill(x - DOT / 2 - 2, y - DOT / 2 - 2, x + DOT / 2 + 2, y + DOT / 2 + 2, 0xFFFFFFFF);
-                g.centeredText(font, "265B", x, y - DOT / 2 - 11, 0xFFFFFFFF);
+                g.centeredText(font, "♛", x, y - DOT / 2 - 11, 0xFFFFFFFF);
             }
             g.fill(x - DOT / 2, y - DOT / 2, x + DOT / 2, y + DOT / 2, c);
         }

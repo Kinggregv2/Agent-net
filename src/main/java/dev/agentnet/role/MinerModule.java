@@ -172,7 +172,7 @@ final class MinerModule extends GathererModule {
     private BlockPos next;                     // feet position of the tunnel step being dug
     private final Deque<BlockPos> toDig = new ArrayDeque<>();
     private List<BlockPos> stepCells = List.of();
-    private int redigs, stepFails;
+    private int redigs, stepFails, plugs;
     private int wait, timer, ticks;
     private State afterWait;
     private final Map<BlockPos, Integer> skipped = new HashMap<>();
@@ -852,7 +852,7 @@ final class MinerModule extends GathererModule {
         stepCells = cells.subList(1, cells.size());
         toDig.clear();
         toDig.addAll(stepCells);
-        redigs = 0;
+        redigs = 0; plugs = 0;
         go(State.DIG);
     }
 
@@ -861,6 +861,9 @@ final class MinerModule extends GathererModule {
         if (a.isDigging()) return;
         BlockSource w = a.openWorld();
         if (w == null) { pause(40, State.DIG); return; }
+        { int p = Tunnel.plugWater(a, w, next.below(), stepCells);
+          if (p > 0) { if (++plugs > 16) { skip(a, "water keeps running into the tunnel"); return; } pause(6, State.DIG); return; }
+          if (p < 0) { skip(a, "water in the way and nothing to block it with"); return; } }
         while (!toDig.isEmpty()) {
             BlockPos c = toDig.poll();
             BlockState s = w.get(c.getX(), c.getY(), c.getZ());
@@ -939,7 +942,7 @@ final class MinerModule extends GathererModule {
     /** Can this step be dug and walked safely? */
     private boolean ok(BlockSource w, BlockPos f, BlockPos n, List<BlockPos> cells) {
         BlockState floor = w.get(n.getX(), n.getY() - 1, n.getZ());
-        if (floor == null || !solidFloor(floor)) return false;     // cave, hole, fluid below
+        if (floor == null || !solidFloor(floor) && !Tunnel.water(floor)) return false;     // cave, hole, lava below (water below: plugged first)
         for (int i = 1; i < cells.size(); i++) {
             BlockPos c = cells.get(i);
             // Never dig out a block an earlier step stood on: the tunnel must stay walkable for
@@ -949,7 +952,7 @@ final class MinerModule extends GathererModule {
             if (s == null) return false;
             if (passable(s)) continue;
             if (s.getDestroySpeed(EmptyBlockGetter.INSTANCE, BlockPos.ZERO) < 0) return false; // bedrock & co.
-            if (!safeToDig(w, c)) return false;
+            if (Tunnel.lavaNear(w, c)) return false; // lava: never. Water beside it: plugged before it is dug (the user, 2026-11-20)
         }
         return true;
     }

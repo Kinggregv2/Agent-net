@@ -30,7 +30,7 @@ public abstract class PlayerNameMixin {
         if (color < 0) return;
         // The main speedrunner: a crown and a bold name, told apart from its light-purple helpers at a glance.
         if (dev.agentnet.AgentNetClient.isMainRunner(self.getGameProfile().name())) {
-            cir.setReturnValue(Component.literal("265B ").withColor(color).append(cir.getReturnValue().copy().withColor(color).withStyle(net.minecraft.ChatFormatting.BOLD)));
+            cir.setReturnValue(Component.literal("♛ ").withColor(color).append(cir.getReturnValue().copy().withColor(color).withStyle(net.minecraft.ChatFormatting.BOLD)));
             return;
         }
         cir.setReturnValue(cir.getReturnValue().copy().withColor(color));
