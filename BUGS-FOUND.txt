@@ -177,6 +177,16 @@ O33. TWO AGENTS SUFFOCATED IN SAND WITHIN 2 SECONDS (run 1120i, 7 min in: MrObsi
     wait kept them standing in it. Fixed 02:46: anything solid at its eyes or feet is dug out at
     once, before anything else (not when gliding). Built, not yet seen working.
 
+O34. THE MAIN SPENT 5 MINUTES ON 3 COBBLESTONE (run 1120k): it mined 12 stone with its wooden
+    pickaxe, but every drop fell where it could not walk ("no way ... (60000 spots searched)" for a
+    spot two blocks off), while a helper 4 blocks away carried 50 cobblestone and a stone pickaxe.
+    Fixed 03:07: a main with no stone pickaxe and under 3 cobblestone is thrown a helper's stack.
+    Still open: drops in a small hole it dug that the path search cannot get into. Built, not yet
+    seen working.
+
+O35. THE LAVA SCOUT WAS NEVER HIRED (run 1120k): Civ drops a need it hasn't learned pays off, and
+    the scout is new. Fixed 03:07: the scout need goes in front, like the speedrunners' own.
+
 --- FIXED ON 2026-11-19 (seen working in a run unless it says otherwise) ----------
 
 F1. Helpers never mined: two routines shared one flag and started/stopped the miner every

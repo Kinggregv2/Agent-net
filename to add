@@ -21,7 +21,8 @@ From chat on 2026-11-19 (not started):
    of 5 or more) while the main has no pool and nobody has seen one: an explorer with the task
    "scout". It explores as usual; once a pool is known within 192 blocks it walks there, marks it
    on the map as a POI ("lava pool (scout <name>)"), walks into the lava, and is retired: it never
-   joins again. First test: run 1120k.
+   joins again. Run 1120k: never hired (Civ dropped the need as unlearned; fixed 03:07). Next test:
+   run 1120l.
 
 
 Make speedrunners looking for a lava pool be able to detect lava pools underground
