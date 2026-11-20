@@ -60,6 +60,9 @@ public final class Sightings {
         return !a.name().equalsIgnoreCase(SpeedrunnerModule.mainRunner());
     }
 
+    /** A hitlist player seen anywhere within FRESH_MS. */
+    public static boolean anyFresh() { long now = System.currentTimeMillis(); for (Sighting s : LAST.values()) if (now - s.at() <= FRESH_MS) return true; return false; }
+
     /** The freshest sighting in this dimension (within FRESH_MS), or null. */
     public static Sighting latest(String dim) {
         long now = System.currentTimeMillis();
