@@ -242,6 +242,7 @@ O48. AT THE FOOT OF ITS STAIRCASE, THE MAIN NEVER REACHED THE POOL'S SHORE (run 
     sideways, and walking there kept failing. The same as O28 in run 1120d. Fixed 04:45: no way
     there within 3 s, it digs a tunnel straight to the shore block (the 1x2 walkable tunnel the
     explorers use; never a block touching lava or water). Built, run 1120q.
+    Run 1120r used a surface pool (no shore tunnel needed); still to be seen at an underground one.
 
 O49. THE MAIN BLOWN UP BY A CREEPER IT HAD "GIVEN UP RUNNING FROM" (run 1120q, 15 min): after a
     minute of running from a mob, an agent goes back to work and ignores it for a minute, a
@@ -257,7 +258,17 @@ O50. THE RETIRED SCOUT CAME BACK (run 1120q): 2 s after "retired: not coming bac
 O51. A HELPER FOUGHT THREE MOBS AT ONCE AND A CREEPER GOT IT (run 1120r, MrObsidian, 7 min, at
     night: a zombie, a skeleton, a spider, then "blown up by Creeper"): with a weapon and 8+ HP it
     always fought, whatever the number. Fixed 05:15: three or more hostile mobs in sight within 12
-    blocks and it leaves the game (not the warriors). Built, not deployed yet.
+    blocks and it leaves the game (not the warriors). Deployed in run 1120s.
+
+O52. THE MAIN WENT INTO THE NETHER WITHOUT ITS KIT AND A PIGLIN KILLED IT (run 1120r: portal lit
+    at 13.7 min, a record; in the nether at 13.8, a fortress and a blaze spawner found at once;
+    "slain by Piglin" at 15.9). It lit the portal, went to mine iron for its chestplate right beside
+    it, and walked in. Fixed 05:25: the nether kit (full iron, a golden helmet) before the portal is
+    lit. Built, run 1120s.
+
+O53. AGENTS HANDING THINGS OVER DID NOT LOOK OUT FOR MOBS (run 1120r: ZarkaTheEmber, handing 43
+    cobblestone, saw the creeper at 3 blocks and was blown up a second later): the hand-over ran
+    before the threat check and skipped it. Fixed 05:25: threats first. Built, run 1120s.
 
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
