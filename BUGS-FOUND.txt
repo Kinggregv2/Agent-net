@@ -304,6 +304,11 @@ O59. A WARRIOR MOVED TO MINER IN THE MIDDLE OF ITS FIGHT (run 1120v test: "the b
     from Raider"). Fixed 06:59: no guard is moved while a hitlist player has been seen in the last
     30 s. SEEN WORKING (run 1120zc: the warrior stayed on it until the kill).
 
+O60. THE SUPPLY MAP DOES NOT SAY WHAT IS BEING COLLECTED (the user, 2026-11-20, screenshot of
+    sweaty_ranger's card): "itsCyber: collecting from it" names the agent but not the item (a
+    delivery line does say it: "waiting for 1x water_bucket"). Not fixed yet (the user: "don't
+    worry about that now").
+
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
     Fixed 03:35: stopped only once it has its shield. Built, run 1120n.
