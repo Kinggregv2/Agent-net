@@ -508,6 +508,11 @@ O90. THE AFK WATCH THREW AWAY THE MAIN'S PORTAL FRAME (run 1120zl, 13:54, 82 min
     while the main casts or lights its frame it only stands still on purpose (nothing restarted).
     Built, run 1120zm (run 1120zl stopped: the old jar would have thrown away every frame it cast).
 
+O91. TWO AGENTS KILLED BY A POLAR BEAR WITHOUT A REACTION (run 1120zm, a snowy start: Taco_Ninja61
+    14:09, FenlynroPvP 14:13): a polar bear is not a "monster" to the game, so the agents never saw
+    it as a threat (no running, no leaving, no fighting back). Fixed 14:15: polar bears count as
+    hostile. Built, not deployed (run 1120zm left running).
+
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
     Fixed 03:35: stopped only once it has its shield. Built, run 1120n.
