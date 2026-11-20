@@ -8,6 +8,16 @@ From chat on 2026-11-19 (not started):
    agent that saw them gets a "following" job: it keeps the target inside its render distance
    and keeps reporting the updated position.
 
+   Progress on 1 (2026-11-20 03:46, built, not tested): every agent looks once a second for
+   hitlist players within 128 blocks. A new sighting is logged ("[hitlist] spotted ...") and sent
+   to every warrior. Warriors with nothing closer to fight go to the latest sighting (by elytra
+   when they have one: long trips already fly). The agent that saw it (not a speedrunner or a
+   fighter) follows it, keeping it 20 to 48 blocks off and reporting where it is, until it is
+   lost for a minute; then it goes back to its job. Not tested: it needs a player on the
+   hitlist in the world, and the only player on the LAN world is yours. Say if I may test it with
+   your player on the hitlist (the warriors would go after you), or test it yourself with
+   /agent hitlist.
+
 2. Explorers spawn by default, as lava-pool scouts. Their main goal is a lava pool where a
    nether portal can be made, so the speedrunners do not have to look for one. After finding
    it they mark the location, jump into the lava pool and never join again.

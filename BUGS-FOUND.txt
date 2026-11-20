@@ -202,7 +202,7 @@ O37. THE SCOUT NEVER GOT ITS JOB (run 1120m, samurai_ridra): hired as an explore
     job only went to an agent whose task was "idle", and an explorer starts exploring by itself;
     there was also no "/agent scout" command for the job to run. Fixed 03:27: the scout job goes
     to a new explorer that is exploring, and "/agent scout <agent>" exists. Built, not deployed
-    yet (run 1120m is the fastest so far: the shield at 8.5 min). Deployed in run 1120n.
+    yet (run 1120m is the fastest so far: the shield at 8.5 min). Deployed in run 1120n. SEEN WORKING (run 1120n, 03:40: ZarkaTheEmber "[scout] looking for a lava pool").
 
 O38. THE MAIN'S STAIRCASE STARTED AGAIN AT EVERY STEP (runs 1120g and 1120m): "digging a
     staircase down from ..." every 2-10 s, a block further along each time, so it never got deep
