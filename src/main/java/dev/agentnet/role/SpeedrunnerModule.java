@@ -1496,7 +1496,7 @@ public final class SpeedrunnerModule implements RoleModule {
 
     private static final int[][] STAIR = {{0, 0}, {1, 0}, {2, 0}, {3, 0}, {3, 1}, {3, 2}, {3, 3}, {2, 3}, {1, 3}, {0, 3}, {0, 2}, {0, 1}};
     private BlockPos stairOrigin;
-    private int stairK, stairAt;
+    private int stairK, stairAt, stairDigSaidAt = -1000;
 
     /** True while it is digging its staircase down to this height. */
     private boolean staircase(AgentHandle a, BlockView w, int targetY) {
@@ -1570,7 +1570,9 @@ public final class SpeedrunnerModule implements RoleModule {
             if (!Rules.canWalkThrough(s)) {
                 if (ticks % 4 != 0) return true;
                 Gear.holdBestFor(a, s);
-                a.dig(b.getX(), b.getY(), b.getZ());
+                // A dig that does not even start (refused before, out of reach, protected): said, so a stuck step shows why
+                // (run 1120zg: step 29 stood undug for 30 s with nothing in the log).
+                if (a.dig(b.getX(), b.getY(), b.getZ()) < 0 && ticks - stairDigSaidAt > 200) { stairDigSaidAt = ticks; a.log("[speedrun] can't dig the " + s.getBlock().getDescriptionId().replace("block.minecraft.", "") + " of its step at " + b.toShortString() + " (it is at " + String.format("%.2f %.2f %.2f", a.x(), a.y(), a.z()) + ")"); }
                 return true;
             }
         }
