@@ -3303,7 +3303,7 @@ public final class SpeedrunnerModule implements RoleModule {
         if (!(a.openWorld() instanceof BlockView w)) return false;
         if (fetchStand == null) {
             int fx = (int) Math.floor(a.x()), fz = (int) Math.floor(a.z());
-            List<BlockPos> src = new ArrayList<>(w.findAll(fx, fz, 64, lava ? SpeedrunnerModule::lavaSource : SpeedrunnerModule::waterSource, 300, null));
+            List<BlockPos> src = new ArrayList<>(w.findAll(fx, fz, 160, lava ? SpeedrunnerModule::lavaSource : SpeedrunnerModule::waterSource, 600, null)); // all it has loaded, not 64 blocks (the user, 2026-11-20)
             final double ax = a.x(), ay = a.y(), az = a.z();
             src.sort(java.util.Comparator.comparingDouble(p -> (p.getX() - ax) * (p.getX() - ax) + (p.getZ() - az) * (p.getZ() - az) + 9 * (p.getY() - ay) * (p.getY() - ay)));
             for (BlockPos p : src) {
@@ -3320,8 +3320,19 @@ public final class SpeedrunnerModule implements RoleModule {
                 break;
             }
             if (fetchStand == null) {
-                status = "no " + (lava ? "lava" : "water") + " it can get to within 64 blocks";
-                if (++tries % 20 == 1) { double ang = Math.random() * Math.PI * 2; a.navigate((int) (a.x() + Math.cos(ang) * 40), (int) a.y(), (int) (a.z() + Math.sin(ang) * 40), 8); }
+                // None it can get to here: it goes looking for some (the user, 2026-11-20: "it should look for water", not give up
+                // past 64 blocks). Water the crew has seen first; a bucket asked of the crew now and then; else on along its
+                // heading over land (a random spot at its own height in the mountains was always inside the rock: 16 minutes).
+                status = "looking for " + (lava ? "lava" : "water");
+                tries++;
+                if (!lava && ticks - waterAskAt > 2400 && tries > 60) { waterAskAt = ticks; BuilderModule.requestMaterial(a, "minecraft:water_bucket", 1); a.log("[speedrun] no water found yet: asked the crew for a water bucket too"); }
+                BlockPos seen = null;
+                if (!lava) for (BlockPos k : CREW_WATER) if (!badSpots.contains(k) && (seen == null || k.distToCenterSqr(a.x(), a.y(), a.z()) < seen.distToCenterSqr(a.x(), a.y(), a.z()))) seen = k;
+                if (seen != null) {
+                    status = "going to the water the crew saw at " + seen.toShortString();
+                    if (!a.isNavigating() && tries % 40 == 1) a.navigate(seen.getX(), seen.getY() + 1, seen.getZ(), 4);
+                    if (seen.distToCenterSqr(a.x(), a.y(), a.z()) < 6 * 6 && tries % 200 == 0) CREW_WATER.remove(seen); // there and still none it can reach: forgotten
+                } else if (!a.isNavigating() && tries % 40 == 1) wanderAhead(a, w, 48);
                 return false;
             }
         }
@@ -3487,6 +3498,28 @@ public final class SpeedrunnerModule implements RoleModule {
         return best;
     }
 
+
+    /** Water under the open sky that anyone in the crew has seen, while the main still needs some. */
+    private static final List<BlockPos> CREW_WATER = new java.util.concurrent.CopyOnWriteArrayList<>();
+    private static final java.util.Map<String, Long> WATER_LOOKED = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** Every agent, every 20 s, until the main has its water: open-sky water it can see, told to the crew. */
+    private static void crewWaterLook(AgentHandle a) {
+        if (mainStage.ordinal() > Stage.WATER.ordinal()) return;
+        long now = System.currentTimeMillis();
+        Long last = WATER_LOOKED.get(a.name());
+        if (last != null && now - last < 20_000) return;
+        WATER_LOOKED.put(a.name(), now);
+        if (!(a.openWorld() instanceof BlockView w)) return;
+        List<BlockPos> water = w.findAll((int) Math.floor(a.x()), (int) Math.floor(a.z()), 48, SpeedrunnerModule::waterSource, 200, null);
+        for (BlockPos p : water) {
+            BlockState over = w.get(p.getX(), p.getY() + 1, p.getZ());
+            if (over == null || !over.isAir() || !openSky(w, p)) continue;
+            for (BlockPos k : CREW_WATER) if (k.distSqr(p) < 32 * 32) return; // known already
+            CREW_WATER.add(p);
+            return;
+        }
+    }
     /**
      * Every agent, every twenty seconds, while the main still has no portal: lava near the surface in what it can see (ten or
      * more sources, open to the sky) is told to the crew. The main searched 50 minutes for a pool alone (run 1119c) while
@@ -3495,6 +3528,7 @@ public final class SpeedrunnerModule implements RoleModule {
     public static void crewLavaLook(AgentHandle a) {
         if (MAIN == null || beaten() || mainStage.ordinal() > Stage.POOL.ordinal() || a.name().equalsIgnoreCase(MAIN)) return;
         if (a.dimension() == null || !a.dimension().endsWith("overworld") || !a.isOnline()) return;
+        crewWaterLook(a);
         long now = System.currentTimeMillis();
         Long last = LAVA_LOOKED.get(a.name());
         if (last != null && now - last < 20_000) return;
@@ -4261,6 +4295,7 @@ public final class SpeedrunnerModule implements RoleModule {
     /** Gets and puts on what is missing of the nether kit. True while it is busy with it; false once it wears it all. */
 
     private int kitFoodAskAt = -100_000, kitWanderAt, kitFoodSaid = -1;
+    private int waterAskAt = -100_000;
 
     /**
      * The kit's food: 32 ready to eat. It asks the crew for what it lacks (once a minute), hunts the animals it sees and
