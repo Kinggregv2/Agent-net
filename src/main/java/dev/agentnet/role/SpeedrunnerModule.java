@@ -58,6 +58,7 @@ public final class SpeedrunnerModule implements RoleModule {
     private final List<Step> steps = new ArrayList<>();
     private int step, sub;
     private final Set<BlockPos> badSpots = new HashSet<>();
+    private boolean nearBad(BlockPos p) { for (BlockPos b : badSpots) if (b.distSqr(p) <= 8 * 8) return true; return false; }
     /** Fetching a fluid: the spot to stand on and the fluid block to aim at. */
     private BlockPos fetchStand, fetchAt;
 
@@ -3504,7 +3505,7 @@ public final class SpeedrunnerModule implements RoleModule {
         int[][] dirs = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
         for (BlockPos p : lava) {
             double d = p.distToCenterSqr(a.x(), a.y(), a.z());
-            if (badSpots.contains(p)) continue;
+            if (nearBad(p)) continue; // the pool it gave up on, not only that block: the next one along was picked every 20 s (run 1120zd)
             // Near its own level only: the lava lakes at the bottom of the world are everywhere under it, and it stood
             // on the surface for minutes "getting into place" for one 118 blocks down.
             // Underground pools count too (the user, in "to add" on GitHub, 2026-11-19): down to 70 blocks under it. It
@@ -3874,7 +3875,9 @@ public final class SpeedrunnerModule implements RoleModule {
         for (int y = fromY + 24; y >= fromY - 24; y--) {
             BlockState s = w.get(x, y, z);
             if (s == null) return null;
-            if (s.isAir() || s.canBeReplaced() && s.getFluidState().isEmpty()) continue;
+            // Through a tree's leaves to the ground under them: in a forest nearly every column started in leaves and was "not
+            // dry ground", and the main gave the pool up every 20 s (run 1120zd).
+            if (s.isAir() || s.canBeReplaced() && s.getFluidState().isEmpty() || s.is(net.minecraft.tags.BlockTags.LEAVES)) continue;
             if (!s.getFluidState().isEmpty() || !solid(s)) return null;
             // The whole staircase: a 4x4 ring going +x +z from here, a block round it, and 8 blocks down. Checking only round
             // the top it started beside a pond and its third step was in the water (run 1119m).
