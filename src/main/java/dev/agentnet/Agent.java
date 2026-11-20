@@ -1817,6 +1817,47 @@ public final class Agent implements AgentHandle {
             return String.format("player at %.2f %.2f %.2f;%s", pl.getX(), pl.getY(), pl.getZ(), sb.length() == 0 ? " no items" : sb.toString());
         } catch (RuntimeException e) { return "(" + e + ")"; }
     }
+
+    // ---------------------------------------------------------------- going in circles
+    //
+    // The user, 2026-11-20: "if someone revisits the same spot multiple times on a regular time interval he considers
+    // himself stuck". Every 10 s its spot is noted (6 minutes kept). Back within 2.5 blocks of an earlier spot after being
+    // more than 6 blocks away is a return; three returns to one spot and it is going in circles: it says so, its trip is
+    // dropped, and its job is told (the speedrunner gives up the site it keeps walking back to).
+
+    private record Visit(Vec3 at, long when) {}
+    private final java.util.ArrayDeque<Visit> visits = new java.util.ArrayDeque<>();
+    private int circleTicks;
+    private long circledAt;
+
+    private void tickCircling() {
+        if (++circleTicks % 200 != 0 || closed || role == null || !hasWorldHere()) return;
+        if (burrow != Burrow.NONE || airVel != null || myVehicle >= 0) return;
+        long now = System.currentTimeMillis();
+        Vec3 here = pos.position();
+        visits.addLast(new Visit(here, now));
+        while (visits.size() > 36) visits.removeFirst();
+        if (now - circledAt < 5 * 60_000 || visits.size() < 8) return;
+        for (Visit spot : visits) {
+            int returns = 0;
+            boolean away = false;
+            for (Visit v : visits) {
+                if (v.when() <= spot.when()) continue;
+                double d = v.at().distanceTo(spot.at());
+                if (d > 6) away = true;
+                else if (d < 2.5 && away) { returns++; away = false; }
+            }
+            if (returns >= 3) {
+                circledAt = now;
+                String where = (int) Math.floor(spot.at().x) + " " + (int) Math.floor(spot.at().y) + " " + (int) Math.floor(spot.at().z);
+                log("§egoing in circles: back at " + where + " " + returns + " times in " + (now - spot.when()) / 60_000 + " min: counts as stuck, trying something else");
+                if (navigator.busy()) navigator.stop();
+                visits.clear();
+                if (module != null) try { module.circling(this, where); } catch (RuntimeException e) { AgentNet.LOG.warn("[{}] circling hook failed", name, e); }
+                return;
+            }
+        }
+    }
     private boolean groundUnder() {
         var w = openWorld();
         if (w == null) return true;
@@ -3255,6 +3296,7 @@ public final class Agent implements AgentHandle {
                 movedThisTick = false;
                 if (!inBlockReflex()) tickModule();
                 tickStuckWatch();
+                tickCircling();
             }
         } else if (!c.isConnecting()) {
             c.handleDisconnection();

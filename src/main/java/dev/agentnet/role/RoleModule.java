@@ -31,4 +31,7 @@ public interface RoleModule {
 
     /** One line about what the module is doing, for the master screen ("" = nothing to say). */
     default String status() { return ""; }
+
+    /** It keeps coming back to the same spot (going in circles): counts as stuck. Try something else. */
+    default void circling(AgentHandle agent, String where) {}
 }

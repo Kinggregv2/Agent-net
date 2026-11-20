@@ -4094,6 +4094,13 @@ public final class SpeedrunnerModule implements RoleModule {
                 String.format("%.2f", a.x()), String.format("%.2f", a.y()), String.format("%.2f", a.z()), sb);
     }
 
+
+    /** Going in circles (Agent's watch): the portal site it keeps coming back to is given up. */
+    @Override
+    public void circling(AgentHandle a, String where) {
+        if (!isMain(a)) return;
+        if (origin != null && (stage == Stage.CAST || stage == Stage.POOL)) fail(a, "going in circles round " + where);
+    }
     private void fail(AgentHandle a, String why) {
         SAVED.remove(a.name());
         a.log("§e[speedrun] " + why + ": starting the portal again somewhere else");
