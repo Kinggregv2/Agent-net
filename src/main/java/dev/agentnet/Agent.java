@@ -1724,6 +1724,16 @@ public final class Agent implements AgentHandle {
         for (Predicted e : predicted) {
             if (e.sequence > sequence) continue;
             predicted.remove(e);
+            // On your own world: the block the server really has there, not the one it is about to put back. Its picture
+            // was out of date (stone where the server had air), every dig "refused" and the old block put back again: an
+            // agent stood in a phantom block for minutes (run 1120zf, O32). On someone else's server this cannot be asked.
+            { BlockState real = serverBlockAt(e.pos);
+              if (real != null && real != e.was) {
+                  chunks.blockChanged(e.pos.getX(), e.pos.getY(), e.pos.getZ(), real);
+                  AgentNet.LOG.info("[{}] its picture of {} was out of date: the server has {} there", name, e.pos.toShortString(), real.getBlock().getDescriptionId().replace("block.minecraft.", ""));
+                  refusedAt.remove(e.pos); refusedUntil.remove(e.pos);
+                  continue;
+              } }
             chunks.blockChanged(e.pos.getX(), e.pos.getY(), e.pos.getZ(), e.was);
             // Sand or gravel "kept" is the next block that fell into the gap, not a refusal: not counted.
             if (e.was.getBlock() instanceof net.minecraft.world.level.block.FallingBlock) { fallSettleUntil = System.currentTimeMillis() + 1500; continue; }
@@ -1859,6 +1869,16 @@ public final class Agent implements AgentHandle {
                 return;
             }
         }
+    }
+
+    /** On your own world: the block the built-in server has at p (null elsewhere, or if it can't be read). */
+    private BlockState serverBlockAt(BlockPos p) {
+        try {
+            var srv = net.minecraft.client.Minecraft.getInstance().getSingleplayerServer();
+            if (srv == null) return null;
+            var pl = srv.getPlayerList().getPlayerByName(name);
+            return pl == null ? null : pl.level().getBlockState(p);
+        } catch (RuntimeException e) { return null; }
     }
     private boolean groundUnder() {
         var w = openWorld();
