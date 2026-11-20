@@ -254,6 +254,11 @@ O50. THE RETIRED SCOUT CAME BACK (run 1120q): 2 s after "retired: not coming bac
     agents are never brought back (Civ or reconnect), and the scout retires once it has died in
     the lava, not the moment its feet touch it. Built, run 1120r.
 
+O51. A HELPER FOUGHT THREE MOBS AT ONCE AND A CREEPER GOT IT (run 1120r, MrObsidian, 7 min, at
+    night: a zombie, a skeleton, a spider, then "blown up by Creeper"): with a weapon and 8+ HP it
+    always fought, whatever the number. Fixed 05:15: three or more hostile mobs in sight within 12
+    blocks and it leaves the game (not the warriors). Built, not deployed yet.
+
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
     Fixed 03:35: stopped only once it has its shield. Built, run 1120n.
