@@ -223,6 +223,11 @@ O45. TWO DISTRIBUTORS SHOT DEAD BY SKELETONS WITHOUT A REACTION (run 1120n: ceda
     check only looked 14 blocks out, and a skeleton shoots from 15-20. Fixed 04:15: archers
     (skeleton, stray, bogged, pillager) in sight count up to 24 blocks. Built, run 1120p.
 
+O46. THE SCOUT NOT HIRED AT THE CAP (run 1120p): "a scout to find one, but the crew is at its cap
+    of 14" every 20 s; at the cap only a farmer or fisher with nothing to do, a third distributor
+    or a guard may be moved. Fixed 04:25: like the speedrunner's own needs, the scout may take a
+    looter, a pickup agent, a hunter, a fisher or a miner (never one on iron). Built, not deployed.
+
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
     Fixed 03:35: stopped only once it has its shield. Built, run 1120n.
