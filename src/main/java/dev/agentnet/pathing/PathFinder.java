@@ -256,7 +256,10 @@ public final class PathFinder {
         // x y z [radius]: one block round others' items, wider round a spot where a mob just killed one of us.
         if (!avoid.isEmpty()) for (int[] s : avoid) { int r = s.length > 3 ? s[3] : 1; if (Math.abs(x - s[0]) <= r && Math.abs(z - s[2]) <= r && Math.abs(y - s[1]) <= Math.min(r, 4)) { step += 40; break; } }
         if (cave(x, y, z)) step += 6 * Costs.WALK_ONE_BLOCK; // caves: where agents kept dying (mobs in the dark, drops, lava)
-        if (nearLava(x, y, z)) step += 20 * Costs.WALK_ONE_BLOCK; // never along a lava fall or pool edge if there is any other way
+        // Never along a lava fall or pool edge if there is any other way; but near the goal only a little (the goal is at the
+        // lava: the speedrunner's pool shore). At 20 a step there, the search spent all its 60000 spots on detours and said
+        // "no way" to a shore a few blocks off (the user: "baritone is scared of lava").
+        if (nearLava(x, y, z)) step += (Math.abs(x - goal.x()) + Math.abs(y - goal.y()) + Math.abs(z - goal.z()) <= 6 ? 2 : 20) * Costs.WALK_ONE_BLOCK;
         PathNode n = node(nodes, x, y, z, goal);
         if (n.closed) return;
         double cost = cur.cost + step;
