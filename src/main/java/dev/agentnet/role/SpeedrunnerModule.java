@@ -3964,7 +3964,9 @@ public final class SpeedrunnerModule implements RoleModule {
         }
         int tx = descendTop.getX(), tz = descendTop.getZ();
         double hd = Math.hypot(a.x() - (tx + 0.5), a.z() - (tz + 0.5));
-        if (stairOrigin == null && hd > 4) {
+        // Only from up top: well down its staircase already (a step it gave up on, 20 blocks down), it starts again from
+        // where it is. It walked back toward the top column at its own depth instead, through solid rock, "boxed in" (run 1120zg).
+        if (stairOrigin == null && hd > 4 && a.y() > descendTop.getY() - 4) {
             status = "walking to above the underground lava pool (" + Math.round(hd) + " blocks)";
             if (!a.isNavigating() && stepTicks % 40 == 1) a.navigate(tx, (int) Math.floor(a.y()), tz, 3);
             // A long way and no getting nearer (water, a cliff): down from here, the tunnel does the rest.
