@@ -2820,6 +2820,18 @@ public final class SpeedrunnerModule implements RoleModule {
             // A crafting table to make it on (carried, near, or the wood for one): without, it queued the axe every 5 s for
             // minutes, "making itself a stone axe", and stood still (run 1120c).
             if (tableKit(a)) return true;
+            // Two sticks for the handle (a plank's worth of wood): with none at all it "made" the tool every 10 s and stood
+            // still for minutes (run 1120n: MrObsidian, 81 cobblestone and no wood). It chops two logs first.
+            { int sticks = count(a, "minecraft:stick"), wood = 0;
+              for (ItemStack s : a.inventory()) { String id = Gear.id(s); if (id.endsWith("_planks")) wood += s.getCount(); else if ((id.endsWith("_log") || id.endsWith("_stem")) && !id.contains("stripped")) wood += 4 * s.getCount(); }
+              if (sticks < 2 && wood < 1) {
+                  status = "chopping wood for the handle of its stone tools";
+                  if (minerJob != null && miner.idle() && miner.status().startsWith("done") && ticks - jobRestart > 100) { minerJob = null; jobRestart = ticks; }
+                  mine(a, "mine 2 logs");
+                  miner.tick(a);
+                  return true;
+              }
+              if ("mine 2 logs".equals(minerJob)) mine(a, null); }
             String tool = goodAxe ? "minecraft:stone_pickaxe" : "minecraft:stone_axe";
             if (ticks - helperGearAt > 200) { helperGearAt = ticks; if (!crafter.queueTool(a, tool)) return false; a.log("[speedrun] making itself a " + tool.substring(10).replace('_', ' ') + " while " + MAIN + " gears up"); }
             status = "making a " + tool.substring(10).replace('_', ' ');
