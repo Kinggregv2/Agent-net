@@ -418,7 +418,15 @@ O77. AT ITS POOL, THE SHORE TUNNEL TOOK 7 MINUTES FOR 16 BLOCKS AND THE POOL WAS
     the clearing clock ran all through the tunnelling, so it was out of time when it got there.
     Fixed 10:15: the shore tunnel cancels dig-outs; each tunnel step gives the clock 20 s back; and
     the stuck watch now leaves alone any agent that started a dig in the last 5 s (digging in place
-    is progress, not being stuck). Built, not deployed (run 1120zi left running).
+    is progress, not being stuck). Built, run 1120zj.
+
+O78. THE MAIN'S STAIRCASE MADE ONE BLOCK A MINUTE (run 1120zi, 10:19-10:24): after every restart it
+    dug its first step, hopped onto it, and then stood ~50 s at the next one with its blocks undug,
+    nothing in the log (no refusal, no "can't dig"), until the staircase restarted from there.
+    Cause not known yet. Since 10:26 the "stuck on staircase step" line says what the staircase was
+    last doing (digging, a gap in its picture of the blocks, plugging water, stepping, and whether
+    a dig-out or navigation was running). With O77's stuck-watch change (it no longer steps in on
+    an agent digging in place), run 1120zj.
 
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
