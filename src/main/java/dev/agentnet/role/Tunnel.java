@@ -228,11 +228,14 @@ final class Tunnel {
      * One water block in, under or beside this step filled: 1 when a block went in (wait a moment, then again), 0 when
      * there is no water left to fill, -1 when there is water but nothing to fill it with (or nothing to place against).
      */
-    static int plugWater(AgentHandle a, BlockSource w, BlockPos floor, List<BlockPos> step) {
+    static int plugWater(AgentHandle a, BlockSource w, BlockPos floor, List<BlockPos> step) { return plugWater(a, w, floor, step, false); }
+
+    /** The same round its own body: skipOwn leaves the step cells themselves alone (nothing can be placed where it stands). */
+    public static int plugWater(AgentHandle a, BlockSource w, BlockPos floor, List<BlockPos> step, boolean skipOwn) {
         java.util.LinkedHashSet<BlockPos> wet = new java.util.LinkedHashSet<>();
         if (floor != null && water(w.get(floor.getX(), floor.getY(), floor.getZ()))) wet.add(floor);
         for (BlockPos c : step) {
-            if (water(w.get(c.getX(), c.getY(), c.getZ()))) wet.add(c);
+            if (!skipOwn && water(w.get(c.getX(), c.getY(), c.getZ()))) wet.add(c);
             for (Direction d : Direction.values()) {
                 BlockPos n = c.relative(d);
                 if (step.contains(n) || n.equals(floor) && d == Direction.DOWN && false) continue;

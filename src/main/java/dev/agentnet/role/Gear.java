@@ -81,6 +81,13 @@ public final class Gear {
         return null;
     }
 
+
+    /** Water round its feet and head (not where it stands) filled, one block a call: 1 placed, 0 none left, -1 can't. */
+    public static int plugWaterAround(AgentHandle a) {
+        if (!(a.openWorld() instanceof dev.agentnet.pathing.BlockSource w)) return 0;
+        net.minecraft.core.BlockPos f = net.minecraft.core.BlockPos.containing(a.x(), a.y() + 0.01, a.z());
+        return Tunnel.plugWater(a, w, null, java.util.List.of(f, f.above()), true);
+    }
     /** Tier of a tool from its material, for picking the better one. */
     public static int tier(ItemStack s) {
         String p = id(s);

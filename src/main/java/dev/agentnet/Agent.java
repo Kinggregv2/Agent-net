@@ -2214,7 +2214,11 @@ public final class Agent implements AgentHandle {
      * or with open sky over it (a ditch, a pit) two blocks up where it stands; (4) leave and come back (its idea of where it is may no
      * longer match the server's); (5) drop what it was after and start its job over (another target).
      */
+    private int plugAround;
+
     private void tickStuckWatch() {
+        // Stuck in water: the water round it blocked up, a block every 6 ticks, up to ten (the user, 2026-11-20).
+        if (plugAround > 0 && stuckTicks % 6 == 0 && !isDigging()) { int r = dev.agentnet.role.Gear.plugWaterAround(this); if (r <= 0) plugAround = 0; else plugAround--; }
         if (++stuckTicks % 20 != 0 || airVel != null || isDigging() || myVehicle >= 0) return;
         // Dug in for the night: still on purpose. (The stuck watch dug one back out toward its old job, into a skeleton.)
         if (burrow != Burrow.NONE) { stuckAnchor = null; stuckLevel = 0; return; }
@@ -2226,6 +2230,8 @@ public final class Agent implements AgentHandle {
             return;
         }
         if (now - stuckActedAt < 20_000) return;
+        { var sw = openWorld(); var fb = sw == null ? null : sw.get((int) Math.floor(p.x), (int) Math.floor(p.y + 0.01), (int) Math.floor(p.z)); var hb = sw == null ? null : sw.get((int) Math.floor(p.x), (int) Math.floor(p.y + 1.01), (int) Math.floor(p.z));
+          if (fb != null && fb.getFluidState().is(net.minecraft.tags.FluidTags.WATER) || hb != null && hb.getFluidState().is(net.minecraft.tags.FluidTags.WATER)) { plugAround = 10; log("§estuck in water: blocking it up round it"); } }
         stuckActedAt = now;
         stuckLevel++;
         PathFinder.Node g = failedGoal != null ? failedGoal : navigator.goal();
