@@ -372,6 +372,12 @@ O70. THE MAIN STOOD BESIDE ITS NEXT STEP FOR MINUTES (run 1120zf, 28 min, a stai
     staircase restarted every 40 s, and the watch started the next dig-out. Fixed 08:45: the
     staircase cancels any dig-out before it steps. Built, run 1120zg.
 
+O71. A BUILDER "DUG OUT A SPOT" FOR ITS CRAFTING TABLE 118 TIMES (run 1120zg, xXLuckyPandaXx, AFK,
+    in a forest): leaf litter lay everywhere, and a spot had to be air over a full block, so no
+    spot round it was ever free (O47's fix could not help: there was nothing to dig). Fixed 08:55:
+    leaf litter, grass and snow layers count as free (a block is placed there like into air).
+    Built, not deployed (run 1120zg left running).
+
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
     Fixed 03:35: stopped only once it has its shield. Built, run 1120n.
