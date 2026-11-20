@@ -224,6 +224,14 @@ O41. AN AGENT DUG AT "STONE IN ITS HEAD SPACE" 79 TIMES (run 1120m, sweaty_range
     03:35: after 4 refusals of that block it leaves it a minute and prints the server's own view
     (to find out why the server has it there). Built, run 1120n.
 
+O42. A HELPER "MADE A STONE PICKAXE" FOR MINUTES WITH NO WOOD (run 1120n, MrObsidian: 81
+    cobblestone, a crafting table, no sticks, planks or logs; AFK). Fixed 03:55: with no wood for
+    the two sticks, it chops 2 logs first. Built, not deployed yet.
+
+O43. A HELPER WALKED AT A FURNACE IT COULDN'T REACH (run 1120n, sam_waffle2012, a furnace in its
+    own pack): its smelting started again every 15 s, for minutes (AFK). Fixed 03:55: carrying a
+    furnace, it smelts in its own, like it does with its own crafting table. Built, not deployed.
+
 --- FIXED ON 2026-11-19 (seen working in a run unless it says otherwise) ----------
 
 F1. Helpers never mined: two routines shared one flag and started/stopped the miner every
