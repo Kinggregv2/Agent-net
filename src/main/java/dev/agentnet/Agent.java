@@ -1719,6 +1719,7 @@ public final class Agent implements AgentHandle {
     /** Per agent (it was one for the whole crew: one agent hovering on a block the server never got slowed everybody threefold).
      *  Up to 6.5: the server digs five times slower for a player it does not have on the ground. */
     private volatile double digSlow = 1.0;
+    private volatile long digSlowEasedAt;
     private static volatile long digSlowSaidAt;
 
     /** The server acked our actions up to this sequence: predictions it didn't confirm with an update go back. */
@@ -1961,6 +1962,10 @@ public final class Agent implements AgentHandle {
         // (fourteen agents, a second game open) those run slower than ours, so a dig timed on our clock ends "too fast",
         // the block stays, and the agent walks into it and is put back (run 1119a: 100 refused digs in six minutes, one agent
         // put back 250 times at one spot).
+        // The stretch wears off with time too: it only shrank when the server sent the dug block back, which it often does not,
+        // so after a few refusals every dig stayed 6.5 times as long for the rest of the run; with the 5x off-ground penalty a
+        // stone block took 18 s and the main's staircase stalled a minute on every step (run 1120zj, O78).
+        { long nowS = System.currentTimeMillis(); if (nowS - digSlowEasedAt > 30_000) { digSlowEasedAt = nowS; digSlow = Math.max(1.0, digSlow * 0.8); } }
         digTicksLeft = (int) Math.ceil(1f / perTick * digSlow) + 1; // one tick of margin so the server never says "too fast"
         return digTicksLeft;
     }
