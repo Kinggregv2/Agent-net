@@ -366,7 +366,9 @@ public final class Agent implements AgentHandle {
 
     /** A bus message for this agent. Main thread only. */
     void deliver(Message m) {
-        if (m.type() == Message.Type.HAND_OVER) { startHandOver(m); return; } // any role: give what it can spare
+        // Any role gives what it can spare; not the speedrunners and falloffs: all they carry is their run (the main gave its
+        // furnace to a distributor, run 1120zh, and had none for its iron).
+        if (m.type() == Message.Type.HAND_OVER) { if (role != Role.SPEEDRUNNER && role != Role.FALLOFF) startHandOver(m); return; }
         if (m.type() == Message.Type.STEP_ASIDE && !isDigging()) { // any role: standing where a builder puts a block
             try {
                 double bx = Integer.parseInt(m.get("x")) + 0.5, bz = Integer.parseInt(m.get("z")) + 0.5;
@@ -1785,9 +1787,11 @@ public final class Agent implements AgentHandle {
         int[] ys = {(int) Math.floor(p.y + 1.62), (int) Math.floor(p.y + 0.01)};
         for (int y : ys) {
             BlockState s = w.get(x, y, z);
-            if (s == null || s.isAir() || !s.getFluidState().isEmpty() || dev.agentnet.pathing.Rules.canWalkThrough(s)) continue;
+            if (s == null || s.isAir() || !s.getFluidState().isEmpty() || dev.agentnet.pathing.Rules.canWalkThrough(s) && s.getBlock() != net.minecraft.world.level.block.Blocks.POWDER_SNOW) continue;
             if (s.getDestroySpeed(net.minecraft.world.level.EmptyBlockGetter.INSTANCE, BlockPos.ZERO) < 0) continue;
-            if (!s.isSuffocating(net.minecraft.world.level.EmptyBlockGetter.INSTANCE, BlockPos.ZERO)) continue;
+            // Powder snow is not "suffocating", but it freezes: the main stood in it "staying put" and froze to death (run 1120zh).
+            boolean powder = s.getBlock() == net.minecraft.world.level.block.Blocks.POWDER_SNOW;
+            if (!powder && !s.isSuffocating(net.minecraft.world.level.EmptyBlockGetter.INSTANCE, BlockPos.ZERO)) continue;
             if (airborne() && !(s.getBlock() instanceof net.minecraft.world.level.block.FallingBlock)) continue; // mid-jump its eyes are in the ceiling: only sand or gravel counts then
             BlockPos at = new BlockPos(x, y, z);
             if (at.equals(digPos)) return true; // digging it already
@@ -2662,9 +2666,9 @@ public final class Agent implements AgentHandle {
                 boolean wet = s != null && !stepUp && c[1] == fy && s.getFluidState().is(net.minecraft.tags.FluidTags.WATER) && !dev.agentnet.pathing.Rules.dangerous(s)
                         && dev.agentnet.pathing.Rules.canWalkThrough(w.get(c[0], fy + 1, c[2]));
                 if (s == null || !s.getFluidState().isEmpty() && !wet || s.getBlock() == net.minecraft.world.level.block.Blocks.BEDROCK
-                        || dev.agentnet.pathing.Rules.dangerous(s) || spawnProtected(c[0], c[2]) || inBase(c[0], c[1], c[2]) && !dev.agentnet.pathing.Rules.canWalkThrough(s) && !baseDiggable(s, c[0], c[1], c[2], fy) && System.currentTimeMillis() >= baseBreakUntil
+                        || dev.agentnet.pathing.Rules.dangerous(s) && s.getBlock() != net.minecraft.world.level.block.Blocks.POWDER_SNOW || spawnProtected(c[0], c[2]) || inBase(c[0], c[1], c[2]) && !dev.agentnet.pathing.Rules.canWalkThrough(s) && !baseDiggable(s, c[0], c[1], c[2], fy) && System.currentTimeMillis() >= baseBreakUntil
                         || !s.isAir() && dev.agentnet.pathing.Rules.canWalkThrough(s) == false && !escapeDiggable(s, c[0], c[1], c[2])) { blocked = true; break; }
-                if (!wet && !dev.agentnet.pathing.Rules.canWalkThrough(s) && dig == null) dig = c;
+                if (!wet && (!dev.agentnet.pathing.Rules.canWalkThrough(s) || s.getBlock() == net.minecraft.world.level.block.Blocks.POWDER_SNOW) && dig == null) dig = c; // powder snow: dug, never walked into
             }
             if (blocked) continue;
             // With its pickaxe, not its fist. A block it may not dig (the server refused it three times, or it is the base):
