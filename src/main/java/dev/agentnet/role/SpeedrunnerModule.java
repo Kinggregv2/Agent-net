@@ -394,9 +394,17 @@ public final class SpeedrunnerModule implements RoleModule {
                 status = "making a stone axe";
                 return;
             }
+        }
+        // Its pickaxe, in every overworld stage (only before the pool before: on its long staircase down to an underground pool
+        // the stone pickaxe wore out and it climbed back up to make one, run 1120zj); and a spare made before the last one is
+        // worn out (under 20 uses left).
+        int pickAt = Gear.bestTool(a.inventory(), "pickaxe");
+        boolean pickLow = pickAt >= 0 && a.inventory().get(pickAt).isDamageableItem() && a.inventory().get(pickAt).getMaxDamage() - a.inventory().get(pickAt).getDamageValue() < 20
+                && countPickaxes(a) < 2;
+        if (!nether(a) && ticks % 200 == 37 && !crafter.busy() && (pickAt < 0 || pickLow)) {
             // No pickaxe at all (it broke, or it died): a new one at once, stone if it has the cobblestone, else wood. The
             // main lost its pickaxe and wandered the mountains for logs it couldn't dig down to, coal it couldn't mine.
-            if (Gear.bestTool(a.inventory(), "pickaxe") < 0) {
+            {
                 int wood = 0;
                 for (ItemStack s : a.inventory()) { String id = Gear.id(s); if (id.endsWith("_planks")) wood += s.getCount(); else if (id.endsWith("_log") && !id.contains("stripped")) wood += 4 * s.getCount(); }
                 String pick = count(a, "minecraft:cobblestone") + count(a, "minecraft:cobbled_deepslate") >= 3 && wood >= 2 ? "minecraft:stone_pickaxe" : wood >= 5 ? "minecraft:wooden_pickaxe" : null;
@@ -4268,6 +4276,12 @@ public final class SpeedrunnerModule implements RoleModule {
         return Gear.id(on.get(0)).equals("minecraft:golden_helmet") && ironOrBetter(on.get(1)) && ironOrBetter(on.get(2)) && ironOrBetter(on.get(3));
     }
 
+
+    private static int countPickaxes(AgentHandle a) {
+        int n = 0;
+        for (ItemStack s : a.inventory()) if ("pickaxe".equals(Gear.toolType(s))) n++;
+        return n;
+    }
     /** A tool of this kind, iron or better, in its pack. */
     private static boolean ironTool(AgentHandle a, String kind) {
         for (ItemStack s : a.inventory()) if (kind.equals(Gear.toolType(s)) && ironOrBetter(s)) return true;
