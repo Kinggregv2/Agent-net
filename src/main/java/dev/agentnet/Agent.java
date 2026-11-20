@@ -1728,6 +1728,7 @@ public final class Agent implements AgentHandle {
     }
 
     private long inBlockSaidAt;
+    private long reachSaidAt;
 
     /**
      * Sand or gravel (or anything solid) where its eyes or feet are: dug out at once, before anything else, like a player
@@ -1784,6 +1785,15 @@ public final class Agent implements AgentHandle {
         float hardness = state.getDestroySpeed(net.minecraft.world.level.EmptyBlockGetter.INSTANCE, BlockPos.ZERO);
         if (hardness < 0) return -1; // bedrock & co.
         { BlockPos rp = new BlockPos(x, y, z); Long until = refusedUntil.get(rp); if (until != null) { if (System.currentTimeMillis() < until) return -1; refusedUntil.remove(rp); refusedAt.remove(rp); } }
+        // Out of reach: the server only takes a dig within its block reach (4.5) + 1 of the eyes, to the nearest face of the
+        // block. Sent anyway, it is refused every time (run 1120i: granite 7.2 blocks off, refused three times).
+        { Vec3 eye = pos.position().add(0, 1.62, 0);
+          double cx = Math.max(x, Math.min(eye.x, x + 1)), cy = Math.max(y, Math.min(eye.y, y + 1)), cz = Math.max(z, Math.min(eye.z, z + 1));
+          double ddx = eye.x - cx, ddy = eye.y - cy, ddz = eye.z - cz;
+          if (ddx * ddx + ddy * ddy + ddz * ddz > 5.3 * 5.3) {
+              if (System.currentTimeMillis() - reachSaidAt > 30_000) { reachSaidAt = System.currentTimeMillis(); AgentNet.LOG.info("[{}] not digging {} {} {}: out of reach ({} blocks)", name, x, y, z, String.format("%.1f", Math.sqrt(ddx * ddx + ddy * ddy + ddz * ddz))); }
+              return -1;
+          } }
         // Sand or gravel over its head, in its own column: dug like a player does it, one block at a time, and it does not
         // move up into the gap for a second, while the next block falls into it (moving up into falling sand is what
         // suffocates; refusing to dig it left an agent under water under a sand ceiling with no way out, run 1119k).
