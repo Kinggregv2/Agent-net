@@ -2943,7 +2943,9 @@ public final class SpeedrunnerModule implements RoleModule {
         // minutes (the user: "this isn't a funeral, leave the lake alone").
         if (mainStage.ordinal() >= Stage.CAST.ordinal()) {
             if (ownMining) { mine(a, null); ownMining = false; }
-            return hasShield(a) && !netherKit(a) && netherArmor(a);
+            // No shield yet: that first (below), then the kit. (Without one it skipped both and stood by the main for
+            // minutes, run 1120g.)
+            if (hasShield(a)) return !netherKit(a) && netherArmor(a);
         }
         if (wearArmor(a)) return true;
         // A shield first, then the whole nether kit (full iron, a golden helmet): ready when the main's portal is.
