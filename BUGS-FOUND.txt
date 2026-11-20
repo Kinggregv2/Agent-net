@@ -316,7 +316,9 @@ O61. THE MAIN "GOES UP TO THE SURFACE" WHILE ON THE SURFACE (the user, 2026-11-2
     block itself: air, water, leaves, logs and anything without a collision box (grass, vines, moss,
     snow layers, leaf litter) are sky; only something solid over its head is a roof. The same in
     the climb's own "already at the surface" check. (7 times "up to the surface first" in run
-    1120zc before the fix.) Built, run 1120zd.
+    1120zc before the fix.) Run 1120zd: once at 8.3 min, 10 s later on its way again (pool at
+    8.4 min, its column open to the sky right after); whether that one was real is not known: since
+    08:01 the line names the block it took for a roof and where (not deployed yet).
 
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
