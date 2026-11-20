@@ -658,9 +658,19 @@ public final class SpeedrunnerModule implements RoleModule {
 
     /** When the main was last seen online. Going through a portal it is "offline" for a moment, and a helper took over. */
     private static volatile long mainSeenAt;
+    /** When each speedrunner first started (this game session): the first one is the main (the user, 2026-11-20). */
+    private static final java.util.Map<String, Long> FIRST_SEEN = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** The speedrunner online now that started first, or null. */
+    private static String firstRunner() {
+        String best = null; long bt = Long.MAX_VALUE;
+        for (var e : FIRST_SEEN.entrySet()) if (e.getValue() < bt && online(e.getKey())) { bt = e.getValue(); best = e.getKey(); }
+        return best;
+    }
 
     private boolean isMain(AgentHandle a) {
         if (a.role() == Role.FALLOFF) return false; // a falloff never leads the run
+        FIRST_SEEN.putIfAbsent(a.name(), System.currentTimeMillis());
         long now = System.currentTimeMillis();
         if (MAIN != null && online(MAIN)) mainSeenAt = now;
         // After a restart the one with the most play time in the run is the main again (whichever ticked first took it:
@@ -669,6 +679,9 @@ public final class SpeedrunnerModule implements RoleModule {
         // (Away on purpose, out of the game for a minute because of mobs: still the main. A helper took over while it
         // was away, run 1119p.)
         if (MAIN != null && dev.agentnet.Agent.away(MAIN)) mainSeenAt = now;
+        // No main yet: the speedrunner that started first takes it, not whichever ticked first (the user: "the first
+        // speedrunner that spawned in should be the main"). The others wait for it.
+        if (MAIN == null) { String first = firstRunner(); if (first != null && !first.equalsIgnoreCase(a.name())) return false; }
         if (MAIN == null || !online(MAIN) && now - mainSeenAt > 15_000) {
             if (MAIN != null) a.log("§e[speedrun] " + MAIN + " is gone: " + a.name() + " is the main speedrunner now");
             MAIN = a.name();
