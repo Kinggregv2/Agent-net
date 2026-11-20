@@ -440,6 +440,11 @@ O79. THE MAIN'S PICKAXE WORE OUT ON ITS STAIRCASE AND IT LEFT THE POOL (run 1120
     in every overworld stage, and a spare is made when the one it has is under 20 uses. Built, run
     1120zk (run 1120zj stopped: its main had spent most of its time on bugs fixed in the new jar).
 
+O80. A MINER "UPGRADING TO A STONE PICKAXE" EVERY FEW SECONDS (run 1120zk, Ririnxa_Razen, 43 times:
+    33 cobblestone and 4 sticks, but no crafting table and 2 planks, so the pickaxe could never be
+    made). Fixed 11:05: no table and under 4 planks' worth of wood, it fetches 2 logs first. Built,
+    not deployed (run 1120zk left running).
+
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
     Fixed 03:35: stopped only once it has its shield. Built, run 1120n.
