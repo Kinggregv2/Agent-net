@@ -513,6 +513,13 @@ O91. TWO AGENTS KILLED BY A POLAR BEAR WITHOUT A REACTION (run 1120zm, a snowy s
     it as a threat (no running, no leaving, no fighting back). Fixed 14:15: polar bears count as
     hostile. Built, not deployed (run 1120zm left running).
 
+O92. THE MAIN CAME BACK HURT AND WAS SHOT AT ONCE (run 1120zm, 14:14, CAST, staircase to its pool:
+    back in the game at 7 HP with a skeleton 12 blocks off, slowed, "shot by Skeleton" 2 s later):
+    the check after a rejoin waited 1.5 s, and my O88 rule ("stay and eat if the mob is over 5
+    blocks off") would have kept it there too. Fixed 14:25: badly hurt, it checks 0.3 s after
+    joining; and O88 never counts an archer (skeleton, stray, bogged, pillager) as far enough
+    away. Built, not deployed (run 1120zm left running: the main starts over).
+
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
     Fixed 03:35: stopped only once it has its shield. Built, run 1120n.
