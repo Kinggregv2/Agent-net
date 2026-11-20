@@ -57,6 +57,22 @@ public final class AgentNetClient implements ClientModInitializer {
     /** How many agents this client runs (for the LAN player cap). */
     public static int agentCount() { return AGENTS.size(); }
 
+    /** The main speedrunner (not a helper). */
+    public static boolean isMainRunner(String name) {
+        Agent a = name == null ? null : AGENTS.get(name.toLowerCase());
+        return a != null && a.role() == Role.SPEEDRUNNER && a.name.equalsIgnoreCase(String.valueOf(dev.agentnet.role.SpeedrunnerModule.mainRunner()));
+    }
+
+    /**
+     * The role's name as shown in lists and screens: the main speedrunner and its helpers are told apart (the user,
+     * 2026-11-20: "make the speedrunner and speedrun helper 2 different roles at least visually").
+     */
+    public static String roleName(Agent a) {
+        if (a == null || a.role() == null) return "no role";
+        if (a.role() == Role.SPEEDRUNNER) return isMainRunner(a.name) ? "Speedrunner (main)" : "Speedrun helper";
+        return a.role().displayName;
+    }
+
     /** The role color (0xRRGGBB) of one of our agents by name, or -1: names are drawn in it. */
     public static int roleColor(String name) {
         Agent a = name == null ? null : AGENTS.get(name.toLowerCase());
@@ -435,7 +451,7 @@ public final class AgentNetClient implements ClientModInitializer {
             .then(literal("role").then(argument("agent", StringArgumentType.word()).suggests(AGENT_TARGETS)
                 .executes(c -> {
                     targets(c).forEach(a -> c.getSource().sendFeedback(Component.literal(
-                            a.name + ": " + (a.role() == null ? "no role" : a.role().displayName))));
+                            a.name + ": " + roleName(a))));
                     return 1;
                 })
                 .then(argument("role", StringArgumentType.word())

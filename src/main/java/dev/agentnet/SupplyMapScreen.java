@@ -108,7 +108,7 @@ final class SupplyMapScreen extends Screen {
     private void tooltip(GuiGraphicsExtractor g, Node nd, List<Links.Link> links, int mx, int my) {
         Agent a = nd.agent();
         List<String> lines = new ArrayList<>();
-        lines.add("§l" + a.name + " §r§7" + (a.role() == null ? "no role" : a.role().displayName));
+        lines.add("§l" + a.name + " §r§7" + AgentNetClient.roleName(a));
         String status = a.moduleStatus();
         lines.add("§fdoing: §7" + (status == null || status.isBlank() ? "-" : status));
         if (a.task != null && !a.task.equals("idle")) lines.add("§ftask: §7" + a.task);

@@ -167,7 +167,7 @@ final class MasterScreen extends Screen {
             int roleColor = a.role() == null ? 0xFF555E70 : 0xFF000000 | a.role().color;
             g.fill(x0, ry, x0 + 3, ry + ROW_H - 1, roleColor);
             g.fill(x0 + 7, ry + 5, x0 + 11, ry + 9, a.isOnline() ? GOOD : 0xFF555E70);
-            String role = a.role() == null ? "-" : a.role().displayName;
+            String role = a.role() == null ? "-" : AgentNetClient.roleName(a);
             int barW = Math.max(24, Math.min(60, rowW / 5));
             int bx = x1 - barW - 4;
             int nameW = Math.max(30, (bx - (x0 + 15)) * 3 / 5 - 4);
@@ -215,7 +215,7 @@ final class MasterScreen extends Screen {
 
     private static List<String> details(Agent a) {
         List<String> out = new ArrayList<>();
-        out.add("§7Role  §f" + (a.role() == null ? "none" : a.role().displayName)
+        out.add("§7Role  §f" + (a.role() == null ? "none" : AgentNetClient.roleName(a))
                 + "§7   Health §f" + (Float.isNaN(a.health()) ? "?" : Math.round(a.health())) + "/" + Math.round(a.maxHealth())
                 + "§7   Food §f" + a.food() + "/20");
         out.add(String.format("§7Where §f%d %d %d §7in %s", Math.round(a.x()), Math.round(a.y()), Math.round(a.z()),
