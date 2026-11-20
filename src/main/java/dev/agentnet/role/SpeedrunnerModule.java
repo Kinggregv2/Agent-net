@@ -1461,7 +1461,14 @@ public final class SpeedrunnerModule implements RoleModule {
             // The block right under its feet (a.y 37.0 stands on y 36; the "- 1" here read y 35, solid copper ore, and it
             // hovered over its step for 30 s until the staircase was thrown away, 4 blocks above the pool: run 1120g).
             BlockState below = w.get(feet.getX(), (int) Math.floor(a.y() - 0.01), feet.getZ());
-            if (below != null && Rules.canWalkThrough(below) && below.getFluidState().isEmpty()) { if (ticks % 10 == 0) a.jump(); return true; }
+            if (below != null && Rules.canWalkThrough(below) && below.getFluidState().isEmpty()) {
+                // On the very edge of its step (x 61.07: its body still on the step before, 1.8 up), a hop lands it back on the
+                // same edge: 30-40 s on every step (run 1120n). Into the middle of the step first, then the hop.
+                double cx = feet.getX() + 0.5 - a.x(), cz = feet.getZ() + 0.5 - a.z();
+                if (cx * cx + cz * cz > 0.04) a.stepToward(feet.getX() + 0.5, feet.getZ() + 0.5);
+                else if (ticks % 10 == 0) a.jump();
+                return true;
+            }
         }
         if (ticks - stairAt > 20 * 30) { // stuck on this step: say why, start again from here
             StringBuilder sb = new StringBuilder();
