@@ -1726,6 +1726,40 @@ public final class Agent implements AgentHandle {
                     srv.isUnderSpawnProtection((net.minecraft.server.level.ServerLevel) lvl, at, p));
         } catch (RuntimeException e) { return "(" + e + ")"; }
     }
+
+    private long inBlockSaidAt;
+
+    /**
+     * Sand or gravel (or anything solid) where its eyes or feet are: dug out at once, before anything else, like a player
+     * does. Two agents suffocated within two seconds of each other (run 1120i, 7 min in): digging up out of a hole under
+     * sand, the next block fell into their head space and they stood still waiting for it to "settle". True while busy.
+     */
+    private boolean inBlockReflex() {
+        var w = openWorld();
+        if (w == null) return false;
+        Vec3 p = pos.position();
+        int x = (int) Math.floor(p.x), z = (int) Math.floor(p.z);
+        int[] ys = {(int) Math.floor(p.y + 1.62), (int) Math.floor(p.y + 0.01)};
+        for (int y : ys) {
+            BlockState s = w.get(x, y, z);
+            if (s == null || s.isAir() || !s.getFluidState().isEmpty() || dev.agentnet.pathing.Rules.canWalkThrough(s)) continue;
+            if (s.getDestroySpeed(net.minecraft.world.level.EmptyBlockGetter.INSTANCE, BlockPos.ZERO) < 0) continue;
+            if (!s.isSuffocating(net.minecraft.world.level.EmptyBlockGetter.INSTANCE, BlockPos.ZERO)) continue;
+            BlockPos at = new BlockPos(x, y, z);
+            if (at.equals(digPos)) return true; // digging it already
+            if (isNavigating()) stopNavigation();
+            refusedUntil.remove(at); refusedAt.remove(at); // its life, not a block to leave for two minutes
+            baseBreakUntil = Math.max(baseBreakUntil, System.currentTimeMillis() + 2_000);
+            dev.agentnet.role.Gear.holdBestFor(this, s);
+            if (dig(x, y, z) < 0) return false;
+            if (System.currentTimeMillis() - inBlockSaidAt > 5_000) {
+                inBlockSaidAt = System.currentTimeMillis();
+                log("§e" + s.getBlock().getDescriptionId().replace("block.minecraft.", "") + " in its " + (y == ys[0] ? "head" : "feet") + " space: digging it out");
+            }
+            return true;
+        }
+        return false;
+    }
     private boolean groundUnder() {
         var w = openWorld();
         if (w == null) return true;
@@ -3149,7 +3183,7 @@ public final class Agent implements AgentHandle {
                 c.send(ServerboundClientTickEndPacket.INSTANCE);
                 tickEnded();
                 movedThisTick = false;
-                tickModule();
+                if (!inBlockReflex()) tickModule();
                 tickStuckWatch();
             }
         } else if (!c.isConnecting()) {
