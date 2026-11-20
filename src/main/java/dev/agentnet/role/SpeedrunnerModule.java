@@ -445,6 +445,10 @@ public final class SpeedrunnerModule implements RoleModule {
         if (!isMain(a)) { helper(a); return; }
         mainStage = stage; mainRods = count(a, "minecraft:blaze_rod"); mainPearls = count(a, "minecraft:ender_pearl");
         mainIronShort = Math.max(0, ironNeeded(a) - count(a, "minecraft:iron_ingot") - count(a, "minecraft:raw_iron"));
+        // The nether kit too, once the portal frame is up: its chestplate, leggings and boots (8, 7 and 4 iron) are asked of
+        // the crew like the buckets are (run 1120s: the frame done at 17.6 min, the main mining 19 iron for its kit alone).
+        { int kit = 0; int[] cost = {0, 8, 7, 4}; for (int s = 1; s <= 3; s++) if (!hasArmor(a, s)) kit += cost[s];
+          mainKitShort = stage.ordinal() >= Stage.LIGHT.ordinal() && !nether(a) ? Math.max(0, kit - count(a, "minecraft:iron_ingot") - count(a, "minecraft:raw_iron")) : 0; }
         mainNeedsFlint = count(a, "minecraft:flint_and_steel") == 0 && count(a, "minecraft:flint") == 0;
         { int best = -1; for (ItemStack s : a.inventory()) if (Gear.id(s).endsWith("_pickaxe")) best = Math.max(best, Gear.tier(s));
           mainNeedsCobble = best < 2 && count(a, "minecraft:cobblestone") + count(a, "minecraft:cobbled_deepslate") < 3; }
@@ -2857,7 +2861,8 @@ public final class SpeedrunnerModule implements RoleModule {
      * has it, past the iron stages, offline, or with the game beaten.
      */
     public static int crewIronNeed() {
-        if (MAIN == null || beaten() || mainStage.ordinal() > Stage.LIGHTER.ordinal()) return 0;
+        if (MAIN == null || beaten()) return 0;
+        if (mainStage.ordinal() > Stage.LIGHTER.ordinal()) { AgentHandle m = GathererModule.find(MAIN); return m == null || !m.isOnline() ? 0 : mainKitShort; }
         AgentHandle m = GathererModule.find(MAIN);
         return m == null || !m.isOnline() ? 0 : mainIronShort;
     }
@@ -2902,6 +2907,7 @@ public final class SpeedrunnerModule implements RoleModule {
 
     /** What the main still needs (set by the main every tick): iron short of its 8, and whether it has flint yet. */
     private static volatile int mainIronShort = 99;
+    private static volatile int mainKitShort;
     /** The main has no stone pickaxe (or better) and not the 3 cobblestone for one. */
     private static volatile boolean mainNeedsCobble;
     private static volatile boolean mainNeedsFlint = true;
