@@ -215,7 +215,8 @@ O38. THE MAIN'S STAIRCASE STARTED AGAIN AT EVERY STEP (runs 1120g and 1120m): "d
 O44. THE MAIN HOVERED ON THE EDGE OF EVERY STEP FOR 30-40 S (run 1120n, staircase to a pool
     17 blocks down): at x 61.07 over its step (the right block, but its body still on the step
     before, 1.8 blocks up), and the hop for it lands it back on the same edge. Fixed 04:04: into
-    the middle of the step first, then the hop. Built, not deployed yet.
+    the middle of the step first, then the hop. Run 1120n then hopped on one step for 14 minutes
+    (04:00-04:14) with the old code. Deployed in run 1120o.
 
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
@@ -232,11 +233,11 @@ O41. AN AGENT DUG AT "STONE IN ITS HEAD SPACE" 79 TIMES (run 1120m, sweaty_range
 
 O42. A HELPER "MADE A STONE PICKAXE" FOR MINUTES WITH NO WOOD (run 1120n, MrObsidian: 81
     cobblestone, a crafting table, no sticks, planks or logs; AFK). Fixed 03:55: with no wood for
-    the two sticks, it chops 2 logs first. Built, not deployed yet.
+    the two sticks, it chops 2 logs first. Deployed in run 1120o.
 
 O43. A HELPER WALKED AT A FURNACE IT COULDN'T REACH (run 1120n, sam_waffle2012, a furnace in its
     own pack): its smelting started again every 15 s, for minutes (AFK). Fixed 03:55: carrying a
-    furnace, it smelts in its own, like it does with its own crafting table. Built, not deployed.
+    furnace, it smelts in its own, like it does with its own crafting table. Deployed in run 1120o.
 
 --- FIXED ON 2026-11-19 (seen working in a run unless it says otherwise) ----------
 
