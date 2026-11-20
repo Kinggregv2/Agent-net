@@ -165,6 +165,11 @@ O32. A DISTRIBUTOR SEALED IN A 1x2 POCKET (run 1120h, melon16, 8 min in): every 
     not known yet: since 02:35 the "refused three times" line also prints the server's own view
     (its block, where it has the agent, on the ground, under water, mining fatigue, its dig speed,
     spawn protection). Next: read that line in run 1120i and fix the cause.
+    Run 1120i, first answers from the server's view: (a) granite 7.2 blocks from the agent's eyes,
+    out of reach (the server takes 4.5 + 1): since 02:47 a dig out of reach is not sent at all
+    ("not digging ...: out of reach"). (b) stone the server already has as air: the agent's
+    picture of the blocks was out of date, and a refusal puts the old block back in it. Still
+    open; melon16's case (dirt over its head) not seen again yet.
 
 O33. TWO AGENTS SUFFOCATED IN SAND WITHIN 2 SECONDS (run 1120i, 7 min in: MrObsidian and
     sweaty_ranger, a few blocks apart, digging their way up out of holes under sand and gravel).
