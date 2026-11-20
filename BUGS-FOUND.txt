@@ -427,6 +427,11 @@ O78. THE MAIN'S STAIRCASE MADE ONE BLOCK A MINUTE (run 1120zi, 10:19-10:24): aft
     last doing (digging, a gap in its picture of the blocks, plugging water, stepping, and whether
     a dig-out or navigation was running). With O77's stuck-watch change (it no longer steps in on
     an agent digging in place), run 1120zj.
+    FOUND 10:45 (run 1120zj, the new line: "last: digging"): each dig took far too long. Every refused
+    dig stretches all later digs 1.6 times (up to 6.5), and the stretch only shrank when the server
+    sent the dug block back, which it mostly does not; with the 5x off-the-ground penalty on a
+    staircase hop, a stone block took about 18 s, two blocks a step overran the 30 s limit. Fixed
+    10:45: the stretch wears off by a fifth every 30 s. Built, not deployed (run 1120zj left running).
 
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
