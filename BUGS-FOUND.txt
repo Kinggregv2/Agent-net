@@ -486,6 +486,11 @@ O86. THE MAIN'S PACK WAS FULL AND IT COULD NOT PICK UP ITS GOLD (run 1120zl, 12:
     like). Built, not deployed. In run 1120zl its pack was cleared by hand (/clear) so the run goes
     on.
 
+O87. THE MAIN HUNTED FOR ITS 32 FOOD DOWN IN ITS MINE (run 1120zl, 13:12-13:25, kit done but the
+    food: 8 of 32, then 7, at y 8-15, no animals down there, no distributor online). Fixed 13:25:
+    underground and short of food, it goes up to the surface first. Built, not deployed. In run
+    1120zl it was given 32 cooked beef by hand (/give) so the run goes on to the nether.
+
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
     Fixed 03:35: stopped only once it has its shield. Built, run 1120n.
