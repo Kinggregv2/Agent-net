@@ -1691,6 +1691,8 @@ public final class Agent implements AgentHandle {
             if (e.sequence > sequence) continue;
             predicted.remove(e);
             chunks.blockChanged(e.pos.getX(), e.pos.getY(), e.pos.getZ(), e.was);
+            // Sand or gravel "kept" is the next block that fell into the gap, not a refusal: not counted.
+            if (e.was.getBlock() instanceof net.minecraft.world.level.block.FallingBlock) { fallSettleUntil = System.currentTimeMillis() + 1500; continue; }
             digSlow = Math.min(6.5, digSlow * 1.6);
             // The same block refused again and again is not about time: three times, and it is left alone for two minutes
             // (run 1119j: one stone block refused 76 times, a gravel block 70, a crafting table 34; 502 in 40 minutes).
@@ -1729,7 +1731,9 @@ public final class Agent implements AgentHandle {
         // move up into the gap for a second, while the next block falls into it (moving up into falling sand is what
         // suffocates; refusing to dig it left an agent under water under a sand ceiling with no way out, run 1119k).
         { Vec3 me = pos.position(); int mx = (int) Math.floor(me.x), mz = (int) Math.floor(me.z), my = (int) Math.floor(me.y + 0.01);
-          if (x == mx && z == mz && y > my && world != null) { BlockState over = world.get(x, y + 1, z);
+          // Any block it digs with sand or gravel resting on it (the next block falls into the gap, beside it too: it
+          // stepped into one as it filled and suffocated, run 1120e), or sand or gravel over its own head.
+          if (world != null && (x == mx && z == mz && y > my || Math.abs(x - mx) <= 1 && Math.abs(z - mz) <= 1 && y >= my && y <= my + 2)) { BlockState over = world.get(x, y + 1, z);
             if (state.getBlock() instanceof net.minecraft.world.level.block.FallingBlock || over != null && over.getBlock() instanceof net.minecraft.world.level.block.FallingBlock) fallSettleUntil = System.currentTimeMillis() + 1500; } }
         // Never the base: whatever asks for it (a miner's tunnel, room for a crafting table, a way out), a block that is
         // part of the building stays, unless it is the builder's own work or the last-resort way out of a hole in it. The
