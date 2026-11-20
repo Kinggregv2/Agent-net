@@ -217,6 +217,8 @@ O44. THE MAIN HOVERED ON THE EDGE OF EVERY STEP FOR 30-40 S (run 1120n, staircas
     before, 1.8 blocks up), and the hop for it lands it back on the same edge. Fixed 04:04: into
     the middle of the step first, then the hop. Run 1120n then hopped on one step for 14 minutes
     (04:00-04:14) with the old code. Deployed in run 1120o (and 1120p).
+    SEEN WORKING with O38 (run 1120p, 04:31-04:35): the staircase went from y 72 to y 32 in under
+    4 minutes, no restarts, no hovering.
 
 O45. TWO DISTRIBUTORS SHOT DEAD BY SKELETONS WITHOUT A REACTION (run 1120n: cedar_zarso2010
     03:57, melon16 04:10, "hurt and out of food" 3 s before): the "leave the game when too hurt"
@@ -227,6 +229,11 @@ O46. THE SCOUT NOT HIRED AT THE CAP (run 1120p): "a scout to find one, but the c
     of 14" every 20 s; at the cap only a farmer or fisher with nothing to do, a third distributor
     or a guard may be moved. Fixed 04:25: like the speedrunner's own needs, the scout may take a
     looter, a pickup agent, a hunter, a fisher or a miner (never one on iron). Built, not deployed.
+
+O47. "NO ROOM FOR ITS CRAFTING TABLE HERE: DIGGING OUT A SPOT" EVERY 10 S, NOTHING DUG (run
+    1120p, itsCyber, AFK on its nether kit): the dig-a-spot step stopped when it saw a free spot,
+    but counted spots where placing the table had already failed (the placing skips those). Fixed
+    04:35: it skips them too, so it digs. Built, not deployed.
 
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
