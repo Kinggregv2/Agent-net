@@ -1893,6 +1893,13 @@ public final class Agent implements AgentHandle {
     void afk() {
         if (module != null) mc.execute(() -> { try { if (module != null) module.circling(this, "AFK"); } catch (RuntimeException e) { AgentNet.LOG.warn("[{}] afk hook failed", name, e); } });
     }
+
+    /** Lava in this block or any block touching it. */
+    private static boolean lavaBeside(dev.agentnet.pathing.BlockSource w, int x, int y, int z) {
+        int[][] d = {{0, 0, 0}, {1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1}};
+        for (int[] o : d) { BlockState s = w.get(x + o[0], y + o[1], z + o[2]); if (s != null && s.getFluidState().is(net.minecraft.tags.FluidTags.LAVA)) return true; }
+        return false;
+    }
     private boolean groundUnder() {
         var w = openWorld();
         if (w == null) return true;
@@ -2692,6 +2699,9 @@ public final class Agent implements AgentHandle {
             if (blocked) continue;
             // With its pickaxe, not its fist. A block it may not dig (the server refused it three times, or it is the base):
             // a wall, the next way round. Taken as dug, it walked into it again and again (run 1120a: 45 put-backs).
+            // Never a block with lava beside it: dug, the lava runs into its hole (the main dug its way toward a sheep beside its
+            // lava pool and burned, run 1120zl, 24 min in). That way is a wall.
+            if (dig != null && lavaBeside(w, dig[0], dig[1], dig[2])) continue;
             if (dig != null) { dev.agentnet.role.Gear.holdBestFor(this, w.get(dig[0], dig[1], dig[2])); if (dig(dig[0], dig[1], dig[2]) >= 0) return; continue; }
             // This step is open now: step into it (straight up first if it's a step up, then across:
             // the same kind of short move the walker makes), then plan the whole trip again from there.
