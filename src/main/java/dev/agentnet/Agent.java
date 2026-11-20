@@ -533,11 +533,19 @@ public final class Agent implements AgentHandle {
                 // and the creeper beside it blew it up). Out of the game until it has wandered off.
                 boolean creeperNear = false;
                 for (dev.agentnet.role.Seen s : entitiesNear(7)) if (s.name().equals("creeper")) creeperNear = true;
-                if (!(creeperNear && !weapon) && (weapon && thp >= 8 || tool && thp >= 12)) return false; // it fights
+                // A crowd (three or more in sight within 12 blocks, at night mostly): not a fight for one agent. Run 1120r:
+                // MrObsidian fought a zombie, a skeleton and a spider at once, and a creeper blew it up.
+                int crowd = 0;
+                for (dev.agentnet.role.Seen s : entitiesNear(12)) {
+                    if (s.player() || !s.hostile() || HARMLESS.contains(s.name()) && !s.angry()) continue;
+                    if (dev.agentnet.role.Sight.clear(tw, at.x, at.y + 1.62, at.z, s.pos().x, s.pos().y + 1.0, s.pos().z)) crowd++;
+                }
+                boolean mobbed = crowd >= 3;
+                if (!(creeperNear && !weapon) && !mobbed && (weapon && thp >= 8 || tool && thp >= 12)) return false; // it fights
                 callForHelp(threat);
                 int runs = AWAY_RUNS.merge(name.toLowerCase(), 1, Integer::sum);
                 long away = Math.min(120_000L, 45_000L * runs);
-                log("§ea " + threat.name().replace('_', ' ') + " is coming and it " + (creeperNear && !weapon ? "has no sword or axe for a creeper" : weapon || tool ? "is too hurt to fight (" + Math.round(thp) + " hp)" : "has nothing to fight with")
+                log("§ea " + threat.name().replace('_', ' ') + " is coming and it " + (mobbed ? "is one against " + crowd + " mobs" : creeperNear && !weapon ? "has no sword or axe for a creeper" : weapon || tool ? "is too hurt to fight (" + Math.round(thp) + " hp)" : "has nothing to fight with")
                         + ": leaving the game for " + away / 1000 + " s");
                 burrowAgainAt = System.currentTimeMillis() + 10_000;
                 final long awayMs = away;
