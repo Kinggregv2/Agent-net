@@ -210,8 +210,11 @@ public final class SpeedrunnerModule implements RoleModule {
     private BlockPos carcass;
 
     /** Food for healing: it kills the animals it passes, picks up the meat and cooks it in its own furnace. True while busy with that. */
-    private boolean feed(AgentHandle a) {
-        if (nether(a) || stage == Stage.CAST || stage == Stage.LIGHT || stage == Stage.ENTER) return false;
+    private boolean feed(AgentHandle a) { return feed(a, 6, false); }
+
+    /** Food up to "want" (raw counted, it gets cooked); "kit": also during the portal stages (the nether kit). */
+    private boolean feed(AgentHandle a, int want, boolean kit) {
+        if (nether(a) || !kit && (stage == Stage.CAST || stage == Stage.LIGHT || stage == Stage.ENTER)) return false;
         int ready = 0, rawN = 0, rawAll = 0;
         String raw = null;
         for (ItemStack s : a.inventory()) {
@@ -241,7 +244,7 @@ public final class SpeedrunnerModule implements RoleModule {
         // Raw meat in its pack, nothing left to chase: into the furnace (three tries, then it eats it as it is).
         // Only with a furnace, or the 8 cobblestone for one: without, the crafter skipped the recipe ("doesn't know how")
         // three times over and the meat was never cooked. Until then the raw meat is kept (and eaten raw if it must).
-        if (prey < 0 && raw != null && (nearest == null || ready + rawAll >= 6) && MakerModule.canHaveFurnace(a)) {
+        if (prey < 0 && raw != null && (nearest == null || ready + rawAll >= want) && MakerModule.canHaveFurnace(a)) {
             if (rawN != cookCount) { cookCount = rawN; cookTries = 0; }
             if (cookTries < 3 && ticks - cookAt > 200) {
                 cookAt = ticks; cookTries++;
@@ -253,7 +256,7 @@ public final class SpeedrunnerModule implements RoleModule {
             }
             return false;
         }
-        if (ready + rawAll >= 6 || ticks < noHuntUntil) return false;
+        if (ready + rawAll >= want || ticks < noHuntUntil) return false;
         if (t == null) t = nearest;
         if (t == null) return false;
         if (prey != t.id()) { prey = t.id(); huntStart = ticks; }
@@ -4167,10 +4170,38 @@ public final class SpeedrunnerModule implements RoleModule {
     }
 
     /** Wears it all: a golden helmet, and iron (or better) on chest, legs and feet. */
-    static boolean netherKit(AgentHandle a) {
+    static boolean netherArmorOn(AgentHandle a) {
         List<ItemStack> on = a.armor();
         if (on.size() < 4) return false;
         return Gear.id(on.get(0)).equals("minecraft:golden_helmet") && ironOrBetter(on.get(1)) && ironOrBetter(on.get(2)) && ironOrBetter(on.get(3));
+    }
+
+    /** A tool of this kind, iron or better, in its pack. */
+    private static boolean ironTool(AgentHandle a, String kind) {
+        for (ItemStack s : a.inventory()) if (kind.equals(Gear.toolType(s)) && ironOrBetter(s)) return true;
+        return false;
+    }
+
+    /** Food ready to eat (cooked meat and the like; no golden apples, rotten flesh or spider eyes). */
+    private static int readyFood(AgentHandle a) {
+        int n = 0;
+        for (ItemStack s : a.inventory()) {
+            String id = Gear.id(s).replace("minecraft:", "");
+            if (MEAT.contains(id)) continue;
+            if (Gear.isFood(s) && !id.contains("golden_apple") && !id.equals("rotten_flesh") && !id.equals("spider_eye")) n += s.getCount();
+        }
+        return n;
+    }
+
+    /** At least this much food for the nether. */
+    static final int KIT_FOOD = 32;
+
+    /**
+     * The whole nether kit (the user, 2026-11-20: "iron boots, iron leggings, iron chestplate, gold helmet, iron sword, iron
+     * pickaxe, shield and at least 32 cooked meat each"): for the main and every helper before anyone goes through.
+     */
+    static boolean netherKit(AgentHandle a) {
+        return netherArmorOn(a) && ironTool(a, "sword") && ironTool(a, "pickaxe") && hasShield(a) && readyFood(a) >= KIT_FOOD;
     }
 
     /** Not in its recipe book: queued to be made by hand on a crafting table (the pattern is known to the crafter). */
@@ -4181,6 +4212,24 @@ public final class SpeedrunnerModule implements RoleModule {
     private int kitAt = -1000;
 
     /** Gets and puts on what is missing of the nether kit. True while it is busy with it; false once it wears it all. */
+
+    private int kitFoodAskAt = -100_000, kitWanderAt, kitFoodSaid = -1;
+
+    /**
+     * The kit's food: 32 ready to eat. It asks the crew for what it lacks (once a minute), hunts the animals it sees and
+     * cooks their meat, and with none in sight walks on to find some. True while busy with that.
+     */
+    private boolean kitFood(AgentHandle a) {
+        int have = readyFood(a);
+        if (have >= KIT_FOOD) return false;
+        if (kitMining) { mine(a, null); kitMining = false; }
+        status = "getting food for the nether (" + have + " of " + KIT_FOOD + ")";
+        if (have / 8 != kitFoodSaid) { kitFoodSaid = have / 8; a.log("[speedrun] " + status); }
+        if (ticks - kitFoodAskAt > 1200) { kitFoodAskAt = ticks; BuilderModule.requestMaterial(a, "food", KIT_FOOD - have); }
+        if (feed(a, KIT_FOOD, true)) return true;
+        if (!a.isNavigating() && ticks - kitWanderAt > 300 && a.openWorld() instanceof BlockView w) { kitWanderAt = ticks; wanderAhead(a, w, 24); }
+        return true;
+    }
     private boolean netherArmor(AgentHandle a) {
         if (wearArmor(a)) return true;
         if (netherKit(a)) { if (kitMining) { mine(a, null); kitMining = false; } return false; }
@@ -4192,13 +4241,32 @@ public final class SpeedrunnerModule implements RoleModule {
             if (have >= 0 && ironOrBetter(a.inventory().get(have))) return true; // in its pack: wearArmor puts it on next
             item = "minecraft:iron_" + ARMOR_SLOTS[slot];
         }
-        if (item == null) {
+        if (item == null && !Gear.id(on.get(0)).equals("minecraft:golden_helmet")) {
             if (count(a, "minecraft:golden_helmet") > 0) return true; // in its pack: wearArmor puts it on next
             item = "minecraft:golden_helmet";
         }
+        // Then its tools and the shield, and last the food (the rest of the kit, 2026-11-20).
+        if (item == null) {
+            if (!ironTool(a, "sword")) item = "minecraft:iron_sword";
+            else if (!ironTool(a, "pickaxe")) item = "minecraft:iron_pickaxe";
+            else if (!hasShield(a)) item = "minecraft:shield";
+            else return kitFood(a);
+        }
+        // Wood for the handle, or the shield's six planks.
+        if (!item.contains("helmet") && !item.contains("chestplate") && !item.contains("leggings") && !item.contains("boots")) {
+            int wood = 0;
+            for (ItemStack s : a.inventory()) { String id = Gear.id(s); if (id.endsWith("_planks")) wood += s.getCount(); else if ((id.endsWith("_log") || id.endsWith("_stem")) && !id.contains("stripped")) wood += 4 * s.getCount(); else if (id.equals("minecraft:stick")) wood += s.getCount() / 2; }
+            if (wood < (item.endsWith("shield") ? 6 : 2)) {
+                status = "chopping wood for its " + item.substring(10).replace('_', ' ') + " (the nether kit)";
+                if (!status.equals(kitSaid)) { kitSaid = status; a.log("[speedrun] " + status); }
+                if (minerJob != null && miner.idle() && miner.status().startsWith("done") && ticks - jobRestart > 100) { minerJob = null; jobRestart = ticks; }
+                mine(a, "mine 2 logs"); kitMining = true; miner.tick(a);
+                return true;
+            }
+        }
         boolean gold = item.equals("minecraft:golden_helmet");
         String ingot = gold ? "minecraft:gold_ingot" : "minecraft:iron_ingot", raw = gold ? "minecraft:raw_gold" : "minecraft:raw_iron";
-        int cost = gold ? 5 : item.endsWith("chestplate") ? 8 : item.endsWith("leggings") ? 7 : 4;
+        int cost = gold ? 5 : item.endsWith("chestplate") ? 8 : item.endsWith("leggings") ? 7 : item.endsWith("boots") ? 4 : item.endsWith("pickaxe") ? 3 : item.endsWith("sword") ? 2 : 1;
         int ingots = count(a, ingot), rawN = count(a, raw);
         String name = item.substring(10).replace('_', ' ');
         if (ingots >= cost) {
@@ -4215,7 +4283,7 @@ public final class SpeedrunnerModule implements RoleModule {
             if (ticks - kitAt > 200) { kitAt = ticks; crafter.onTask(a, "make " + ingot.substring(10) + " " + (cost - ingots)); }
             return true;
         }
-        status = "mining " + (gold ? "gold" : "iron") + " for its " + name + " (the nether kit: full iron and a golden helmet)";
+        status = "mining " + (gold ? "gold" : "iron") + " for its " + name + " (the nether kit)";
         if (!status.equals(kitSaid)) { kitSaid = status; a.log("[speedrun] " + status); }
         if (minerJob != null && miner.idle() && miner.status().startsWith("done") && ticks - jobRestart > 100) { minerJob = null; jobRestart = ticks; }
         mine(a, "mine " + (cost - ingots - rawN) + (gold ? " gold_ore" : " iron_ore"));
