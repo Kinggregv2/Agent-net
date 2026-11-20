@@ -358,6 +358,7 @@ public final class SpeedrunnerModule implements RoleModule {
         // main's chunks were freed while it was dug in for the night and, not "keeping" its world, it never reconnected
         // for them, and stood blind for 50 minutes).
         a.keepWorld(true);
+        if (a.role() == Role.SPEEDRUNNER) FIRST_SEEN.putIfAbsent(a.name(), System.currentTimeMillis()); // its start, for the first-is-main rule
         if (ticks % 1200 == 0) Clock.save(a.name(), System.currentTimeMillis() - startedAt);
         stageTicks++;
         if (ticks < 60) return; // a moment for its inventory to arrive
