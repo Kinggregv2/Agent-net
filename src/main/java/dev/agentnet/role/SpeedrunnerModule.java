@@ -3295,6 +3295,18 @@ public final class SpeedrunnerModule implements RoleModule {
     private boolean upTrip;
     private double upFromY;
 
+    /**
+     * Sky shows through this block: air, water, leaves (the user: "with the exception of leaves, that would still count
+     * exposed to the sky"), logs of the same tree, and anything without a collision box (grass, vines, moss, snow layers,
+     * leaf litter). By the block itself, not its item: blocks whose item is air or named otherwise counted as rock, and the
+     * main went "up to the surface" while standing on it (2026-11-20).
+     */
+    private static boolean skyThrough(BlockState s) {
+        if (s.isAir() || !s.getFluidState().isEmpty()) return true;
+        if (s.is(net.minecraft.tags.BlockTags.LEAVES) || s.is(net.minecraft.tags.BlockTags.LOGS)) return true;
+        return s.getCollisionShape(net.minecraft.world.level.EmptyBlockGetter.INSTANCE, BlockPos.ZERO).isEmpty();
+    }
+
     /** Rock over its head (not just a tree): it is in a cave or a tunnel. */
     private static boolean underground(AgentHandle a) {
         if (!(a.openWorld() instanceof BlockView w)) return false;
@@ -3302,9 +3314,7 @@ public final class SpeedrunnerModule implements RoleModule {
         for (int dy = 2; dy <= 48; dy++) {
             BlockState s = w.get(x, y + dy, z);
             if (s == null) return false;
-            if (s.isAir() || !s.getFluidState().isEmpty()) continue;
-            String id = Gear.id(new ItemStack(s.getBlock().asItem()));
-            if (id.endsWith("_leaves") || id.endsWith("_log") || id.endsWith("_wood") || id.contains("vine")) continue;
+            if (skyThrough(s)) continue;
             return true;
         }
         return false;
@@ -3315,9 +3325,7 @@ public final class SpeedrunnerModule implements RoleModule {
         for (int dy = 1; dy <= 48; dy++) {
             BlockState s = w.get(p.getX(), p.getY() + dy, p.getZ());
             if (s == null) return true; // above the loaded world: sky
-            if (s.isAir() || !s.getFluidState().isEmpty()) continue;
-            String id = Gear.id(new ItemStack(s.getBlock().asItem()));
-            if (id.endsWith("_leaves") || id.endsWith("_log") || id.endsWith("_wood") || id.contains("vine")) continue;
+            if (skyThrough(s)) continue;
             return false;
         }
         return true;
