@@ -136,7 +136,8 @@ public final class Civ {
     private static boolean first(Need n) {
         return n.role() == Role.SPEEDRUNNER || n.role() == Role.RESCUER || n.role() == Role.FALLOFF || runnerNeed(n) || hungerNeed(n) || n.role() == Role.KEEPER || n.role() == Role.BUILDER || n.role() == Role.MINER && n.why().startsWith("the base needs")
                 || n.role() == Role.DISTRIBUTOR && n.why().startsWith("the base is going up")
-                || n.role() == Role.EXPLORER && "scout".equals(n.task()); // the lava scout: for the speedrunners, not learned like the rest
+                || n.role() == Role.EXPLORER && "scout".equals(n.task()) // the lava scout: for the speedrunners, not learned like the rest
+                || n.role() == Role.WARRIOR && n.why().contains("(hitlist)"); // a hitlist player near one of ours: a fighter even at the cap (run 1120v test)
     }
 
     private static void round() {
