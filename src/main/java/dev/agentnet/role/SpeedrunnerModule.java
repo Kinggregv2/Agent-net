@@ -1487,6 +1487,18 @@ public final class SpeedrunnerModule implements RoleModule {
             if (wet && poolDeep && descendTop != null) { badDescend.add(descendTop); descendTop = null; a.log("[speedrun] water it cannot plug on its way down: another place to dig down from"); }
             stairOrigin = null; return true;
         }
+        // Water touching any of the three (beside them, or over the top one): plugged first. Only the step itself was, then
+        // the plug was dug out like stone and the water ran straight back in from the side: three staircases given up in
+        // a row in one underground water layer (run 1120t, y 53-55, 10 minutes).
+        for (int dy = 2; dy >= 0; dy--) {
+            BlockPos b = feet.above(dy);
+            for (Direction d : Direction.values()) {
+                if (d == Direction.DOWN || d == Direction.UP && dy < 2) continue;
+                BlockPos nb = b.relative(d);
+                BlockState ns = w.get(nb.getX(), nb.getY(), nb.getZ());
+                if (ns != null && ns.getFluidState().is(net.minecraft.tags.FluidTags.WATER)) { status = "plugging the water beside its staircase"; plug(a, w, nb); return true; }
+            }
+        }
         // Its three blocks: plugged if wet, dug if solid.
         for (int dy = 2; dy >= 0; dy--) {
             BlockPos b = feet.above(dy);
