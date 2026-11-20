@@ -426,7 +426,10 @@ public final class Civ {
             if (a.role() != null && !java.util.Set.of(Role.DISTRIBUTOR, Role.WARRIOR, Role.RESCUER, Role.SPEEDRUNNER, Role.FALLOFF, Role.BREWER, Role.PICKUP, Role.FARMER, Role.KEEPER).contains(a.role()) && a.moduleIdle()) idleSince.putIfAbsent(a.name, now0); // waiting is their job
             else idleSince.remove(a.name);
         }
-        for (Agent a : crew) {
+        // The starting crew is hired, never reshuffled: a distributor slot took the miner just hired, and "miner 2 of 3"
+        // made the same miner a miner again every 3 s (run 1120z).
+        boolean starting = n.why().startsWith("the starting crew") || n.why().startsWith("a runner to beat the game");
+        if (!starting) for (Agent a : crew) {
             if (pickedThisRound.contains(a.name)) continue; // already got a job this round
             if (a.role() == null) { pick = a; break; }
             // Nothing to do in its role for 5 minutes (not a warrior): it takes the job instead of a newcomer.
