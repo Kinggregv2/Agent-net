@@ -320,6 +320,19 @@ O61. THE MAIN "GOES UP TO THE SURFACE" WHILE ON THE SURFACE (the user, 2026-11-2
     8.4 min, its column open to the sky right after); whether that one was real is not known: since
     08:01 the line names the block it took for a roof and where (not deployed yet).
 
+O62. THE MAIN GAVE A POOL UP EVERY 20 S AND PICKED THE NEXT BLOCK OF IT (run 1120zd, 8.4 min on):
+    "no dry ground to dig down from above the pool", in a forest: the dry-ground check stopped at
+    the first leaves it met in every column, and a failed site was only skipped at its exact block.
+    Fixed 08:03: through leaves to the ground under them, and nothing within 8 blocks of a failed
+    site is picked again. Built, NOT deployed (the user: don't relaunch this run).
+
+O63. GOING IN CIRCLES COUNTS AS STUCK (the user, 2026-11-20 08:02). Every 10 s each agent's spot is
+    noted (6 minutes kept); back within 2.5 blocks of a spot after being over 6 blocks away is a
+    return, and three returns mean "going in circles: counts as stuck": its trip is dropped and
+    its job told (the main gives up the portal site it keeps coming back to). Not for jobs that
+    return on purpose (distributors, keepers, builders, farmers, fishers, guards...) nor spots in
+    the base. Built, NOT deployed (don't relaunch this run).
+
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
     Fixed 03:35: stopped only once it has its shield. Built, run 1120n.
