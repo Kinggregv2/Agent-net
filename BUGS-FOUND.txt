@@ -526,6 +526,13 @@ O93. THE MAIN WITHOUT WOOD FOR 20 MINUTES (run 1120zm, after its death at 14:14,
     a main that has no crafting table and under 8 planks' worth of wood. Built, run 1120zn (run
     1120zm stopped: the main could not get started again).
 
+O94. THE PATH FINDER WAS "SCARED OF LAVA" AT THE POOL (the user, 2026-11-20 14:46; many runs: "no way
+    to <the pool's shore> (60000 spots searched)" a few blocks off): every step next to lava cost as
+    much as 20 more blocks, and the speedrunner's goal at a pool is next to lava, so the search used
+    its whole budget on detours first. Fixed 14:47: within 6 blocks of the goal a step beside lava
+    costs 2 (elsewhere still 20; stepping into lava is never allowed). Built, not deployed (run
+    1120zn left running).
+
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
     Fixed 03:35: stopped only once it has its shield. Built, run 1120n.
