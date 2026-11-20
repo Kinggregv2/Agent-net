@@ -3880,6 +3880,8 @@ public final class SpeedrunnerModule implements RoleModule {
         return true;
     }
 
+    private final Tunnel shoreTunnel = new Tunnel();
+    private boolean shoreTunnelOn;
     private void cast(AgentHandle a) {
         BlockSource w = a.openWorld();
         if (w == null) return;
@@ -3895,7 +3897,20 @@ public final class SpeedrunnerModule implements RoleModule {
             // a flat 150 s it gave up on the pool it had just dug 60 blocks down to (run 1120d).
             if (++clearTicks > 20 * (150 + 6 * clear.size())) { clear.clear(); fail(a, "could not clear the shore at " + b.toShortString()); return; }
             status = "clearing the shore at " + b.toShortString() + " (" + clear.size() + " to go)";
-            if (b.distToCenterSqr(a.x(), a.y() + 1.62, a.z()) > 4.2 * 4.2) { if (!a.isNavigating() && clearTicks % 20 == 1) a.navigate(b.getX(), b.getY(), b.getZ(), 3); return; }
+            if (b.distToCenterSqr(a.x(), a.y() + 1.62, a.z()) > 4.2 * 4.2) {
+                // Walked to when there is a way; when not, a tunnel straight to it. Its staircase ends 6 to 20 blocks from an
+                // underground pool (on dry ground), in rock, and "no way there" every 10 s kept the main at the foot of
+                // its staircase for 6 minutes until it gave the pool up (run 1120p; run 1120d too).
+                if (shoreTunnelOn || clearTicks > 60 && !a.isNavigating()) {
+                    if (!shoreTunnelOn) { shoreTunnelOn = true; shoreTunnel.reset(); if (a.isNavigating()) a.stopNavigation(); a.log("[speedrun] tunnelling to the pool's shore at " + b.toShortString()); }
+                    Tunnel.Result r = shoreTunnel.tick(a, b);
+                    if (r == Tunnel.Result.BLOCKED) { shoreTunnelOn = false; clearTicks = Math.max(clearTicks, 61); a.log("§e[speedrun] the tunnel to the shore is blocked (" + shoreTunnel.problem() + "): walking again"); }
+                    return;
+                }
+                if (!a.isNavigating() && clearTicks % 20 == 1) a.navigate(b.getX(), b.getY(), b.getZ(), 3);
+                return;
+            }
+            shoreTunnelOn = false;
             if (a.isNavigating()) a.stopNavigation();
             if (a.isDigging() || clearTicks % 5 != 0) return;
             Gear.holdBestFor(a, cs);
