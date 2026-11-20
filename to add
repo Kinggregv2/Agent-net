@@ -3,31 +3,6 @@ Write new requests anywhere in this file, one per paragraph.
 
 From chat on 2026-11-19 (not started):
 
-1. Hitlist sighting. Any agent, even a farmer in the middle of nowhere, that sees a player on
-   the hitlist reports it. The fighters go after that player, by elytra if they have one. The
-   agent that saw them gets a "following" job: it keeps the target inside its render distance
-   and keeps reporting the updated position.
-
-   Progress on 1 (2026-11-20 03:46, built, not tested): every agent looks once a second for
-   hitlist players within 128 blocks. A new sighting is logged ("[hitlist] spotted ...") and sent
-   to every warrior. Warriors with nothing closer to fight go to the latest sighting (by elytra
-   when they have one: long trips already fly). The agent that saw it (not a speedrunner or a
-   fighter) follows it, keeping it 20 to 48 blocks off and reporting where it is, until it is
-   lost for a minute; then it goes back to its job. Not tested: it needs a player on the
-   hitlist in the world, and the only player on the LAN world is yours. Say if I may test it with
-   your player on the hitlist (the warriors would go after you), or test it yourself with
-   /agent hitlist.
-
-   TESTED 2026-11-20 06:57 (run 1120v, a Carpet fake player "Raider" put on the hitlist with the
-   new "/agent hitlist add <player>"): SEEN WORKING: samurai_ridra spotted it the same second
-   ("[hitlist] spotted Raider ...: told the fighters") and followed it (about 50 blocks when it
-   was moved 70 blocks off); others reported it too; a warrior went after the latest sighting
-   ("going after Raider (seen by MrObsidian, 34 blocks off)") and fought it. Two bugs found, both
-   fixed 06:58-06:59, not yet seen: no warrior was hired for it at the crew cap (now a hitlist
-   threat may take a third distributor or a guard), and Civ moved the warrior to miner in the
-   middle of its fight (guards are now never moved while a hitlist player is about). Not tested:
-   travel by elytra (no warrior had one).
-
 
 Make speedrunners looking for a lava pool be able to detect lava pools underground
 
