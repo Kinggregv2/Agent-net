@@ -535,7 +535,9 @@ public final class Civ {
         if (pendingTasks.isEmpty() || ++pendingTicks % 20 != 0) return;
         Need n = pendingTasks.peekFirst();
         for (Agent a : AgentNetClient.AGENTS.values()) {
-            if (a.isOnline() && a.onlineFor() > 10_000 && a.role() == n.role() && a.task.equals("idle")) {
+            if (a.isOnline() && a.onlineFor() > 10_000 && a.role() == n.role() && (a.task.equals("idle")
+                    // an explorer starts exploring by itself: the scout job goes to it all the same (run 1120m: it never did)
+                    || n.role() == Role.EXPLORER && a.task.startsWith("explore") && !a.task.equals(n.task()))) {
                 pendingTasks.pollFirst();
                 runTask(a.name, n);
                 return;
