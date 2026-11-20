@@ -243,6 +243,8 @@ O48. AT THE FOOT OF ITS STAIRCASE, THE MAIN NEVER REACHED THE POOL'S SHORE (run 
     there within 3 s, it digs a tunnel straight to the shore block (the 1x2 walkable tunnel the
     explorers use; never a block touching lava or water). Built, run 1120q.
     Run 1120r used a surface pool (no shore tunnel needed); still to be seen at an underground one.
+    SEEN WORKING (run 1120s, 05:43): "tunnelling to the pool's shore", the frame done at an
+    underground pool (13 blocks down) at 17.6 min. The first portal frame ever finished underground.
 
 O49. THE MAIN BLOWN UP BY A CREEPER IT HAD "GIVEN UP RUNNING FROM" (run 1120q, 15 min): after a
     minute of running from a mob, an agent goes back to work and ignores it for a minute, a
@@ -264,11 +266,15 @@ O52. THE MAIN WENT INTO THE NETHER WITHOUT ITS KIT AND A PIGLIN KILLED IT (run 1
     at 13.7 min, a record; in the nether at 13.8, a fortress and a blaze spawner found at once;
     "slain by Piglin" at 15.9). It lit the portal, went to mine iron for its chestplate right beside
     it, and walked in. Fixed 05:25: the nether kit (full iron, a golden helmet) before the portal is
-    lit. Built, run 1120s.
+    lit. SEEN WORKING (run 1120s, 05:43: the frame done, not lit, smelting iron for its kit).
 
 O53. AGENTS HANDING THINGS OVER DID NOT LOOK OUT FOR MOBS (run 1120r: ZarkaTheEmber, handing 43
     cobblestone, saw the creeper at 3 blocks and was blown up a second later): the hand-over ran
     before the threat check and skipped it. Fixed 05:25: threats first. Built, run 1120s.
+
+O54. THE MAIN GATHERS ITS NETHER KIT ALONE (run 1120s, 17.6 min: 5 iron of the 19 its chestplate,
+    leggings and boots take): the crew was asked for iron only up to the lighter. Since 05:45 the
+    kit's iron short is asked of the crew too, from the portal frame on. Built, not deployed yet.
 
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
