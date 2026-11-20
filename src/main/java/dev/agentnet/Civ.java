@@ -512,7 +512,9 @@ public final class Civ {
         if (first(need)) {
             // The base and its storage outrank a second distributor, then one guard.
             for (Agent a : crew) if (a.role() == Role.DISTRIBUTOR && count.getOrDefault(Role.DISTRIBUTOR, 0) > 2) return a; // never below two
-            for (Agent a : crew) if (a.role() == Role.WARRIOR) return a;
+            // Never a guard while a hitlist player is about: one was moved to miner in the middle of its fight (run 1120v test).
+            if (dev.agentnet.role.Sightings.latest("minecraft:overworld") == null && dev.agentnet.role.Sightings.latest("minecraft:the_nether") == null)
+                for (Agent a : crew) if (a.role() == Role.WARRIOR) return a;
         }
         for (Agent a : crew) {
             Role r = a.role();
