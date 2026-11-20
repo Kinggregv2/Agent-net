@@ -1483,7 +1483,7 @@ public final class SpeedrunnerModule implements RoleModule {
             // Only when there is water in that step: stuck over dry rock, it starts the staircase again from where it is (run
             // 1120g threw away a 27-step staircase over copper ore and climbed back to the surface).
             boolean wet = false;
-            for (int dy = -1; dy <= 2; dy++) { BlockState s = w.get(feet.getX(), feet.getY() + dy, feet.getZ()); if (s != null && !s.getFluidState().isEmpty()) wet = true; }
+            for (int dy = -1; dy <= 2; dy++) for (int ox = -1; ox <= 1; ox++) for (int oz = -1; oz <= 1; oz++) { if (ox != 0 && oz != 0) continue; BlockState s = w.get(feet.getX() + ox, feet.getY() + dy, feet.getZ() + oz); if (s != null && !s.getFluidState().isEmpty()) wet = true; } // beside it too
             if (wet && poolDeep && descendTop != null) { badDescend.add(descendTop); descendTop = null; a.log("[speedrun] water it cannot plug on its way down: another place to dig down from"); }
             stairOrigin = null; return true;
         }
