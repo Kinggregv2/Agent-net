@@ -77,6 +77,18 @@ final class BaseDelivery {
 
     /** Start a delivery if there's a builder to bring it to and something worth bringing (8+ items).
      *  allowGround: may leave it on the ground for a distributor (miners; a distributor carries it itself). */
+
+    /** More than six solid blocks over its head (up to 64): deep in a mine, where nobody else can easily get to it. */
+    static boolean deepUnder(AgentHandle a) {
+        if (!(a.openWorld() instanceof dev.agentnet.pathing.BlockSource w)) return false;
+        int x = (int) Math.floor(a.x()), y = (int) Math.floor(a.y() + 0.01), z = (int) Math.floor(a.z()), solid = 0;
+        for (int dy = 2; dy <= 64; dy++) {
+            var s = w.get(x, y + dy, z);
+            if (s == null) break;
+            if (Tunnel.solid(s) && !s.is(net.minecraft.tags.BlockTags.LEAVES) && !s.is(net.minecraft.tags.BlockTags.LOGS) && ++solid > 6) return true;
+        }
+        return false;
+    }
     boolean start(AgentHandle a, boolean allowGround) {
         AgentHandle b = builder(a);
         if (b == null) return false;
@@ -88,7 +100,9 @@ final class BaseDelivery {
         // can get here in time, and keep mining. Otherwise carry it over itself.
         // Only really far (48+ blocks): a miner in the quarry by the base carries its load the few blocks itself
         // (it pillars out of its pit), since a drop on the ground loses most of it.
-        boolean far = allowGround && AgentBus.distSq(a, b) > 48 * 48;
+        // Never deep underground: a load left at y 11-16 in its own mine kept two distributors tunnelling toward it for 4
+        // minutes each, load after load (run 1120zf). Down there it carries it back itself, up the tunnel it came down.
+        boolean far = allowGround && AgentBus.distSq(a, b) > 48 * 48 && !deepUnder(a);
         if (far) {
             BlockPos here = BlockPos.containing(a.x(), a.y() + 0.2, a.z());
             AgentHandle c = GroundDrops.courier(a, here);
