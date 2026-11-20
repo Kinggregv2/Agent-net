@@ -4079,9 +4079,11 @@ public final class SpeedrunnerModule implements RoleModule {
         if (in != null && in.getBlock() == Blocks.NETHER_PORTAL) { a.log("§a[speedrun] its nether portal is lit"); mainPortal = c(1, 0, 0); savePortal(mainPortal); mainPortalFront = c(1, 1, 1); mainPortal2 = c(2, 0, 0); mainPortalFront2 = c(2, 1, 1); go(a, Stage.ENTER); return; }
         // The nether kit (full iron, a golden helmet) before it is lit, not after: lit first, the main went off mining iron for
         // its chestplate beside it, walked into it, and a piglin killed it in the nether 2 minutes later (run 1120r, 15.9 min).
-        if (!nether(a) && netherArmor(a)) { stepTicks = 0; return; }
+        if (!nether(a) && netherArmor(a)) { stepTicks = 0; stageTicks = 0; return; } // (the clock too: it ran on while the kit was made, and the portal "didn't light" the moment it was done, run 1120s)
         if (stageTicks == 1) frameMap(a, "frame done: lighting it");
-        if (stageTicks > 20 * 90) { a.log("§e[speedrun] the portal didn't light: checking the frame again"); frameMap(a, "didn't light"); step = 0; stepTicks = 0; go(a, Stage.CAST); return; }
+        // 90 s, and a second for each block it has to walk back (the gold for its helmet took it 140 blocks off, run 1120s).
+        BlockPos lightAt = c(1, 1, 1);
+        if (stageTicks > 20 * (90 + (int) Math.sqrt(lightAt.distToCenterSqr(a.x(), a.y(), a.z())))) { a.log("§e[speedrun] the portal didn't light: checking the frame again"); frameMap(a, "didn't light"); step = 0; stepTicks = 0; go(a, Stage.CAST); return; }
         if (!standAt(a, w, c(1, 1, 1), 0)) { status = "getting into place to light the portal"; return; }
         // Water still running inside the frame puts the fire out: wait for it to drain.
         for (int dx = 1; dx <= 2; dx++) for (int dy = 0; dy <= 2; dy++) {
