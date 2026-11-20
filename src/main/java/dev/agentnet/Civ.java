@@ -51,7 +51,10 @@ public final class Civ {
         if (!enabled) return;
         if (think && (ticks + 1) % THINK_TICKS == 600 && System.currentTimeMillis() - MasterAgent.lastPlanAt > 5 * 60_000) MasterAgent.plan(summary(), 3, cap); // 30 s after a rules round
         if (ticks % (20 * 60) == 600) autosave();
-        if (++ticks % ROUND_TICKS != 0 && ticks != 40) return; // a first round right after switching on
+        // A first round at once (the speedrunner is hired the moment the world is up: the user, "the speedrunner should
+        // spawn right in"), and every 3 s until the starting crew of nine is in, then every 20 s.
+        int every = AgentNetClient.agentCount() < 9 ? 60 : ROUND_TICKS;
+        if (++ticks % every != 0 && ticks != 2) return;
         try {
             round();
         } catch (RuntimeException e) {
