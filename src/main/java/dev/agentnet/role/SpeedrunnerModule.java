@@ -446,6 +446,8 @@ public final class SpeedrunnerModule implements RoleModule {
         mainStage = stage; mainRods = count(a, "minecraft:blaze_rod"); mainPearls = count(a, "minecraft:ender_pearl");
         mainIronShort = Math.max(0, ironNeeded(a) - count(a, "minecraft:iron_ingot") - count(a, "minecraft:raw_iron"));
         mainNeedsFlint = count(a, "minecraft:flint_and_steel") == 0 && count(a, "minecraft:flint") == 0;
+        { int best = -1; for (ItemStack s : a.inventory()) if (Gear.id(s).endsWith("_pickaxe")) best = Math.max(best, Gear.tier(s));
+          mainNeedsCobble = best < 2 && count(a, "minecraft:cobblestone") + count(a, "minecraft:cobbled_deepslate") < 3; }
         mainNeedsFuel = stage.ordinal() <= Stage.SMELT.ordinal() && count(a, "minecraft:raw_iron") > 0 && !MakerModule.hasFuel(a);
         askCrewForIron(a);
         askCrewForWood(a);
@@ -2877,6 +2879,8 @@ public final class SpeedrunnerModule implements RoleModule {
 
     /** What the main still needs (set by the main every tick): iron short of its 8, and whether it has flint yet. */
     private static volatile int mainIronShort = 99;
+    /** The main has no stone pickaxe (or better) and not the 3 cobblestone for one. */
+    private static volatile boolean mainNeedsCobble;
     private static volatile boolean mainNeedsFlint = true;
     /** The main has raw iron to smelt and nothing to burn: the flint helper (its flint done) brings it coal. */
     private static volatile boolean mainNeedsFuel;
@@ -2898,6 +2902,13 @@ public final class SpeedrunnerModule implements RoleModule {
     private boolean helperJob(AgentHandle a) {
         String job = HELPER_JOBS.computeIfAbsent(a.name(), k -> HELPER_JOBS.size() % 3 == 1 ? "flint" : "iron");
         boolean early = mainStage.ordinal() <= Stage.LIGHTER.ordinal();
+        // The main without a stone pickaxe and without the cobblestone for one: a helper that has some throws it over. Run
+        // 1120k: the main spent five minutes trying to get 3 cobblestone (its drops kept falling where it couldn't walk)
+        // while a helper 4 blocks away carried 50.
+        if (mainNeedsCobble && MAIN != null) {
+            String cobble = count(a, "minecraft:cobblestone") >= 3 ? "minecraft:cobblestone" : count(a, "minecraft:cobbled_deepslate") >= 3 ? "minecraft:cobbled_deepslate" : null;
+            if (cobble != null && handOver(a, cobble)) { if (helperMining) { mine(a, null); helperMining = false; } status = "cobblestone to " + MAIN + " for its stone pickaxe"; return true; }
+        }
         String item = job.equals("flint") ? "minecraft:flint" : "minecraft:raw_iron";
         int have = count(a, item) + (job.equals("iron") ? count(a, "minecraft:iron_ingot") : 0);
         boolean needed = early && (job.equals("flint") ? mainNeedsFlint : mainIronShort > 0);
