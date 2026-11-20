@@ -514,7 +514,11 @@ public final class Agent implements AgentHandle {
                 if (tw == null) return false;
                 Vec3 at = pos.position();
                 dev.agentnet.role.Seen threat = null;
-                for (dev.agentnet.role.Seen s : entitiesNear(14)) {
+                // Archers from further off (a skeleton shoots from 15-20 blocks): two distributors were shot dead in run 1120n
+                // without ever "seeing" a threat, the scan only went 14 blocks out.
+                for (dev.agentnet.role.Seen s : entitiesNear(24)) {
+                    boolean archer = s.name().equals("skeleton") || s.name().equals("stray") || s.name().equals("bogged") || s.name().equals("pillager");
+                    if (s.distance() > 14 && !archer) continue;
                     if (s.player() || !s.hostile() || HARMLESS.contains(s.name()) && !s.angry()) continue;
                     if (!s.name().equals("phantom") && !dev.agentnet.role.Sight.clear(tw, at.x, at.y + 1.62, at.z, s.pos().x, s.pos().y + 1.0, s.pos().z)) continue;
                     if (threat == null || s.distance() < threat.distance()) threat = s;
