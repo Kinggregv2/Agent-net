@@ -152,6 +152,13 @@ O30. A DISTRIBUTOR TUNNELLED 20 MINUTES TOWARD UNDERGROUND SPEEDRUNNERS (run 112
     to an agent fails, its other orders are dropped while it stays near that spot (4 minutes; it
     asks again from somewhere reachable). Built, not yet seen working.
 
+O31. THE MAIN THREW AWAY A 27-STEP STAIRCASE 4 BLOCKS ABOVE ITS POOL (run 1120g, 23 min):
+    standing at y 37 over its next step (y 36, air), it checked y 35 (copper ore) for the hop down,
+    so it hovered there 30 s; then the "stuck on a step" rule dropped that whole start as if it
+    were water, and it climbed back to the surface (5+ minutes lost). Fixed 02:27: it checks the
+    block right under its feet, and only a step with water in it drops the start (a dry one just
+    starts the staircase again from where it is). Built, not yet seen working.
+
 --- FIXED ON 2026-11-19 (seen working in a run unless it says otherwise) ----------
 
 F1. Helpers never mined: two routines shared one flag and started/stopped the miner every
