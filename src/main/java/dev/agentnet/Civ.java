@@ -401,8 +401,11 @@ public final class Civ {
         }
         // The speedrunner's iron: any miner not already on iron, busy or not, else whoever's work can wait (the
         // builder last; never a guard, a speedrunner, a distributor, the keeper or a rescuer).
-        if (pick == null && (runnerNeed(n) || hungerNeed(n))) {
-            List<Role> order = hungerNeed(n) ? List.of(Role.LOOTER, Role.PICKUP, Role.MINER, Role.BUILDER)
+        // The lava scout too, for the speedrunners: at the cap it was never hired ("but the crew is at its cap", run 1120p).
+        boolean scout = n.role() == Role.EXPLORER && "scout".equals(n.task());
+        if (pick == null && (runnerNeed(n) || hungerNeed(n) || scout)) {
+            List<Role> order = scout ? List.of(Role.LOOTER, Role.PICKUP, Role.HUNTER, Role.FISHER, Role.MINER)
+                    : hungerNeed(n) ? List.of(Role.LOOTER, Role.PICKUP, Role.MINER, Role.BUILDER)
                     : List.of(Role.MINER, Role.LOOTER, Role.HUNTER, Role.FISHER, Role.FARMER, Role.PICKUP, Role.BUILDER);
             for (Role r : order) {
                 for (Agent a : crew) {
