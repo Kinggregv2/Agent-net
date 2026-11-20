@@ -423,6 +423,21 @@ F26. THE LAVA-POOL SCOUT ("to add" 2, the user, 2026-11-19; built 2026-11-20 02:
 OLDER REPORT, kept for reference
 ================================================================================
 
+
+F27. THE FIRST SPEEDRUNNER IS THE MAIN, AND IT COMES IN AT ONCE (the user, 2026-11-20 07:05 and
+    07:17). The speedrunner that started first is the main (before: whichever ticked first); Civ's
+    first round is on its first tick, so the speedrunner is hired 6 s after you join (run 1120zb).
+
+F28. THE STARTING CREW (the user, 2026-11-20 07:15: "one of the few that automatically join should
+    be the speedrunner, 3 helpers with that, 3 miners, a distributor and a builder, the rest
+    depending on need"). Civ hires these nine first, in this order, every 3 s: the main, a miner,
+    the builder, a distributor, then a helper and a miner in turn (3 of each); after them, by need.
+    Falloffs only once the main has its portal frame up. Seen working in run 1120zb: all nine in
+    by 30 s, in order (07:22:25-07:22:49).
+
+F29. MAIN AND HELPERS TOLD APART (the user, 2026-11-20 07:10 and 07:21). The main: a crown and a
+    bold name over its head, a big square with a white rim and a crown on the supply map, and
+    "Speedrunner (main)" in lists; helpers: light purple, "Speedrun helper".
 AGENTNET BUG TEST RESULTS (2026-11-16, nothing fixed, only observed)
 =====================================================================
 Test run: potions, Wind Burst elytra mace, cart PvP, then 9 minutes of autopilot
