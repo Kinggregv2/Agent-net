@@ -533,6 +533,15 @@ O94. THE PATH FINDER WAS "SCARED OF LAVA" AT THE POOL (the user, 2026-11-20 14:4
     costs 2 (elsewhere still 20; stepping into lava is never allowed). Built, not deployed (run
     1120zn left running).
 
+O95. THE MAIN STOOD 40 MINUTES ON STAIRCASE STEP 1 OVER A CAVE (run 1120zo, itsCyber, 15:36-16:16,
+    CAST, -160 98 -537: "stuck on staircase step 1 ... y96=air y97=air", 70 times): the step's
+    floor was a wide cave, the plug under it had nothing to go against, and every 30 s it started
+    the staircase again from the same block in the same direction, so the same gap. The log said
+    only "last: digging". Fixed 16:20: a restart on the spot it was stuck on turns the spiral a
+    quarter; a cave under a step with a floor it can survive (fall - 3 < health - 12) is dropped
+    into; a plug with nothing to place against gives up after 8 s; the gap and plug are logged.
+    Built (build-20261120-162014), not tested live yet.
+
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
     Fixed 03:35: stopped only once it has its shield. Built, run 1120n.
