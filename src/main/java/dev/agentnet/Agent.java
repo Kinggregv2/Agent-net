@@ -1556,7 +1556,7 @@ public final class Agent implements AgentHandle {
             boolean player = t.type == EntityTypes.PLAYER;
             String who = player ? PLAYER_NAMES.get(t.uuid) : net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(t.type).getPath();
             out.add(new dev.agentnet.role.Seen(t.id, who == null ? "?" : who, player,
-                    t.type.getCategory() == net.minecraft.world.entity.MobCategory.MONSTER, t.pos, d,
+                    t.type.getCategory() == net.minecraft.world.entity.MobCategory.MONSTER || t.type == EntityTypes.POLAR_BEAR, t.pos, d, // polar bears too: two agents slain by one with no reaction (run 1120zm)
                     (t.livingFlags & 1) != 0, (t.livingFlags & 2) != 0, t.mainHand, t.offHand, t.armorPieces,
                     t.swell > 0, t.angry, t.vehicle));
         }
