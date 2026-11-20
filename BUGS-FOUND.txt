@@ -1,7 +1,7 @@
 AGENTNET BUGS (kept up to date by Claude: open ones first, then what was fixed)
 ================================================================================
 A bug = any unintended behaviour, including deaths that could have been prevented.
-Last updated: 2026-11-20 01:06, from crew runs "run 1118d" to "run 1120d".
+Last updated: 2026-11-20 01:16, from crew runs "run 1118d" to "run 1120e".
 
 --- OPEN (found, not fixed yet) --------------------------------------------------
 
@@ -93,6 +93,10 @@ O21. SUFFOCATION UNDER SAND OR GRAVEL, AND NO WAY OUT FROM UNDER IT. The main su
     move up into the gap (swimming, climbing, pillaring, digging out) for 1.5 s after each, while
     the next block falls into it. Not yet seen working. The second suffocation of run 1119j (in
     cobblestone) is not explained.
+    01:15: another one (run 1120e): it dug gravel beside it, the gravel above fell into the gap as it
+    stepped in. The wait now applies to any block it digs within a block of it with sand or gravel
+    on top, and gravel or sand that "comes back" is no longer counted as the server refusing the
+    dig. Built and on GitHub; in the game from the next new world.
 O22. THE SAME BLOCK REFUSED AGAIN AND AGAIN: 502 refused digs in 40 minutes of run 1119j, mostly the
     same few blocks (one stone 76 times, one gravel 70, a crafting table 34), so it was not the dig
     time (O13). Since 22:40 an agent leaves a block alone for two minutes after three refusals,
