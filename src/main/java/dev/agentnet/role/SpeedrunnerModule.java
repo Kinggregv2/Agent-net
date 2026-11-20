@@ -467,6 +467,8 @@ public final class SpeedrunnerModule implements RoleModule {
         mainNeedsFlint = count(a, "minecraft:flint_and_steel") == 0 && count(a, "minecraft:flint") == 0;
         { int best = -1; for (ItemStack s : a.inventory()) if (Gear.id(s).endsWith("_pickaxe")) best = Math.max(best, Gear.tier(s));
           mainNeedsCobble = best < 2 && count(a, "minecraft:cobblestone") + count(a, "minecraft:cobbled_deepslate") < 3; }
+        { int wood = 0; for (ItemStack s : a.inventory()) { String id = Gear.id(s); if (id.endsWith("_planks")) wood += s.getCount(); else if ((id.endsWith("_log") || id.endsWith("_stem")) && !id.contains("stripped")) wood += 4 * s.getCount(); }
+          mainNeedsWood = wood < 8 && count(a, "minecraft:crafting_table") == 0; }
         mainNeedsFuel = stage.ordinal() <= Stage.SMELT.ordinal() && count(a, "minecraft:raw_iron") > 0 && !MakerModule.hasFuel(a);
         askCrewForIron(a);
         askCrewForWood(a);
@@ -3005,6 +3007,8 @@ public final class SpeedrunnerModule implements RoleModule {
     private static volatile int mainKitShort;
     /** The main has no stone pickaxe (or better) and not the 3 cobblestone for one. */
     private static volatile boolean mainNeedsCobble;
+    /** The main has no crafting table and under 8 planks' worth of wood. */
+    private static volatile boolean mainNeedsWood;
     private static volatile boolean mainNeedsFlint = true;
     /** The main has raw iron to smelt and nothing to burn: the flint helper (its flint done) brings it coal. */
     private static volatile boolean mainNeedsFuel;
@@ -3029,6 +3033,13 @@ public final class SpeedrunnerModule implements RoleModule {
         // The main without a stone pickaxe and without the cobblestone for one: a helper that has some throws it over. Run
         // 1120k: the main spent five minutes trying to get 3 cobblestone (its drops kept falling where it couldn't walk)
         // while a helper 4 blocks away carried 50.
+        // Wood the same way: on a snowy plain with no tree for 64 blocks the main had nothing to make a table or a tool with
+        // for 20 minutes (run 1120zm) while helpers carried logs.
+        if (mainNeedsWood && MAIN != null) {
+            String log = null;
+            for (ItemStack s : a.inventory()) { String id = Gear.id(s); if ((id.endsWith("_log") || id.endsWith("_stem")) && !id.contains("stripped") && s.getCount() >= 2) { log = id; break; } }
+            if (log != null && handOver(a, log)) { if (helperMining) { mine(a, null); helperMining = false; } status = "logs to " + MAIN + " for its table and tools"; return true; }
+        }
         if (mainNeedsCobble && MAIN != null) {
             String cobble = count(a, "minecraft:cobblestone") >= 3 ? "minecraft:cobblestone" : count(a, "minecraft:cobbled_deepslate") >= 3 ? "minecraft:cobbled_deepslate" : null;
             if (cobble != null && handOver(a, cobble)) { if (helperMining) { mine(a, null); helperMining = false; } status = "cobblestone to " + MAIN + " for its stone pickaxe"; return true; }
