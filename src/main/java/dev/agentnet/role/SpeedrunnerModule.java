@@ -415,6 +415,7 @@ public final class SpeedrunnerModule implements RoleModule {
                 }
             }
         }
+        if (dropJunk(a)) return;
         if (feed(a)) return;
         // Loot on the way: a look every 30 s while gathering in the overworld; once going for it, until it's done.
         if (lootMode) { looter.tick(a); if (!looter.looting()) { lootMode = false; a.log("[speedrun] done looting: back to the run"); } return; }
@@ -4280,6 +4281,40 @@ public final class SpeedrunnerModule implements RoleModule {
     }
 
 
+
+    /** Never kept by a speedrunner beyond a stack (cobblestone) or at all (the rest): what fills its pack. */
+    private static final Set<String> JUNK = Set.of("minecraft:dirt", "minecraft:gravel", "minecraft:leaf_litter", "minecraft:wheat_seeds",
+            "minecraft:andesite", "minecraft:diorite", "minecraft:granite", "minecraft:tuff", "minecraft:sand", "minecraft:egg", "minecraft:blue_egg",
+            "minecraft:feather", "minecraft:rotten_flesh", "minecraft:bone", "minecraft:string", "minecraft:flint" /* kept: one, below */,
+            "minecraft:oak_sapling", "minecraft:birch_sapling", "minecraft:spruce_sapling", "minecraft:short_grass", "minecraft:poppy", "minecraft:dandelion");
+
+    /**
+     * A full pack: the junk out (all but one stack of cobblestone, dirt, gravel, stone kinds, seeds, eggs...). With 632
+     * cobblestone and 36 of 36 slots the main could not pick up the gold it mined for its helmet, and stood 10 minutes
+     * "mining gold" with nothing happening (run 1120zl). True while it is throwing things out.
+     */
+    private boolean dropJunk(AgentHandle a) {
+        List<ItemStack> inv = a.inventory();
+        int free = 0;
+        for (int i = 0; i < 36 && i < inv.size(); i++) if (inv.get(i).isEmpty()) free++;
+        if (free >= 3 || ticks % 5 != 0) return false;
+        boolean cobbleKept = false, flintKept = false;
+        for (int i = 0; i < 36 && i < inv.size(); i++) {
+            ItemStack s = inv.get(i);
+            if (s.isEmpty()) continue;
+            String id = Gear.id(s);
+            boolean cobble = id.equals("minecraft:cobblestone") || id.equals("minecraft:cobbled_deepslate");
+            if (cobble && !cobbleKept) { cobbleKept = true; continue; }
+            if (id.equals("minecraft:flint") && !flintKept) { flintKept = true; continue; }
+            if (cobble || JUNK.contains(id)) {
+                if (junkSaidAt < 0 || ticks - junkSaidAt > 1200) { junkSaidAt = ticks; a.log("[speedrun] pack full: throwing out junk (" + id.replace("minecraft:", "") + "...)"); }
+                a.dropStack(i);
+                return true;
+            }
+        }
+        return false;
+    }
+    private int junkSaidAt = -1;
     private static int countPickaxes(AgentHandle a) {
         int n = 0;
         for (ItemStack s : a.inventory()) if ("pickaxe".equals(Gear.toolType(s))) n++;
