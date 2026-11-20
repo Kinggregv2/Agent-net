@@ -404,8 +404,11 @@ public final class Civ {
         // builder last; never a guard, a speedrunner, a distributor, the keeper or a rescuer).
         // The lava scout too, for the speedrunners: at the cap it was never hired ("but the crew is at its cap", run 1120p).
         boolean scout = n.role() == Role.EXPLORER && "scout".equals(n.task());
-        if (pick == null && (runnerNeed(n) || hungerNeed(n) || scout)) {
-            List<Role> order = scout ? List.of(Role.LOOTER, Role.PICKUP, Role.HUNTER, Role.FISHER, Role.MINER)
+        // A hitlist player about: a fighter from whoever's work can wait (run 1120w: no distributor or guard to spare at the cap).
+        boolean threat = n.role() == Role.WARRIOR && n.why().contains("(hitlist)");
+        if (pick == null && (runnerNeed(n) || hungerNeed(n) || scout || threat)) {
+            List<Role> order = threat ? List.of(Role.LOOTER, Role.PICKUP, Role.HUNTER, Role.FISHER, Role.MINER, Role.EXPLORER)
+                    : scout ? List.of(Role.LOOTER, Role.PICKUP, Role.HUNTER, Role.FISHER, Role.MINER)
                     : hungerNeed(n) ? List.of(Role.LOOTER, Role.PICKUP, Role.MINER, Role.BUILDER)
                     : List.of(Role.MINER, Role.LOOTER, Role.HUNTER, Role.FISHER, Role.FARMER, Role.PICKUP, Role.BUILDER);
             for (Role r : order) {
