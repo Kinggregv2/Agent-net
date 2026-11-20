@@ -599,6 +599,12 @@ public final class AgentNetClient implements ClientModInitializer {
                     })))
                 .then(literal("list").executes(c -> listNames(c, "Whitelist", AgentFiles.WHITELIST.names()))))
             .then(literal("hitlist")
+                // By hand (a test, or someone you want the crew to watch for): /agent hitlist add <player>.
+                .then(literal("add").then(argument("player", StringArgumentType.word())
+                    .executes(c -> {
+                        String p = StringArgumentType.getString(c, "player");
+                        return feedback(c, AgentFiles.HITLIST.add(p, "added by hand (" + java.time.LocalDateTime.now().withNano(0) + ")") ? p + " is on the hitlist now" : p + " is on the hitlist already");
+                    })))
                 .then(literal("remove").then(argument("player", StringArgumentType.word())
                     .suggests((c, b) -> SharedSuggestionProvider.suggest(AgentFiles.HITLIST.names(), b))
                     .executes(c -> {
