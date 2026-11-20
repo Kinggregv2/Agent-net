@@ -511,14 +511,20 @@ O90. THE AFK WATCH THREW AWAY THE MAIN'S PORTAL FRAME (run 1120zl, 13:54, 82 min
 O91. TWO AGENTS KILLED BY A POLAR BEAR WITHOUT A REACTION (run 1120zm, a snowy start: Taco_Ninja61
     14:09, FenlynroPvP 14:13): a polar bear is not a "monster" to the game, so the agents never saw
     it as a threat (no running, no leaving, no fighting back). Fixed 14:15: polar bears count as
-    hostile. Built, not deployed (run 1120zm left running).
+    hostile. Built, run 1120zn.
 
 O92. THE MAIN CAME BACK HURT AND WAS SHOT AT ONCE (run 1120zm, 14:14, CAST, staircase to its pool:
     back in the game at 7 HP with a skeleton 12 blocks off, slowed, "shot by Skeleton" 2 s later):
     the check after a rejoin waited 1.5 s, and my O88 rule ("stay and eat if the mob is over 5
     blocks off") would have kept it there too. Fixed 14:25: badly hurt, it checks 0.3 s after
     joining; and O88 never counts an archer (skeleton, stray, bogged, pillager) as far enough
-    away. Built, not deployed (run 1120zm left running: the main starts over).
+    away. Built, run 1120zn.
+
+O93. THE MAIN WITHOUT WOOD FOR 20 MINUTES (run 1120zm, after its death at 14:14, a snowy plain: "no
+    reachable logs in the chunks around it (64 blocks)", strays and creepers at night; no table, no
+    tools, no stage done). Fixed 14:35: like the cobblestone (O34), a helper with logs throws them to
+    a main that has no crafting table and under 8 planks' worth of wood. Built, run 1120zn (run
+    1120zm stopped: the main could not get started again).
 
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
