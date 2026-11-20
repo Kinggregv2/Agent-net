@@ -469,7 +469,7 @@ O84. THE STUCK WATCH TOOK THE MAIN OUT OF ITS SHORE TUNNEL AND OUT OF THE GAME (
     "stuck for 20/40/60 s ... straight up to the surface ... leaving and coming straight back", and
     the pool was lost): O77's "digging in place is not stuck" was not enough, the tunnel's steps
     walk too. Fixed 12:15: the staircase and the shore tunnel switch the general stuck watch off
-    while they run (they have their own stuck checks). Built, not deployed (run 1120zl left running).
+    while they run (they have their own stuck checks). Built, run 1120zm.
 
 O85. THE MAIN BURNED IN ITS OWN LAVA POOL (run 1120zl, 12:20, 18.7 min: tunnelling to the shore of
     a pool 13 blocks down, the floor under it gave way and it dropped beside the lava; hurt and with
@@ -483,23 +483,30 @@ O86. THE MAIN'S PACK WAS FULL AND IT COULD NOT PICK UP ITS GOLD (run 1120zl, 12:
     gold for its golden helmet" for 10 minutes, silent: 36 of 36 slots, 632 cobblestone, 88 dirt,
     gravel, leaf litter, seeds, eggs). Fixed 12:55: a speedrunner with under 3 free slots throws out
     its junk (all but one stack of cobblestone; dirt, gravel, stone kinds, seeds, eggs and the
-    like). Built, not deployed. In run 1120zl its pack was cleared by hand (/clear) so the run goes
+    like). Built, run 1120zm. In run 1120zl its pack was cleared by hand (/clear) so the run goes
     on.
 
 O87. THE MAIN HUNTED FOR ITS 32 FOOD DOWN IN ITS MINE (run 1120zl, 13:12-13:25, kit done but the
     food: 8 of 32, then 7, at y 8-15, no animals down there, no distributor online). Fixed 13:25:
-    underground and short of food, it goes up to the surface first. Built, not deployed. In run
+    underground and short of food, it goes up to the surface first. Built, run 1120zm. In run
     1120zl it was given 32 cooked beef by hand (/give) so the run goes on to the nether.
 
 O88. THE MAIN LEFT THE GAME AGAIN AND AGAIN, HURT (run 1120zl, 13:23-13:29: back at 5-7 HP with
     a zombie or skeletons about, "too hurt to fight: leaving the game for 120 s", four times; being
     away heals nothing). Fixed 13:28: after two times away, with food and the mob more than 5 blocks
-    off, it stays and eats instead. Built, not deployed. In run 1120zl it was healed by hand
+    off, it stays and eats instead. Built, run 1120zm. In run 1120zl it was healed by hand
     (instant health and regeneration at its rejoin) so the run goes on.
 
 O89. THE KIT'S 32 FOOD COULD NEVER STAY AT 32 (found 13:35): it eats from it to heal, and at 31 the
     kit counted as unfinished again, so it went back to "getting food" over and over. Fixed 13:35:
-    once a kit has been complete, 16 food is enough. Built, not deployed.
+    once a kit has been complete, 16 food is enough. Built, run 1120zm.
+
+O90. THE AFK WATCH THREW AWAY THE MAIN'S PORTAL FRAME (run 1120zl, 13:54, 82 min in: kit complete,
+    back at its pool casting the frame, standing still while lava and water settled; "stuck (AFK)"
+    then "going in circles round AFK: starting the portal again somewhere else"). My O76 hook gave
+    an AFK the same answer as going in circles. Fixed 13:55: an AFK never gives up a site, and
+    while the main casts or lights its frame it only stands still on purpose (nothing restarted).
+    Built, run 1120zm (run 1120zl stopped: the old jar would have thrown away every frame it cast).
 
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
