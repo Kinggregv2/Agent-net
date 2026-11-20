@@ -156,6 +156,9 @@ public final class Navigator {
                 // Up a block: room to jump in its own column first (vanilla: 1.8 tall, it can't rise a block under a ceiling
                 // two blocks up). Without this check it rose into the ceiling, was put back, planned the same, again and again.
                 if (dy > 0) { var over = view.get(start.x(), start.y() + 2, start.z()); if (over == null || !Rules.canWalkThrough(over)) continue; }
+                // A step down beside it: the walker goes across at its own height first, then drops, so that column must have
+                // room for its whole body at its own height (a one-high gap: head into the block, put back, 44 times, run 1120f).
+                if (dy < 0) { var acrossFeet = view.get(x, start.y(), z); var acrossHead = view.get(x, start.y() + 1, z); if (acrossFeet == null || acrossHead == null || !Rules.canWalkThrough(acrossFeet) || !Rules.canWalkThrough(acrossHead)) continue; }
                 // A diagonal one: only round an open corner (both blocks beside the way clear, feet and head, at the level it
                 // walks on). Stepped onto through a solid corner, the server put it back, it planned the same step again, and
                 // so on for good: this was the "put back" loop (run 1119c: 391 in 28 minutes, 130 for one agent at one spot).
