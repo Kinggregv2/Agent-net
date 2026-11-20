@@ -771,6 +771,8 @@ final class MinerModule extends GathererModule {
         if (!left && timer > 10 || !a.isNavigating() && timer > 20 * 4 && !left) go(State.SCAN);
         else if (!a.isNavigating() && left && pickupTried.values().stream().allMatch(n -> n >= 3)) {
             a.log("couldn't reach some drops near " + minedAt.toShortString());
+            { StringBuilder ours = new StringBuilder(); for (net.minecraft.world.phys.Vec3 v : a.itemsNear(8)) ours.append(String.format(" %.2f %.2f %.2f;", v.x, v.y, v.z));
+              dev.agentnet.AgentNet.LOG.info("[{}] drops it sees:{} it at {} {} {}; the server: {}", a.name(), ours.length() == 0 ? " none" : ours, String.format("%.2f", a.x()), String.format("%.2f", a.y()), String.format("%.2f", a.z()), dev.agentnet.Agent.serverItemsNear(a.name(), minedAt)); }
             go(State.SCAN);
         }
     }

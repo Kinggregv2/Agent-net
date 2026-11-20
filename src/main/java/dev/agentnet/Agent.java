@@ -1761,6 +1761,21 @@ public final class Agent implements AgentHandle {
         }
         return false;
     }
+
+    /** On your own world: the item entities the server has within 6 blocks of p, and where (for the logs of a test). */
+    public static String serverItemsNear(String agentName, BlockPos p) {
+        try {
+            var srv = net.minecraft.client.Minecraft.getInstance().getSingleplayerServer();
+            if (srv == null) return "(not your own world)";
+            var pl = srv.getPlayerList().getPlayerByName(agentName);
+            if (pl == null) return "(no such player)";
+            var box = new net.minecraft.world.phys.AABB(p).inflate(6);
+            StringBuilder sb = new StringBuilder();
+            for (var it : pl.level().getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, box))
+                sb.append(String.format(" %s x%d at %.2f %.2f %.2f%s;", dev.agentnet.role.Gear.id(it.getItem()).replace("minecraft:", ""), it.getItem().getCount(), it.getX(), it.getY(), it.getZ(), it.onGround() ? "" : " (in the air)"));
+            return String.format("player at %.2f %.2f %.2f;%s", pl.getX(), pl.getY(), pl.getZ(), sb.length() == 0 ? " no items" : sb.toString());
+        } catch (RuntimeException e) { return "(" + e + ")"; }
+    }
     private boolean groundUnder() {
         var w = openWorld();
         if (w == null) return true;
