@@ -17,6 +17,12 @@ From chat on 2026-11-19 (not started):
    for this item: explorers hired by default with the pool as their goal, marking it, and the
    jump into the lava at the end.
 
+   Progress on 2 (2026-11-20 02:57, built, not tested yet): a scout is now hired by default (crew
+   of 5 or more) while the main has no pool and nobody has seen one: an explorer with the task
+   "scout". It explores as usual; once a pool is known within 192 blocks it walks there, marks it
+   on the map as a POI ("lava pool (scout <name>)"), walks into the lava, and is retired: it never
+   joins again. First test: run 1120k.
+
 
 Make speedrunners looking for a lava pool be able to detect lava pools underground
 
