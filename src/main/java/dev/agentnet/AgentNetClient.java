@@ -919,8 +919,11 @@ public final class AgentNetClient implements ClientModInitializer {
     }
 
     /** Gone for good: it leaves and is never brought back (a lava scout whose job is done). */
+    /** Agents retired for good (lower case): never brought back, by Civ or by a reconnect. */
+    public static final java.util.Set<String> RETIRED = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
     public static void retire(dev.agentnet.role.AgentHandle h) {
-        if (h instanceof Agent a) { notify("§7[" + a.name + "] retired: not coming back"); removeAgent(a); }
+        if (h instanceof Agent a) { RETIRED.add(a.name.toLowerCase()); notify("§7[" + a.name + "] retired: not coming back"); removeAgent(a); }
     }
 
     /** Drop an agent without the "left" bookkeeping (used when you take it over). */
@@ -963,7 +966,7 @@ public final class AgentNetClient implements ClientModInitializer {
      * (you took the name) are never retried. Main thread.
      */
     static void autoReconnect(Agent a, String why) {
-        if (!autoReconnect || a.leaveScheduled || "left".equals(a.status())) return;
+        if (!autoReconnect || a.leaveScheduled || "left".equals(a.status()) || RETIRED.contains(a.name.toLowerCase())) return;
         if (NO_RETRY.matcher(why).find()) { notify("§7[" + a.name + "] won't reconnect (" + why + ")"); return; }
         if (AGENTS.get(a.name.toLowerCase()) != a) return; // replaced already (takeover, manual rejoin)
         long now = System.currentTimeMillis();

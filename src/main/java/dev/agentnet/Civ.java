@@ -482,7 +482,7 @@ public final class Civ {
             String any = null;
             for (Saves.Entry e : Saves.read("civ")) {
                 String k = e.name().toLowerCase();
-                if (AgentNetClient.AGENTS.containsKey(k)) continue;
+                if (AgentNetClient.AGENTS.containsKey(k) || AgentNetClient.RETIRED.contains(k)) continue; // (a retired scout came back 2 s later, into its lava: run 1120q)
                 Long t = rejoined.get(k);
                 if (t != null && now - t < 120_000) continue;
                 if (e.role() == role) return e.name();
