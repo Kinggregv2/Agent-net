@@ -243,6 +243,17 @@ O48. AT THE FOOT OF ITS STAIRCASE, THE MAIN NEVER REACHED THE POOL'S SHORE (run 
     there within 3 s, it digs a tunnel straight to the shore block (the 1x2 walkable tunnel the
     explorers use; never a block touching lava or water). Built, run 1120q.
 
+O49. THE MAIN BLOWN UP BY A CREEPER IT HAD "GIVEN UP RUNNING FROM" (run 1120q, 15 min): after a
+    minute of running from a mob, an agent goes back to work and ignores it for a minute, a
+    creeper too; 10 s later the main was dead. Fixed 05:05: a creeper still after it after a
+    minute: it leaves the game for 45 s (the warriors told), never back to work beside it. Built,
+    run 1120r.
+
+O50. THE RETIRED SCOUT CAME BACK (run 1120q): 2 s after "retired: not coming back", Civ brought it
+    back from the saved crew as a distributor, into its lava, where it burned. Fixed 05:06: retired
+    agents are never brought back (Civ or reconnect), and the scout retires once it has died in
+    the lava, not the moment its feet touch it. Built, run 1120r.
+
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
     Fixed 03:35: stopped only once it has its shield. Built, run 1120n.
