@@ -3324,6 +3324,21 @@ public final class SpeedrunnerModule implements RoleModule {
     private int crewPoolAt;
     private double poolHeading = Double.NaN;
 
+    /** The main has no lava pool yet and nobody has seen one: worth a scout. */
+    public static boolean wantsScout() {
+        return MAIN != null && !beaten() && mainStage.ordinal() <= Stage.POOL.ordinal() && CREW_LAVA.isEmpty();
+    }
+
+    /** The nearest pool the crew has told the main about, within r blocks, or null. */
+    public static BlockPos crewLavaNear(double x, double z, int r) {
+        BlockPos best = null;
+        for (BlockPos k : CREW_LAVA) {
+            double d = Math.hypot(k.getX() + 0.5 - x, k.getZ() + 0.5 - z);
+            if (d <= r && (best == null || d < Math.hypot(best.getX() + 0.5 - x, best.getZ() + 0.5 - z))) best = k;
+        }
+        return best;
+    }
+
     /**
      * Every agent, every twenty seconds, while the main still has no portal: lava near the surface in what it can see (ten or
      * more sources, open to the sky) is told to the crew. The main searched 50 minutes for a pool alone (run 1119c) while

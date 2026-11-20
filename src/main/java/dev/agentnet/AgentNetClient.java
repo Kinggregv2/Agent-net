@@ -915,6 +915,11 @@ public final class AgentNetClient implements ClientModInitializer {
         PENDING_JOIN.add(new Scheduled(agent, at));
     }
 
+    /** Gone for good: it leaves and is never brought back (a lava scout whose job is done). */
+    public static void retire(dev.agentnet.role.AgentHandle h) {
+        if (h instanceof Agent a) { notify("§7[" + a.name + "] retired: not coming back"); removeAgent(a); }
+    }
+
     /** Drop an agent without the "left" bookkeeping (used when you take it over). */
     static void removeAgent(Agent a) {
         a.leave();

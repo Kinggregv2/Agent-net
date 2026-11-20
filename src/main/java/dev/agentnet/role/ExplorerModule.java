@@ -72,6 +72,15 @@ final class ExplorerModule implements RoleModule {
     @Override
     public void onTask(AgentHandle a, String task) {
         String[] p = task.trim().split("\\s+");
+        if (p[0].equals("scout")) {
+            scout = true;
+            radius = 1024;
+            setHome(a);
+            mode = Mode.FRONTIER;
+            target = null;
+            a.log("[scout] looking for a lava pool for the speedrunners within " + radius + " blocks");
+            return;
+        }
         if (p[0].equals("explore")) {
             radius = DEFAULT_RADIUS;
             for (String s : p) {
@@ -89,6 +98,56 @@ final class ExplorerModule implements RoleModule {
         }
     }
 
+
+    // ------------------------------------------------------------------ lava-pool scout ("to add" 2)
+    //
+    // Explores like any explorer; every agent already tells the main about surface lava it sees. Once a pool is known
+    // within reach, the scout walks there, marks it on the map (a POI), walks into the lava, and never joins again.
+
+    /** Scouts that went into their pool: gone for good once they are back (after the death) or out. */
+    private static final java.util.Set<String> DONE = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private boolean scout, marked;
+    private net.minecraft.core.BlockPos pool;
+    private int poolTicks, inLavaTicks;
+
+    /** True while the scout part has the agent. */
+    private boolean scoutTick(AgentHandle a) {
+        if (DONE.contains(a.name().toLowerCase())) { status = "retiring"; AgentNetClient().accept(a); return true; }
+        if (pool == null) {
+            pool = SpeedrunnerModule.crewLavaNear(a.x(), a.z(), 192);
+            if (pool == null) return false; // nothing yet: explore on
+            poolTicks = 0;
+            a.log("§a[scout] a lava pool at " + pool.toShortString() + ": going to mark it");
+        }
+        poolTicks++;
+        double d = Math.hypot(pool.getX() + 0.5 - a.x(), pool.getZ() + 0.5 - a.z());
+        if (!marked && d > 5) {
+            status = String.format("[scout] to the lava pool at %s (%.0f blocks)", pool.toShortString(), d);
+            if (!a.isNavigating() && poolTicks % 40 == 1) a.navigate(pool.getX(), pool.getY() + 1, pool.getZ(), 4);
+            if (poolTicks > 20 * 240) { a.log("§e[scout] couldn't get to the pool at " + pool.toShortString() + " in 4 minutes: exploring on"); pool = null; }
+            return true;
+        }
+        if (!marked) {
+            marked = true;
+            if (a.isNavigating()) a.stopNavigation();
+            Pois.add(a.server(), a.dimension(), pool.getX(), pool.getY(), pool.getZ(), "lava pool (scout " + a.name() + ")");
+            a.log("§a[scout] marked the lava pool at " + pool.toShortString() + " for the speedrunners; into the lava now, and not coming back");
+            poolTicks = 0;
+        }
+        status = "[scout] into the lava pool at " + pool.toShortString();
+        var w = a.openWorld();
+        var feet = w == null ? null : w.get((int) Math.floor(a.x()), (int) Math.floor(a.y() + 0.1), (int) Math.floor(a.z()));
+        if (feet != null && feet.getFluidState().is(net.minecraft.tags.FluidTags.LAVA)) {
+            DONE.add(a.name().toLowerCase());
+            if (++inLavaTicks > 20 * 15) AgentNetClient().accept(a); // still alive after 15 s in it (fire resistance?): out anyway
+            return true;
+        }
+        a.stepToward(pool.getX() + 0.5, pool.getZ() + 0.5);
+        if (poolTicks > 20 * 30) { DONE.add(a.name().toLowerCase()); a.log("§7[scout] couldn't step into the lava: leaving for good anyway"); }
+        return true;
+    }
+
+    private static java.util.function.Consumer<AgentHandle> AgentNetClient() { return dev.agentnet.AgentNetClient::retire; }
     private void setHome(AgentHandle a) {
         homeX = (int) Math.floor(a.x());
         homeZ = (int) Math.floor(a.z());
@@ -102,6 +161,7 @@ final class ExplorerModule implements RoleModule {
     public void tick(AgentHandle a) {
         timer++;
         if (mode == Mode.OFF) return;
+        if (scout && scoutTick(a)) return;
         if (mode == Mode.POI) { poiTick(a); return; }
         if (System.currentTimeMillis() < stuckUntil) { status = "stuck in a hole (water or lava all around): waiting"; return; }
         if (mode == Mode.ESCAPE) { escapeTick(a); return; }

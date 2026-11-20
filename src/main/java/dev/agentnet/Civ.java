@@ -265,6 +265,10 @@ public final class Civ {
                 "the speedrunner needs " + runnerIron + " more iron (it comes first until the dragon is dead)"));
         // Structure loot (shipwrecks, ruined portals, villages, temples): iron, gold, obsidian, maps. One looter early on.
         if (crew.size() >= 4 && roles.getOrDefault(Role.LOOTER, 0) < 1) needs.add(new Need(Role.LOOTER, "loot", "structure loot around (shipwrecks, ruined portals, villages): iron, gold, obsidian"));
+        // A lava-pool scout (the user, "to add" 2): one explorer from the start whose job is a pool for the speedrunners'
+        // portal, so they need not look for one themselves. Only while the main has none yet.
+        if (crew.size() >= 5 && roles.getOrDefault(Role.EXPLORER, 0) < 1 && dev.agentnet.role.SpeedrunnerModule.wantsScout())
+            needs.add(new Need(Role.EXPLORER, "scout", "the speedrunners have no lava pool yet: a scout to find one"));
         // Drops left lying around (mob loot, tunnel spills, loads nobody fetched): one agent picks them up.
         if (crew.size() >= 12 && roles.getOrDefault(Role.PICKUP, 0) < 1) needs.add(new Need(Role.PICKUP, null, "items left on the ground: one agent to pick them up"));
         // Someone to bring a pickaxe to agents stuck deep underground without one, once the crew is big enough to lose some.
