@@ -159,6 +159,13 @@ O31. THE MAIN THREW AWAY A 27-STEP STAIRCASE 4 BLOCKS ABOVE ITS POOL (run 1120g,
     block right under its feet, and only a step with water in it drops the start (a dry one just
     starts the staircase again from where it is). Built, not yet seen working.
 
+O32. A DISTRIBUTOR SEALED IN A 1x2 POCKET (run 1120h, melon16, 8 min in): every side solid, the
+    dirt over its head refused by the server three times ("too fast", then "kept"), so it is left
+    for two minutes and the agent sits there boxed in (99 rounds). Why the server refused it is
+    not known yet: since 02:35 the "refused three times" line also prints the server's own view
+    (its block, where it has the agent, on the ground, under water, mining fatigue, its dig speed,
+    spawn protection). Next: read that line in run 1120i and fix the cause.
+
 --- FIXED ON 2026-11-19 (seen working in a run unless it says otherwise) ----------
 
 F1. Helpers never mined: two routines shared one flag and started/stopped the miner every
