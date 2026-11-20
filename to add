@@ -33,7 +33,8 @@ From chat on 2026-11-19 (not started):
    on the map as a POI ("lava pool (scout <name>)"), walks into the lava, and is retired: it never
    joins again. Run 1120k: never hired (Civ dropped the need as unlearned; fixed 03:07). Next test:
    run 1120l. Run 1120l: hired (seen working). Run 1120m: hired, but never handed its scout job
-   (fixed 03:27, not yet deployed).
+   (fixed 03:27). Run 1120q (04:49-04:51): hired at the cap and handed its job; it found a pool
+   (lava at the surface, 12 blocks of it) and set off to mark it. Not yet seen: the mark, the jump.
 
 
 Make speedrunners looking for a lava pool be able to detect lava pools underground
