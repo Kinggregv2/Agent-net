@@ -1014,6 +1014,22 @@ final class MinerModule extends GathererModule {
                 best = i; bestSpeed = speed; bestHarvests = harvests;
             }
         }
+        // No wood for the handle (a stick is half a plank) but the cobblestone for a stone pickaxe: two logs first, then
+        // it makes one itself. It asked a distributor instead and stood still for minutes with 209 cobblestone (run 1120zf).
+        if (needDrops && !bestHarvests && resumeTask == null && errands < 8) {
+            int wood = 0;
+            for (ItemStack it : inv) { String id = Gear.id(it); if (id.equals("minecraft:stick")) wood += it.getCount() / 2; else if (id.endsWith("_planks")) wood += it.getCount(); else if ((id.endsWith("_log") || id.endsWith("_stem")) && !id.contains("stripped")) wood += 4 * it.getCount(); }
+            if (wood < 2 && countId(a, "minecraft:cobblestone") + countId(a, "minecraft:cobbled_deepslate") >= 3) {
+                errands++;
+                a.log("no wood for a pickaxe handle: two logs first, then a stone pickaxe for " + name(s));
+                resumeTask = currentTask;
+                errandWant = 2; errandExtra = 0;
+                subJob = true;
+                onTask(a, "mine 2 logs");
+                subJob = false;
+                return false;
+            }
+        }
         if (needDrops && !bestHarvests && craftPickaxe(a, s)) return false; // crafts one, then comes back to this ore
         if (needDrops && !bestHarvests) {
             status = "needs a better pickaxe for " + name(s);
