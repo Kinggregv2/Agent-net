@@ -1508,7 +1508,8 @@ public final class SpeedrunnerModule implements RoleModule {
 
     private static final int[][] STAIR = {{0, 0}, {1, 0}, {2, 0}, {3, 0}, {3, 1}, {3, 2}, {3, 3}, {2, 3}, {1, 3}, {0, 3}, {0, 2}, {0, 1}};
     private BlockPos stairOrigin;
-    private int stairK, stairAt, stairDigSaidAt = -1000;
+    private int stairK, stairAt, stairDigSaidAt = -1000, stairRot;
+    private BlockPos stairStuckAt;
     private String stairWhy = "";
 
     /** True while it is digging its staircase down to this height. */
@@ -1518,14 +1519,20 @@ public final class SpeedrunnerModule implements RoleModule {
         // at every step (run 1120m: "digging a staircase down from ..." every 2-10 s, a block further along each time).
         double stairOff = stairOrigin == null ? 0 : a.y() - (stairOrigin.getY() - stairK);
         if (stairOrigin == null || stairOff < -1.5 || stairOff > 3.5) {
-            stairOrigin = BlockPos.containing(a.x(), a.y() + 0.01, a.z());
+            BlockPos o = BlockPos.containing(a.x(), a.y() + 0.01, a.z());
+            // Restarted on the very spot it was stuck on: the same first step, the same gap under it, forever (run 1120zo:
+            // the main 40 minutes on "step 1" over a cave, restarting every 30 s). Turned a quarter each time instead.
+            if (stairStuckAt != null && stairStuckAt.distManhattan(o) <= 2) stairRot = (stairRot + 3) % STAIR.length;
+            else stairRot = 0;
+            stairStuckAt = null;
+            stairOrigin = o;
             stairK = 0;
             stairAt = ticks; // (left as it was, a restart counted as stuck at once and logged so every tick)
             dryDone = true; // on its way down now: water it meets is plugged, not a reason to go back up to dry land
             a.log("[speedrun] digging a staircase down from " + stairOrigin.toShortString() + " to y " + targetY);
         }
-        int[] c = STAIR[stairK % STAIR.length];
-        BlockPos feet = new BlockPos(stairOrigin.getX() + c[0], stairOrigin.getY() - stairK, stairOrigin.getZ() + c[1]);
+        int[] c = STAIR[(stairK + stairRot) % STAIR.length], c0 = STAIR[stairRot];
+        BlockPos feet = new BlockPos(stairOrigin.getX() + c[0] - c0[0], stairOrigin.getY() - stairK, stairOrigin.getZ() + c[1] - c0[1]);
         if (feet.getY() < targetY) return false;
         if (a.isNavigating()) a.stopNavigation();
         // Its own steps, not a dig-out the stuck watch started: while one runs its steps do nothing (stepToward waits for it),
@@ -1560,6 +1567,7 @@ public final class SpeedrunnerModule implements RoleModule {
             boolean wet = false;
             for (int dy = -1; dy <= 2; dy++) for (int ox = -1; ox <= 1; ox++) for (int oz = -1; oz <= 1; oz++) { if (ox != 0 && oz != 0) continue; BlockState s = w.get(feet.getX() + ox, feet.getY() + dy, feet.getZ() + oz); if (s != null && !s.getFluidState().isEmpty()) wet = true; } // beside it too
             if (wet && poolDeep && descendTop != null) { badDescend.add(descendTop); descendTop = null; a.log("[speedrun] water it cannot plug on its way down: another place to dig down from"); }
+            stairStuckAt = BlockPos.containing(a.x(), a.y() + 0.01, a.z());
             stairOrigin = null; return true;
         }
         // Water touching any of the three (beside them, or over the top one): plugged first. Only the step itself was, then
@@ -1598,9 +1606,15 @@ public final class SpeedrunnerModule implements RoleModule {
             // A cave under the step: floor a few blocks down is a safe drop (into it, and on from there); deeper, or
             // water or lava, a block plugged in (with nothing beside it to place against, it stood there half a minute).
             int drop = 0;
-            for (int d = 1; d <= 4; d++) { BlockState s = w.get(under.getX(), under.getY() - d + 1, under.getZ()); if (s == null || !s.getFluidState().isEmpty()) { drop = 99; break; } if (!Rules.canWalkThrough(s)) break; drop = d; }
-            if (u.getFluidState().isEmpty() && drop <= 3) { a.stepToward(feet.getX() + 0.5, feet.getZ() + 0.5); return true; }
-            plug(a, w, under); return true;
+            boolean floor = false;
+            for (int d = 1; d <= 16; d++) { BlockState s = w.get(under.getX(), under.getY() - d + 1, under.getZ()); if (s == null || !s.getFluidState().isEmpty()) { drop = 99; break; } if (!Rules.canWalkThrough(s)) { floor = true; break; } drop = d; }
+            // A cave a few blocks down: into it. Deeper but with a floor and the health to take the fall (damage = fall - 3,
+            // kept 6 hearts of margin), also into it: a plug over a wide cave has nothing to go against, and the main stood
+            // over such a gap for 40 minutes (run 1120zo).
+            if (u.getFluidState().isEmpty() && (drop <= 3 || floor && drop - 3 < a.health() - 12)) { stairWhy = "dropping into the cave under its step (" + drop + " blocks)"; a.stepToward(feet.getX() + 0.5, feet.getZ() + 0.5); return true; }
+            stairWhy = "plugging the gap under its step at " + under.toShortString() + " (" + (drop == 99 ? "fluid" : drop + " blocks of air") + ")";
+            if (!plug(a, w, under) && ticks - stairAt > 20 * 8) { stairWhy += ": nothing to place against, turning the staircase"; stairAt = ticks - 20 * 31; }
+            return true;
         }
         stairWhy = "stepping onto the step (escaping=" + a.escaping() + ", navigating=" + a.isNavigating() + ", airborne=" + a.airborne() + ")";
         a.stepToward(feet.getX() + 0.5, feet.getZ() + 0.5);
@@ -1608,17 +1622,19 @@ public final class SpeedrunnerModule implements RoleModule {
     }
 
     /** A cobblestone into this cell (water, lava or air), against any solid block beside it. */
-    private void plug(AgentHandle a, BlockView w, BlockPos b) {
-        if (ticks % 5 != 0) return;
-        if (!hold(a, "minecraft:cobblestone") && !hold(a, "minecraft:cobbled_deepslate") && !hold(a, "minecraft:netherrack")) { status = "needs cobblestone to plug the water"; return; }
+    /** False when it cannot: no block to plug with or nothing solid beside the cell to place against. */
+    private boolean plug(AgentHandle a, BlockView w, BlockPos b) {
+        if (ticks % 5 != 0) return true;
+        if (!hold(a, "minecraft:cobblestone") && !hold(a, "minecraft:cobbled_deepslate") && !hold(a, "minecraft:netherrack") && !hold(a, "minecraft:dirt")) { status = "needs cobblestone to plug the water"; stairWhy += " (no cobblestone)"; return false; }
         for (Direction d : Direction.values()) {
             BlockPos n = b.relative(d);
             if (!solid(w.get(n.getX(), n.getY(), n.getZ()))) continue;
             Direction face = d.getOpposite();
             a.lookAt(n.getX() + 0.5 + face.getStepX() * 0.5, n.getY() + 0.5 + face.getStepY() * 0.5, n.getZ() + 0.5 + face.getStepZ() * 0.5);
             a.placeAgainst(n.getX(), n.getY(), n.getZ(), face);
-            return;
+            return true;
         }
+        return false;
     }
     private BlockPos dryStart;
     private boolean dryDone;
