@@ -505,7 +505,10 @@ public final class Agent implements AgentHandle {
             // something to fight with and the health for it, it fights (the fight code takes it from here). With nothing, or
             // too hurt, it leaves the game for a while, tells the warriors where the mobs are, and comes back.
             if (++burrowCheck % 10 != 0 || System.currentTimeMillis() < burrowAgainAt) return false;
-            if (role == Role.WARRIOR || airVel != null || myVehicle >= 0 || onlineFor() < 6_000) return false;
+            // Just back and badly hurt: at once, not after 6 s (being away does not heal; the main came back at 1 health
+            // beside the skeleton it had left and was shot within a second, run 1120f).
+            { float hp0 = health(); boolean badlyHurt = !Float.isNaN(hp0) && hp0 > 0 && hp0 < 8 && AWAY_RUNS.getOrDefault(name.toLowerCase(), 0) > 0;
+              if (role == Role.WARRIOR || airVel != null || myVehicle >= 0 || onlineFor() < (badlyHurt ? 1_500 : 6_000) || !hasWorldHere()) return false; }
             {
                 var tw = openWorld();
                 if (tw == null) return false;
