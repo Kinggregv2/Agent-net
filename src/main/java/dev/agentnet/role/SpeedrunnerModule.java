@@ -1539,7 +1539,7 @@ public final class SpeedrunnerModule implements RoleModule {
         if (ticks - stairAt > 20 * 30) { // stuck on this step: say why, start again from here
             StringBuilder sb = new StringBuilder();
             for (int dy = -1; dy <= 2; dy++) { BlockState s = w.get(feet.getX(), feet.getY() + dy, feet.getZ()); sb.append(" y").append(feet.getY() + dy).append("=").append(s == null ? "?" : s.getBlock().getDescriptionId().replace("block.minecraft.", "")); }
-            a.log("[speedrun] stuck on staircase step " + stairK + " at " + feet.toShortString() + " (it is at " + String.format("%.2f %.2f %.2f", a.x(), a.y(), a.z()) + "):" + sb + "; status " + status);
+            a.log("[speedrun] stuck on staircase step " + stairK + " at " + feet.toShortString() + " (it is at " + String.format("%.2f %.2f %.2f", a.x(), a.y(), a.z()) + "):" + sb + "; status " + status + "; last: " + stairWhy);
             // Stuck in water it cannot plug (no solid block beside it to place against): this start is no good. Another
             // one when it is on its way down to a pool (run 1120d: stuck on step 1 in an underground pond for minutes).
             // Only when there is water in that step: stuck over dry rock, it starts the staircase again from where it is (run
