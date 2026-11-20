@@ -387,6 +387,17 @@ O72. THE MAIN STALLED ON ONE STAIRCASE STEP AND THEN WALKED BACK THROUGH ROCK (r
     is now said, with the block and where it stands (to find the cause of the stall). Built, run
     1120zh.
 
+O73. THE MAIN FROZE TO DEATH IN POWDER SNOW (run 1120zh, 19.9 min, snowy mountains): in it while
+    digging its way out, it took the powder snow round it for danger it must not dig ("boxed in
+    and every way out is water, lava, bedrock or protected: staying put") and stood in it until it
+    froze. Fixed 09:35: powder snow at its feet or head is dug out at once (like sand on its head),
+    and a dig-out digs through powder snow instead of stopping at it (the path finder still never
+    plans a way through it). Built, not deployed (run 1120zh left running).
+
+O74. THE MAIN GAVE ITS FURNACE TO A DISTRIBUTOR (run 1120zh, 09:28: "handing 1x furnace to
+    sweaty_ranger"): any agent hands over what a distributor asks for. Fixed 09:35: speedrunners and
+    falloffs never do (all they carry is their run). Built, not deployed.
+
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
     Fixed 03:35: stopped only once it has its shield. Built, run 1120n.
