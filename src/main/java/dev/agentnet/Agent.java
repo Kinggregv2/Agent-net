@@ -336,7 +336,7 @@ public final class Agent implements AgentHandle {
             // Only miners mine: "/agent mine" makes the agent one.
             log("now a miner");
             setRole(Role.MINER);
-        } else if (p[0].equals("explore") && role != Role.EXPLORER) {
+        } else if ((p[0].equals("explore") || p[0].equals("scout")) && role != Role.EXPLORER) {
             log("now an explorer");
             setRole(Role.EXPLORER);
         } else if (p[0].equals("trade") && role != Role.TRADER) {
