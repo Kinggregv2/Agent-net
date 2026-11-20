@@ -139,6 +139,18 @@ O28. AN UNDERGROUND POOL REACHED, THEN GIVEN UP (run 1120d, 20 min): 52 blocks o
     solid beside it to plug against) for 6+ minutes. Fixed 01:05: the clearing time grows by 6 s a
     block, and a staircase start stuck in water is dropped for another dry one. Not yet seen
     working.
+    Run 1120g: the stuck staircase start in water was dropped for another (seen working, 02:10).
+
+O29. HELPERS WITHOUT A SHIELD IDLED BY THE MAIN DURING CAST (run 1120g, NETHERComet, AFK for
+    minutes): past CAST a helper only did its nether kit if it already had a shield. Fixed 02:16:
+    no shield, it makes one first (the same way as before CAST), then the kit. Built, not yet
+    seen working (deploys with the next new world).
+
+O30. A DISTRIBUTOR TUNNELLED 20 MINUTES TOWARD UNDERGROUND SPEEDRUNNERS (run 1120g, melon16):
+    ten food orders from agents 31 blocks down at the main's pool, 170 blocks away; each tried for
+    2 minutes in turn, "boxed in ... digging its way out" 94 times. Fixed 02:19: after one order
+    to an agent fails, its other orders are dropped while it stays near that spot (4 minutes; it
+    asks again from somewhere reachable). Built, not yet seen working.
 
 --- FIXED ON 2026-11-19 (seen working in a run unless it says otherwise) ----------
 
