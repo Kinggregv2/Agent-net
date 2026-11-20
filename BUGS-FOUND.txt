@@ -276,6 +276,13 @@ O54. THE MAIN GATHERS ITS NETHER KIT ALONE (run 1120s, 17.6 min: 5 iron of the 1
     leggings and boots take): the crew was asked for iron only up to the lighter. Since 05:45 the
     kit's iron short is asked of the crew too, from the portal frame on. Built, not deployed yet.
 
+O55. TWO DISTRIBUTORS SUFFOCATED PILLARING UP THROUGH GRAVEL (run 1120s: melon16 05:48,
+    sweaty_ranger 05:53; "gravel in its feet space" a second before): digging their way out toward a
+    goal 6 blocks up, they pillared, the gravel came down into the head space while they were in the
+    air, and the O33 reflex skipped agents in the air. Fixed 05:55: no pillaring up a column with
+    sand or gravel over it (it goes sideways instead), and the reflex now also works in the air
+    (sand and gravel only, so a jump under a ceiling is not dug). Built, not deployed yet.
+
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
     Fixed 03:35: stopped only once it has its shield. Built, run 1120n.
