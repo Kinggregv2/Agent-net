@@ -210,6 +210,12 @@ O38. THE MAIN'S STAIRCASE STARTED AGAIN AT EVERY STEP (runs 1120g and 1120m): "d
     drop into a cave) fired when its hop down onto the next step put it over 1.5 blocks above where
     it should be. Fixed 03:37: only well below (1.5) or far above (3.5) starts it again. Built, run
     1120n.
+    Run 1120n (04:00): no restart at every hop any more, but a new slow spot: see O44.
+
+O44. THE MAIN HOVERED ON THE EDGE OF EVERY STEP FOR 30-40 S (run 1120n, staircase to a pool
+    17 blocks down): at x 61.07 over its step (the right block, but its body still on the step
+    before, 1.8 blocks up), and the hop for it lands it back on the same edge. Fixed 04:04: into
+    the middle of the step first, then the hop. Built, not deployed yet.
 
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
