@@ -2896,6 +2896,9 @@ public final class SpeedrunnerModule implements RoleModule {
     /** The main speedrunner (null before there is one): its name is drawn in the role's purple, the helpers' lighter. */
     public static String mainRunner() { return MAIN; }
 
+    /** The main has its portal frame up (or is past it): from then on the falloffs are worth hiring. */
+    public static boolean mainAtPortal() { return MAIN != null && mainStage.ordinal() >= Stage.LIGHT.ordinal(); }
+
     /** Logs of any kind it carries. */
     private static int countLogs(AgentHandle a) {
         int n = 0;

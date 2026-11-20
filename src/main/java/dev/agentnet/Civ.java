@@ -133,11 +133,34 @@ public final class Civ {
     private static boolean hungerNeed(Need n) { return n.why().startsWith(HUNGRY); }
 
     /** The storage keeper and the base itself (its builder and its materials): before guards, gear and the rest. */
+
+    private static final Role[] STARTERS = {Role.SPEEDRUNNER, Role.MINER, Role.BUILDER, Role.DISTRIBUTOR,
+            Role.SPEEDRUNNER, Role.MINER, Role.SPEEDRUNNER, Role.MINER, Role.SPEEDRUNNER};
+
+    /** The next of the starting crew still missing, or null once all nine are in (or the crew is past them). */
+    private static Need starterNeed(int crewSize, Map<Role, Integer> roles) {
+        if (crewSize >= STARTERS.length + 3) return null; // well past the start: by need only
+        Map<Role, Integer> want = new EnumMap<>(Role.class);
+        for (Role r : STARTERS) {
+            want.merge(r, 1, Integer::sum);
+            int have = roles.getOrDefault(r, 0) + (r == Role.MINER ? 0 : 0);
+            if (have >= want.get(r)) continue;
+            return switch (r) {
+                case SPEEDRUNNER -> new Need(r, "speedrun", have == 0 ? "a runner to beat the game: its own portal into the nether, then the End"
+                        : "the starting crew: a speedrun helper (" + have + " of 4 runners)");
+                case MINER -> new Need(r, "mine 64 stone", "the starting crew: miner " + (have + 1) + " of 3");
+                case BUILDER -> new Need(r, null, "the starting crew: a builder for the base");
+                default -> new Need(r, null, "the starting crew: a distributor");
+            };
+        }
+        return null;
+    }
     private static boolean first(Need n) {
         return n.role() == Role.SPEEDRUNNER || n.role() == Role.RESCUER || n.role() == Role.FALLOFF || runnerNeed(n) || hungerNeed(n) || n.role() == Role.KEEPER || n.role() == Role.BUILDER || n.role() == Role.MINER && n.why().startsWith("the base needs")
                 || n.role() == Role.DISTRIBUTOR && n.why().startsWith("the base is going up")
                 || n.role() == Role.EXPLORER && "scout".equals(n.task()) // the lava scout: for the speedrunners, not learned like the rest
-                || n.role() == Role.WARRIOR && n.why().contains("(hitlist)"); // a hitlist player near one of ours: a fighter even at the cap (run 1120v test)
+                || n.role() == Role.WARRIOR && n.why().contains("(hitlist)") // a hitlist player near one of ours: a fighter even at the cap (run 1120v test)
+                || n.why().startsWith("the starting crew"); // the first nine, in their order
     }
 
     private static void round() {
@@ -257,7 +280,9 @@ public final class Civ {
         // Falloff speedrunners: two that go with the team and stay at the blaze spawner for two stacks of rods (potions),
         // then come home as brewers. Once the four runners are in, and while the dragon is not dead yet.
         int falloffs = roles.getOrDefault(Role.FALLOFF, 0);
-        if (runners >= 4 && falloffs < 2 && crew.size() >= 6 && dev.agentnet.role.SpeedrunnerModule.priorityRunner() != null)
+        // Only once the main has its portal up: hired at the start they looked like more helpers (the user counted four)
+        // and had nothing to do for 15 minutes.
+        if (runners >= 4 && falloffs < 2 && crew.size() >= 6 && dev.agentnet.role.SpeedrunnerModule.priorityRunner() != null && dev.agentnet.role.SpeedrunnerModule.mainAtPortal())
             needs.add(new Need(Role.FALLOFF, "speedrun", "the speedrunners need falloffs (" + falloffs + " of 2): blaze rods for potions, then brewers"));
         // Until the dragon is dead the speedrunner comes first for everyone (the user: "if he happens to need iron, everyone
         // should bend their knees and go get him some iron"): two more on iron for it, taken off other work if need be;
@@ -348,6 +373,11 @@ public final class Civ {
         // A threat from the hitlist still gets a guard.
         if (!baseBuilt) needs.removeIf(n -> !first(n) && n.role() != Role.DISTRIBUTOR && !n.why().contains("(hitlist)"));
 
+        // The starting crew (the user, 2026-11-20): the main speedrunner among the very first, then a miner, a builder, a
+        // distributor, and three helpers and two more miners in turn: 1 + 3 helpers, 3 miners, a distributor and a
+        // builder. Until those nine are hired, only they (and a fighter for a hitlist player) are; after that, by need.
+        Need starter = starterNeed(crew.size(), roles);
+        if (starter != null) { needs.removeIf(x -> !(x.role() == Role.WARRIOR && x.why().contains("(hitlist)"))); needs.add(starter); }
         // Self-improving: jobs that kept failing here are on hold for a while; the rest, best track record
         // first (guards and distributors keep their place in front: they don't produce anything to count).
         needs.removeIf(n -> n.role() != Role.WARRIOR && n.role() != Role.DISTRIBUTOR && !first(n) && !CivLearning.allowed(n.role(), n.task()));
