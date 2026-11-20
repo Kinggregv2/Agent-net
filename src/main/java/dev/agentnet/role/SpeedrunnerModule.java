@@ -431,7 +431,7 @@ public final class SpeedrunnerModule implements RoleModule {
                     upAt = ticks; upFromY = a.y();
                     if (a.isNavigating()) a.stopNavigation();
                     upTrip = a.goUp();
-                    if (upTrip) { fetchStand = null; status = "up to the surface first"; a.log("[speedrun] underground: up to the surface first"); return; }
+                    if (upTrip) { fetchStand = null; status = "up to the surface first"; a.log("[speedrun] underground: up to the surface first (" + roofSeen + ")"); return; }
                 }
             } // (upTrip stays set between tries: cleared here, the count of climbs that got nowhere never started)
         }
@@ -3308,6 +3308,8 @@ public final class SpeedrunnerModule implements RoleModule {
     }
 
     /** Rock over its head (not just a tree): it is in a cave or a tunnel. */
+    /** What the last "underground" answer saw over its head (for the log). */
+    private static volatile String roofSeen = "";
     private static boolean underground(AgentHandle a) {
         if (!(a.openWorld() instanceof BlockView w)) return false;
         int x = (int) Math.floor(a.x()), y = (int) Math.floor(a.y() + 0.01), z = (int) Math.floor(a.z());
@@ -3315,6 +3317,7 @@ public final class SpeedrunnerModule implements RoleModule {
             BlockState s = w.get(x, y + dy, z);
             if (s == null) return false;
             if (skyThrough(s)) continue;
+            roofSeen = s.getBlock().getDescriptionId().replace("block.minecraft.", "") + " at " + x + " " + (y + dy) + " " + z + " (" + dy + " over its feet)";
             return true;
         }
         return false;
