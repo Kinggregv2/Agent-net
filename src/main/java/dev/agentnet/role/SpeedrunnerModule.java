@@ -1515,6 +1515,9 @@ public final class SpeedrunnerModule implements RoleModule {
         BlockPos feet = new BlockPos(stairOrigin.getX() + c[0], stairOrigin.getY() - stairK, stairOrigin.getZ() + c[1]);
         if (feet.getY() < targetY) return false;
         if (a.isNavigating()) a.stopNavigation();
+        // Its own steps, not a dig-out the stuck watch started: while one runs its steps do nothing (stepToward waits for it),
+        // so it stood beside the next step, "stuck", and the watch started another (run 1120zf, 2 minutes on one step).
+        if (a.escaping()) a.cancelEscape();
         if (a.isDigging()) return true;
         if ((int) Math.floor(a.x()) == feet.getX() && (int) Math.floor(a.z()) == feet.getZ() && Math.abs(a.y() - feet.getY()) < 0.6) { stairK++; stairAt = ticks; return true; }
         // Over its step but higher, with air under it: it hovers (the fall only starts when it moves, and it is already
