@@ -1,7 +1,7 @@
 AGENTNET BUGS (kept up to date by Claude: open ones first, then what was fixed)
 ================================================================================
 A bug = any unintended behaviour, including deaths that could have been prevented.
-Last updated: 2026-11-20 01:46, from crew runs "run 1118d" to "run 1120f".
+Last updated: 2026-11-20 01:56, from crew runs "run 1118d" to "run 1120f".
 
 --- OPEN (found, not fixed yet) --------------------------------------------------
 
@@ -68,6 +68,10 @@ O16. WORKERS STILL DIE AT NIGHT ON THE SURFACE: 11 deaths in 28 minutes in run 1
     it blew it up (run 1120b). Now an agent with no sword or axe never stays near a creeper (7
     blocks): it leaves the game for a while. Not yet seen working. Run 1120b otherwise: one death
     in 9 minutes, main at the shield stage at 8.3 min.
+    01:55: the main (run 1120f) left at almost no health, came back after 45 s next to the same
+    skeleton (being away does not heal) and was shot within a second, before the 6 s grace after
+    joining was over. Now a badly hurt agent that has just come back checks after 1.5 s and leaves
+    again (for longer) if the mob is still there. Not yet seen working.
 O17. THE CREW ENDED UP WITH NO DISTRIBUTOR AT ALL (run 1119c, 19:57; the user: "distributors are
     vital"). Five were hired, then turned into miners and hunters one by one: a distributor is
     "idle" between deliveries, and the civ gave idle agents the speedrunner's iron and the
