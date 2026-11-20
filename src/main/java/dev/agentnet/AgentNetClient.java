@@ -388,6 +388,9 @@ public final class AgentNetClient implements ClientModInitializer {
                     .then(literal("main").executes(c -> setTask(c, "speedrun main")))
                     // /agent speedrun <agent> stage <name>: jump to a stage (tests)
                     .then(literal("stage").then(argument("stage", StringArgumentType.word()).executes(c -> setTask(c, "speedrun stage " + StringArgumentType.getString(c, "stage")))))))
+            // The lava-pool scout (an explorer): finds a pool for the speedrunners, marks it, goes into it and is retired.
+            .then(literal("scout").then(argument("agent", StringArgumentType.word()).suggests(AGENT_TARGETS)
+                    .executes(c -> setTask(c, "scout"))))
             .then(literal("hunt").then(argument("agent", StringArgumentType.word()).suggests(AGENT_TARGETS)
                     .executes(c -> setTask(c, "hunt"))))
             .then(literal("explore").then(argument("agent", StringArgumentType.word()).suggests(AGENT_TARGETS)
