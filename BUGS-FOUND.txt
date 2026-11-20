@@ -409,7 +409,16 @@ O75. THE MAIN GAVE UP LOOKING FOR WATER PAST 64 BLOCKS (run 1120zh, 16+ minutes 
 O76. A HELPER STOOD 8 MINUTES "MINING IRON FOR ITS IRON LEGGINGS" (run 1120zh, BlazeDratal2006, AFK
     twice: 6 raw iron of 7, "done: mined 1 iron_ore" without the iron reaching it, then nothing).
     Fixed 09:45: the AFK watch now tells the agent's job, like going in circles; a speedrunner
-    starts its mining afresh (a new ore, a new way). Built, run 1120zi.
+    starts its mining afresh (a new ore, a new way). SEEN WORKING (run 1120zi, 09:55: NETHERComet
+    "stuck (AFK): starting its job afresh").
+
+O77. AT ITS POOL, THE SHORE TUNNEL TOOK 7 MINUTES FOR 16 BLOCKS AND THE POOL WAS GIVEN UP (run
+    1120zi, 16-23 min: down at the pool at 10:02, "could not clear the shore" at 10:10): the stuck
+    watch kept starting dig-outs while the tunnel dug (the same clash as O70 on the staircase), and
+    the clearing clock ran all through the tunnelling, so it was out of time when it got there.
+    Fixed 10:15: the shore tunnel cancels dig-outs; each tunnel step gives the clock 20 s back; and
+    the stuck watch now leaves alone any agent that started a dig in the last 5 s (digging in place
+    is progress, not being stuck). Built, not deployed (run 1120zi left running).
 
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
