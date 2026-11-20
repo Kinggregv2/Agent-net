@@ -427,6 +427,9 @@ OLDER REPORT, kept for reference
 F27. THE FIRST SPEEDRUNNER IS THE MAIN, AND IT COMES IN AT ONCE (the user, 2026-11-20 07:05 and
     07:17). The speedrunner that started first is the main (before: whichever ticked first); Civ's
     first round is on its first tick, so the speedrunner is hired 6 s after you join (run 1120zb).
+    Run 1120zb still had no main for 2 minutes (the pickaxe kit ran before every speedrunner's own
+    code, and the one done first became main); fixed 07:25: the main is never held up by the kit.
+    Run 1120zc: itsCyber hired 5 s after you joined, the main 4 s later.
 
 F28. THE STARTING CREW (the user, 2026-11-20 07:15: "one of the few that automatically join should
     be the speedrunner, 3 helpers with that, 3 miners, a distributor and a builder, the rest
