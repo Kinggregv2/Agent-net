@@ -479,6 +479,13 @@ O85. THE MAIN BURNED IN ITS OWN LAVA POOL (run 1120zl, 12:20, 18.7 min: tunnelli
     Still open: its floor gave way while clearing the shore; it had no food at the portal stage.
     Built, not deployed (run 1120zl left running: the main starts over).
 
+O86. THE MAIN'S PACK WAS FULL AND IT COULD NOT PICK UP ITS GOLD (run 1120zl, 12:43-12:55, "mining
+    gold for its golden helmet" for 10 minutes, silent: 36 of 36 slots, 632 cobblestone, 88 dirt,
+    gravel, leaf litter, seeds, eggs). Fixed 12:55: a speedrunner with under 3 free slots throws out
+    its junk (all but one stack of cobblestone; dirt, gravel, stone kinds, seeds, eggs and the
+    like). Built, not deployed. In run 1120zl its pack was cleared by hand (/clear) so the run goes
+    on.
+
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
     Fixed 03:35: stopped only once it has its shield. Built, run 1120n.
