@@ -451,6 +451,12 @@ O81. A HUNTER STUCK INSIDE A FENCE (run 1120zk, lynxorca, after a sheep in a pen
     its feet or head are is dug out at once (with the reflex that digs sand off its head). Built,
     not deployed (run 1120zk left running).
 
+O82. THE MAIN MINED ITS SWORD'S AND PICKAXE'S IRON ALONE (run 1120zk, 11:26-11:44: 15 minutes for
+    the 2 iron of its sword; its iron pickaxe from 11:22 gone by 11:35, worn out in its tunnels, and
+    3 more iron to find): the crew was asked for the iron of its armour pieces only. Fixed 11:45:
+    the sword's and the pickaxe's iron are asked of the crew too. Built, not deployed (run 1120zk
+    left running: it has its armour and golden helmet and sword, 48 min in).
+
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
     Fixed 03:35: stopped only once it has its shield. Built, run 1120n.
