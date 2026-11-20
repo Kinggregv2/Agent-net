@@ -1,7 +1,7 @@
 AGENTNET BUGS (kept up to date by Claude: open ones first, then what was fixed)
 ================================================================================
 A bug = any unintended behaviour, including deaths that could have been prevented.
-Last updated: 2026-11-20 00:56, from crew runs "run 1118d" to "run 1120d".
+Last updated: 2026-11-20 01:06, from crew runs "run 1118d" to "run 1120d".
 
 --- OPEN (found, not fixed yet) --------------------------------------------------
 
@@ -121,6 +121,12 @@ O26. A HELPER TOOK OVER AS MAIN WHILE THE MAIN WAS AWAY (run 1119p): the main le
 O27. A STONE PICKAXE TRIED 127 TIMES WITH NO CRAFTING TABLE (run 1119p, JUSTComet): "needs a crafting
     table" every 3 s. Fixed 00:01: it only tries with a table or the wood for one, and then once
     every 30 s. Not yet seen working.
+O28. AN UNDERGROUND POOL REACHED, THEN GIVEN UP (run 1120d, 20 min): 52 blocks of rock on the
+    pool's shore, a flat 150 s to clear them, "could not clear the shore", a new pool chosen and the
+    climb started over; its next staircase got stuck in an underground pond (water with nothing
+    solid beside it to plug against) for 6+ minutes. Fixed 01:05: the clearing time grows by 6 s a
+    block, and a staircase start stuck in water is dropped for another dry one. Not yet seen
+    working.
 
 --- FIXED ON 2026-11-19 (seen working in a run unless it says otherwise) ----------
 
