@@ -431,7 +431,14 @@ O78. THE MAIN'S STAIRCASE MADE ONE BLOCK A MINUTE (run 1120zi, 10:19-10:24): aft
     dig stretches all later digs 1.6 times (up to 6.5), and the stretch only shrank when the server
     sent the dug block back, which it mostly does not; with the 5x off-the-ground penalty on a
     staircase hop, a stone block took about 18 s, two blocks a step overran the 30 s limit. Fixed
-    10:45: the stretch wears off by a fifth every 30 s. Built, not deployed (run 1120zj left running).
+    10:45: the stretch wears off by a fifth every 30 s. Built, run 1120zk.
+
+O79. THE MAIN'S PICKAXE WORE OUT ON ITS STAIRCASE AND IT LEFT THE POOL (run 1120zj, 10:48-10:53:
+    down at the pool, the shore tunnel slow (O77, old jar), its stone pickaxe broken, "no pickaxe:
+    making a stone pickaxe" every 10 s, then up to the surface and another site it could not get
+    to). A new pickaxe was only made before the pool stage, and only once it had none. Fixed 10:55:
+    in every overworld stage, and a spare is made when the one it has is under 20 uses. Built, run
+    1120zk (run 1120zj stopped: its main had spent most of its time on bugs fixed in the new jar).
 
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
