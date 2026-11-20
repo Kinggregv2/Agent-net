@@ -297,7 +297,7 @@ O57. THREE STAIRCASES GIVEN UP IN ONE UNDERGROUND WATER LAYER (run 1120t, y 53-5
 
 O58. NO WARRIOR FOR A HITLIST PLAYER AT THE CREW CAP (run 1120v test): "Raider (hitlist) is near
     samurai_ridra, but the crew is at its cap of 14" every 20 s. Fixed 06:58: a hitlist threat is
-    a first need (it may move a third distributor or a guard). Built, not deployed.
+    a first need (it may move a third distributor or a guard). Built, run 1120zg.
 
 O59. A WARRIOR MOVED TO MINER IN THE MIDDLE OF ITS FIGHT (run 1120v test: "the base needs 64 more
     cobblestone -> FenlynroPvP moves from warrior (nothing to do there) to miner", then "running
@@ -355,16 +355,22 @@ O67. LOADS LEFT DEEP UNDERGROUND FOR THE DISTRIBUTORS (run 1120zf: the builder m
     cobblestone at y 11-16 left 132 base materials on the ground there; two distributors tunnelled
     toward them for 4 minutes each, load after load, "closed in" 50+ times, AFK). Fixed 08:35: with
     more than six solid blocks over its head an agent never leaves a load on the ground; it
-    carries it back up its own tunnel itself. Built, not deployed (run 1120zf left running).
+    carries it back up its own tunnel itself. Built, run 1120zg.
 
 O68. A MINER WITH 209 COBBLESTONE WAITED FOR A PICKAXE (run 1120zf, ZarkaTheEmber, AFK: only a
     wooden one, one plank, no sticks; "needs a better pickaxe ... asking a distributor" again and
     again). Fixed 08:36: no wood for the handle but the cobblestone: two logs first, then it makes
-    the stone pickaxe itself. Built, not deployed.
+    the stone pickaxe itself. Built, run 1120zg.
 
 O69. THE SCOUT STOOD STILL ONCE ITS AREA WAS EXPLORED (run 1120zf, Taco_Ninja61, AFK: "everything
     within 384 blocks is explored"). Fixed 08:37: a scout with no pool yet doubles its radius (up
-    to 1024) and goes on. Built, not deployed.
+    to 1024) and goes on. Built, run 1120zg.
+
+O70. THE MAIN STOOD BESIDE ITS NEXT STEP FOR MINUTES (run 1120zf, 28 min, a staircase to a pool 32
+    blocks down): the stuck watch had started a dig-out ("boxed in ... digging its way out"), and
+    while one runs the staircase's small steps do nothing; so it stayed beside the step, the
+    staircase restarted every 40 s, and the watch started the next dig-out. Fixed 08:45: the
+    staircase cancels any dig-out before it steps. Built, run 1120zg.
 
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
