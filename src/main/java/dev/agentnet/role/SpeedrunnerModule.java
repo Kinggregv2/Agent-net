@@ -1438,7 +1438,11 @@ public final class SpeedrunnerModule implements RoleModule {
 
     /** True while it is digging its staircase down to this height. */
     private boolean staircase(AgentHandle a, BlockView w, int targetY) {
-        if (stairOrigin == null || Math.abs(a.y() - (stairOrigin.getY() - stairK)) > 1.5) { // (a drop into a cave: on from where it landed)
+        // Started again only when it is well below where it should be (a drop into a cave: on from where it landed) or far
+        // above it. Its hop down onto the next step puts it over 1.5 above for a moment, and that started a new staircase
+        // at every step (run 1120m: "digging a staircase down from ..." every 2-10 s, a block further along each time).
+        double stairOff = stairOrigin == null ? 0 : a.y() - (stairOrigin.getY() - stairK);
+        if (stairOrigin == null || stairOff < -1.5 || stairOff > 3.5) {
             stairOrigin = BlockPos.containing(a.x(), a.y() + 0.01, a.z());
             stairK = 0;
             stairAt = ticks; // (left as it was, a restart counted as stuck at once and logged so every tick)
