@@ -63,6 +63,7 @@ final class AfkChecker {
             String doing = a.moduleStatus();
             AgentNetClient.notify("§e[" + a.name + "] AFK: hasn't moved for " + DETECT_MS / 60_000 + " min ("
                     + (a.role() == null ? "no role" : a.role().id()) + (doing == null || doing.isBlank() ? "" : "; " + doing) + ")");
+            a.afk(); // and its job told: counts as stuck, something else (a helper stood 8 minutes "mining iron for its leggings", run 1120zh)
         }
     }
 

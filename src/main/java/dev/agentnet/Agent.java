@@ -1884,6 +1884,11 @@ public final class Agent implements AgentHandle {
             return pl == null ? null : pl.level().getBlockState(p);
         } catch (RuntimeException e) { return null; }
     }
+
+    /** The AFK watch flagged it: its job is told, like going in circles (it tries something else). */
+    void afk() {
+        if (module != null) mc.execute(() -> { try { if (module != null) module.circling(this, "AFK"); } catch (RuntimeException e) { AgentNet.LOG.warn("[{}] afk hook failed", name, e); } });
+    }
     private boolean groundUnder() {
         var w = openWorld();
         if (w == null) return true;

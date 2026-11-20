@@ -4182,6 +4182,11 @@ public final class SpeedrunnerModule implements RoleModule {
     /** Going in circles (Agent's watch): the portal site it keeps coming back to is given up. */
     @Override
     public void circling(AgentHandle a, String where) {
+        // Its mining (iron for its kit, its own or for the main) started afresh: a new ore, a new way. A helper stood 8 minutes
+        // "mining iron for its iron leggings" with nothing happening (run 1120zh).
+        mine(a, null); minerJob = null; kitMining = false; ownMining = false; helperMining = false;
+        if (a.isNavigating()) a.stopNavigation();
+        a.log("[speedrun] stuck (" + where + "): starting its job afresh");
         if (!isMain(a)) return;
         if (origin != null && (stage == Stage.CAST || stage == Stage.POOL)) fail(a, "going in circles round " + where);
     }
