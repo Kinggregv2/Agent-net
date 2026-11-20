@@ -544,6 +544,9 @@ public final class Agent implements AgentHandle {
                 }
                 boolean mobbed = crowd >= 3;
                 if (!(creeperNear && !weapon) && !mobbed && (weapon && thp >= 8 || tool && thp >= 12)) return false; // it fights
+                // Away and back hurt, again and again (being away heals nothing): with food and the mob not on top of it, it eats
+                // first (the main left the game four times in four minutes at 5-7 HP with 32 steak, run 1120zl).
+                if (AWAY_RUNS.getOrDefault(name.toLowerCase(), 0) >= 2 && hasFood() && threat.distance() > 5 && !creeperNear) { burrowAgainAt = System.currentTimeMillis() + 8_000; return false; }
                 callForHelp(threat);
                 int runs = AWAY_RUNS.merge(name.toLowerCase(), 1, Integer::sum);
                 long away = Math.min(120_000L, 45_000L * runs);
