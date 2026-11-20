@@ -271,7 +271,9 @@ final class MakerModule implements RoleModule {
             int x = fx + d[0], z = fz + d[1];
             if (a.spawnProtected(x, z) || skip.contains(new BlockPos(x, fy, z))) continue;
             BlockState below = w.get(x, fy - 1, z), at = w.get(x, fy, z);
-            if (below == null || at == null || !at.isAir()) continue;
+            // Leaf litter, grass, snow layers: a block goes there like into air (in a forest with litter everywhere no spot
+            // was ever free, and a builder dug "a spot" 118 times, run 1120zg).
+            if (below == null || at == null || !(at.isAir() || at.canBeReplaced() && at.getFluidState().isEmpty())) continue;
             if (!below.isCollisionShapeFullBlock(net.minecraft.world.level.EmptyBlockGetter.INSTANCE, BlockPos.ZERO)) continue;
             boolean taken = false;
             for (AgentHandle h : dev.agentnet.bus.AgentBus.agents.get()) {
