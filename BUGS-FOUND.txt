@@ -376,7 +376,16 @@ O71. A BUILDER "DUG OUT A SPOT" FOR ITS CRAFTING TABLE 118 TIMES (run 1120zg, xX
     in a forest): leaf litter lay everywhere, and a spot had to be air over a full block, so no
     spot round it was ever free (O47's fix could not help: there was nothing to dig). Fixed 08:55:
     leaf litter, grass and snow layers count as free (a block is placed there like into air).
-    Built, not deployed (run 1120zg left running).
+    Built, run 1120zh.
+
+O72. THE MAIN STALLED ON ONE STAIRCASE STEP AND THEN WALKED BACK THROUGH ROCK (run 1120zg, 17-20
+    min, 20 blocks down a staircase to a pool 51 down): the step's lowest block (stone at y 38)
+    was never dug, nothing in the log saying why; after 30 s the staircase was dropped (not wet,
+    so the same start kept), and from 20 blocks down it walked back toward that start's column at
+    its own depth, through solid rock, "boxed in", then started over at the same step. Fixed 09:05:
+    well down a staircase it starts again from where it is; a dig the staircase cannot even start
+    is now said, with the block and where it stands (to find the cause of the stall). Built, run
+    1120zh.
 
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
