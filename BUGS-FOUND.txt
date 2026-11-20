@@ -193,6 +193,16 @@ O36. MINED BLOCKS' DROPS NOT PICKED UP (runs 1120k and 1120l, every speedrunner)
     reach some drops near ...", often for a spot one or two blocks off. Why is not known yet:
     since 03:15 that line is followed by the drops the agent sees, where it stands, and the item
     entities the server has there. Next: read those lines and fix the cause.
+    Run 1120m, the server's view: the agent sees the items where the server has them (no wrong
+    picture). The drops lie in pockets of a dig three agents share, not joined to where it stands
+    ("no way ... (42 spots searched)"); the fallback (digging toward them) runs but is slow. Lower
+    priority now that helpers hand the main its cobblestone (O34). Still open.
+
+O37. THE SCOUT NEVER GOT ITS JOB (run 1120m, samurai_ridra): hired as an explorer, but a queued
+    job only went to an agent whose task was "idle", and an explorer starts exploring by itself;
+    there was also no "/agent scout" command for the job to run. Fixed 03:27: the scout job goes
+    to a new explorer that is exploring, and "/agent scout <agent>" exists. Built, not deployed
+    yet (run 1120m is the fastest so far: the shield at 8.5 min).
 
 --- FIXED ON 2026-11-19 (seen working in a run unless it says otherwise) ----------
 
