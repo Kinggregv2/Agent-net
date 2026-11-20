@@ -1459,6 +1459,9 @@ public final class SpeedrunnerModule implements RoleModule {
             StringBuilder sb = new StringBuilder();
             for (int dy = -1; dy <= 2; dy++) { BlockState s = w.get(feet.getX(), feet.getY() + dy, feet.getZ()); sb.append(" y").append(feet.getY() + dy).append("=").append(s == null ? "?" : s.getBlock().getDescriptionId().replace("block.minecraft.", "")); }
             a.log("[speedrun] stuck on staircase step " + stairK + " at " + feet.toShortString() + " (it is at " + String.format("%.2f %.2f %.2f", a.x(), a.y(), a.z()) + "):" + sb + "; status " + status);
+            // Stuck in water it cannot plug (no solid block beside it to place against): this start is no good. Another
+            // one when it is on its way down to a pool (run 1120d: stuck on step 1 in an underground pond for minutes).
+            if (poolDeep && descendTop != null) { badDescend.add(descendTop); descendTop = null; a.log("[speedrun] water it cannot plug on its way down: another place to dig down from"); }
             stairOrigin = null; return true;
         }
         // Its three blocks: plugged if wet, dug if solid.
@@ -3741,6 +3744,8 @@ public final class SpeedrunnerModule implements RoleModule {
     /** The pool it chose lies underground: it goes down to it first. */
     private boolean poolDeep, siteDeep, descendSaid;
     private BlockPos descendTop;
+    /** Staircase starts that got stuck in water: never chosen again (nor anything within 6 blocks). */
+    private final List<BlockPos> badDescend = new ArrayList<>();
 
     /** The top of this column if it is dry land with no water or lava beside it (its staircase starts there); else null. */
     private static BlockPos dryTop(BlockView w, int x, int z, int fromY) {
@@ -3778,6 +3783,7 @@ public final class SpeedrunnerModule implements RoleModule {
             for (int r = 6; r <= 20; r += 2) for (int deg = 0; deg < 360; deg += 30) {
                 int cx = origin.getX() + (int) Math.round(Math.cos(Math.toRadians(deg)) * r), cz = origin.getZ() + (int) Math.round(Math.sin(Math.toRadians(deg)) * r);
                 BlockPos t = dryTop(w, cx, cz, (int) Math.floor(a.y()));
+                if (t != null) for (BlockPos bad : badDescend) if (Math.abs(bad.getX() - t.getX()) <= 6 && Math.abs(bad.getZ() - t.getZ()) <= 6) { t = null; break; }
                 if (t == null) continue;
                 double d = t.distToCenterSqr(a.x(), a.y(), a.z());
                 if (d < bd) { bd = d; best = t; }
@@ -3812,7 +3818,9 @@ public final class SpeedrunnerModule implements RoleModule {
             if (cs == null) return;
             if (!solid(cs)) { clear.remove(0); return; }
             stepTicks = 0;
-            if (++clearTicks > 20 * 150) { clear.clear(); fail(a, "could not clear the shore at " + b.toShortString()); return; }
+            // 150 s, plus 6 s for each block still to go: an underground pool had 52 blocks of rock on its shore, and with
+            // a flat 150 s it gave up on the pool it had just dug 60 blocks down to (run 1120d).
+            if (++clearTicks > 20 * (150 + 6 * clear.size())) { clear.clear(); fail(a, "could not clear the shore at " + b.toShortString()); return; }
             status = "clearing the shore at " + b.toShortString() + " (" + clear.size() + " to go)";
             if (b.distToCenterSqr(a.x(), a.y() + 1.62, a.z()) > 4.2 * 4.2) { if (!a.isNavigating() && clearTicks % 20 == 1) a.navigate(b.getX(), b.getY(), b.getZ(), 3); return; }
             if (a.isNavigating()) a.stopNavigation();
