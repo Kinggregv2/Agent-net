@@ -1736,7 +1736,7 @@ public final class Agent implements AgentHandle {
      */
     private boolean inBlockReflex() {
         var w = openWorld();
-        if (w == null) return false;
+        if (w == null || airborne()) return false; // gliding or falling: not standing in anything
         Vec3 p = pos.position();
         int x = (int) Math.floor(p.x), z = (int) Math.floor(p.z);
         int[] ys = {(int) Math.floor(p.y + 1.62), (int) Math.floor(p.y + 0.01)};
