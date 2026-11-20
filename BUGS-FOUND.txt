@@ -202,7 +202,27 @@ O37. THE SCOUT NEVER GOT ITS JOB (run 1120m, samurai_ridra): hired as an explore
     job only went to an agent whose task was "idle", and an explorer starts exploring by itself;
     there was also no "/agent scout" command for the job to run. Fixed 03:27: the scout job goes
     to a new explorer that is exploring, and "/agent scout <agent>" exists. Built, not deployed
-    yet (run 1120m is the fastest so far: the shield at 8.5 min).
+    yet (run 1120m is the fastest so far: the shield at 8.5 min). Deployed in run 1120n.
+
+O38. THE MAIN'S STAIRCASE STARTED AGAIN AT EVERY STEP (runs 1120g and 1120m): "digging a
+    staircase down from ..." every 2-10 s, a block further along each time, so it never got deep
+    (run 1120m: 4 minutes, then "no dry ground" and another pool). The restart rule (meant for a
+    drop into a cave) fired when its hop down onto the next step put it over 1.5 blocks above where
+    it should be. Fixed 03:37: only well below (1.5) or far above (3.5) starts it again. Built, run
+    1120n.
+
+O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
+    O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
+    Fixed 03:35: stopped only once it has its shield. Built, run 1120n.
+
+O40. A SHIELD TRIED 53 TIMES WITH 5 PLANKS (run 1120m, NETHERComet): a shield is 6 planks and an
+    iron ingot; with no logs it never got the sixth plank and never said so. Fixed 03:36: short of
+    wood, it chops 2 logs first. Built, run 1120n.
+
+O41. AN AGENT DUG AT "STONE IN ITS HEAD SPACE" 79 TIMES (run 1120m, sweaty_ranger; 158 refusals
+    from the server): the O33 reflex cleared the refusals each try, so it never gave up. Fixed
+    03:35: after 4 refusals of that block it leaves it a minute and prints the server's own view
+    (to find out why the server has it there). Built, run 1120n.
 
 --- FIXED ON 2026-11-19 (seen working in a run unless it says otherwise) ----------
 
