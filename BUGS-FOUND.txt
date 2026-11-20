@@ -186,6 +186,13 @@ O34. THE MAIN SPENT 5 MINUTES ON 3 COBBLESTONE (run 1120k): it mined 12 stone wi
 
 O35. THE LAVA SCOUT WAS NEVER HIRED (run 1120k): Civ drops a need it hasn't learned pays off, and
     the scout is new. Fixed 03:07: the scout need goes in front, like the speedrunners' own.
+    SEEN WORKING (run 1120l, 03:09): sam_waffle2012 hired as the scout; and O34's hand-over too:
+    "threw 3 cobblestone to BlazeDratal2006" (the main) at 03:12.
+
+O36. MINED BLOCKS' DROPS NOT PICKED UP (runs 1120k and 1120l, every speedrunner): "couldn't
+    reach some drops near ...", often for a spot one or two blocks off. Why is not known yet:
+    since 03:15 that line is followed by the drops the agent sees, where it stands, and the item
+    entities the server has there. Next: read those lines and fix the cause.
 
 --- FIXED ON 2026-11-19 (seen working in a run unless it says otherwise) ----------
 
