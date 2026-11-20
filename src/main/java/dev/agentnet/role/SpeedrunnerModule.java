@@ -1497,6 +1497,7 @@ public final class SpeedrunnerModule implements RoleModule {
     private static final int[][] STAIR = {{0, 0}, {1, 0}, {2, 0}, {3, 0}, {3, 1}, {3, 2}, {3, 3}, {2, 3}, {1, 3}, {0, 3}, {0, 2}, {0, 1}};
     private BlockPos stairOrigin;
     private int stairK, stairAt, stairDigSaidAt = -1000;
+    private String stairWhy = "";
 
     /** True while it is digging its staircase down to this height. */
     private boolean staircase(AgentHandle a, BlockView w, int targetY) {
@@ -1518,7 +1519,7 @@ public final class SpeedrunnerModule implements RoleModule {
         // Its own steps, not a dig-out the stuck watch started: while one runs its steps do nothing (stepToward waits for it),
         // so it stood beside the next step, "stuck", and the watch started another (run 1120zf, 2 minutes on one step).
         if (a.escaping()) a.cancelEscape();
-        if (a.isDigging()) return true;
+        if (a.isDigging()) { stairWhy = "digging"; return true; }
         if ((int) Math.floor(a.x()) == feet.getX() && (int) Math.floor(a.z()) == feet.getZ() && Math.abs(a.y() - feet.getY()) < 0.6) { stairK++; stairAt = ticks; return true; }
         // Over its step but higher, with air under it: it hovers (the fall only starts when it moves, and it is already
         // where it wants to be; the server said "standing on air" every 10 s). A hop puts it in the air and it falls.
@@ -1564,10 +1565,11 @@ public final class SpeedrunnerModule implements RoleModule {
         for (int dy = 2; dy >= 0; dy--) {
             BlockPos b = feet.above(dy);
             BlockState s = w.get(b.getX(), b.getY(), b.getZ());
-            if (s == null) return true;
-            if (!s.getFluidState().isEmpty()) { plug(a, w, b); return true; }
+            if (s == null) { stairWhy = "no block known at " + b.toShortString() + " (its picture has a gap there)"; return true; }
+            if (!s.getFluidState().isEmpty()) { stairWhy = "plugging water in the step"; plug(a, w, b); return true; }
             if (s.getBlock() == Blocks.BEDROCK) { stairOrigin = null; return false; }
             if (!Rules.canWalkThrough(s)) {
+                stairWhy = "digging the " + s.getBlock().getDescriptionId().replace("block.minecraft.", "") + " at " + b.toShortString() + " (dig sent, digging=" + a.isDigging() + ")";
                 if (ticks % 4 != 0) return true;
                 Gear.holdBestFor(a, s);
                 // A dig that does not even start (refused before, out of reach, protected): said, so a stuck step shows why
@@ -1587,6 +1589,7 @@ public final class SpeedrunnerModule implements RoleModule {
             if (u.getFluidState().isEmpty() && drop <= 3) { a.stepToward(feet.getX() + 0.5, feet.getZ() + 0.5); return true; }
             plug(a, w, under); return true;
         }
+        stairWhy = "stepping onto the step (escaping=" + a.escaping() + ", navigating=" + a.isNavigating() + ", airborne=" + a.airborne() + ")";
         a.stepToward(feet.getX() + 0.5, feet.getZ() + 0.5);
         return true;
     }
