@@ -295,6 +295,15 @@ O57. THREE STAIRCASES GIVEN UP IN ONE UNDERGROUND WATER LAYER (run 1120t, y 53-5
     step (or over the top one) is plugged first, and the "water it cannot plug" check counts water
     beside the step too. Built, run 1120u.
 
+O58. NO WARRIOR FOR A HITLIST PLAYER AT THE CREW CAP (run 1120v test): "Raider (hitlist) is near
+    samurai_ridra, but the crew is at its cap of 14" every 20 s. Fixed 06:58: a hitlist threat is
+    a first need (it may move a third distributor or a guard). Built, not deployed.
+
+O59. A WARRIOR MOVED TO MINER IN THE MIDDLE OF ITS FIGHT (run 1120v test: "the base needs 64 more
+    cobblestone -> FenlynroPvP moves from warrior (nothing to do there) to miner", then "running
+    from Raider"). Fixed 06:59: no guard is moved while a hitlist player has been seen in the last
+    30 s. Built, not deployed.
+
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
     Fixed 03:35: stopped only once it has its shield. Built, run 1120n.

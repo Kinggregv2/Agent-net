@@ -18,6 +18,16 @@ From chat on 2026-11-19 (not started):
    your player on the hitlist (the warriors would go after you), or test it yourself with
    /agent hitlist.
 
+   TESTED 2026-11-20 06:57 (run 1120v, a Carpet fake player "Raider" put on the hitlist with the
+   new "/agent hitlist add <player>"): SEEN WORKING: samurai_ridra spotted it the same second
+   ("[hitlist] spotted Raider ...: told the fighters") and followed it (about 50 blocks when it
+   was moved 70 blocks off); others reported it too; a warrior went after the latest sighting
+   ("going after Raider (seen by MrObsidian, 34 blocks off)") and fought it. Two bugs found, both
+   fixed 06:58-06:59, not yet seen: no warrior was hired for it at the crew cap (now a hitlist
+   threat may take a third distributor or a guard), and Civ moved the warrior to miner in the
+   middle of its fight (guards are now never moved while a hitlist player is about). Not tested:
+   travel by elytra (no warrior had one).
+
 
 Make speedrunners looking for a lava pool be able to detect lava pools underground
 
