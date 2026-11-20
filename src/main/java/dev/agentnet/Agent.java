@@ -1772,6 +1772,7 @@ public final class Agent implements AgentHandle {
             if (s == null || s.isAir() || !s.getFluidState().isEmpty() || dev.agentnet.pathing.Rules.canWalkThrough(s)) continue;
             if (s.getDestroySpeed(net.minecraft.world.level.EmptyBlockGetter.INSTANCE, BlockPos.ZERO) < 0) continue;
             if (!s.isSuffocating(net.minecraft.world.level.EmptyBlockGetter.INSTANCE, BlockPos.ZERO)) continue;
+            if (airborne() && !(s.getBlock() instanceof net.minecraft.world.level.block.FallingBlock)) continue; // mid-jump its eyes are in the ceiling: only sand or gravel counts then
             BlockPos at = new BlockPos(x, y, z);
             if (at.equals(digPos)) return true; // digging it already
             if (isNavigating()) stopNavigation();
