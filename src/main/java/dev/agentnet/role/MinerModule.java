@@ -435,6 +435,21 @@ final class MinerModule extends GathererModule {
             int picks = 0;
             double freshest = 0;
             for (ItemStack s : a.inventory()) if (Gear.id(s).endsWith("_pickaxe")) { picks++; freshest = Math.max(freshest, Gear.durability(s)); }
+            // No crafting table and not the 4 planks for one: two logs first (it queued the pickaxe every few seconds with 2
+            // planks and no table, and nothing came of it, run 1120zk).
+            int woodP = 0;
+            for (ItemStack s : a.inventory()) { String id = Gear.id(s); if (id.endsWith("_planks")) woodP += s.getCount(); else if ((id.endsWith("_log") || id.endsWith("_stem")) && !id.contains("stripped")) woodP += 4 * s.getCount(); }
+            if ((picks < 2 || bestPickTier(a) < 2) && countId(a, "minecraft:crafting_table") == 0 && woodP < 4 && resumeTask == null && errands < 8 && currentTask != null) {
+                pickTriedAt = System.currentTimeMillis();
+                errands++;
+                a.log("no crafting table and no wood for one: two logs first, then a stone pickaxe");
+                resumeTask = currentTask;
+                errandWant = 2; errandExtra = 0;
+                subJob = true;
+                onTask(a, "mine 2 logs");
+                subJob = false;
+                return;
+            }
             if ((picks < 2 || bestPickTier(a) < 2) && crafter.queueTool(a, "minecraft:stone_pickaxe")) { // always a spare: a broken pickaxe deep down was a stranded miner
                 pickTriedAt = System.currentTimeMillis();
                 a.log(picks == 0 ? "no pickaxe: making a stone one" : picks == 1 ? "making a spare stone pickaxe" : "upgrading to a stone pickaxe");
