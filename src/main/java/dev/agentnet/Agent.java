@@ -1067,6 +1067,8 @@ public final class Agent implements AgentHandle {
         if (tickThreats()) return; // running from a mob or a hitlist player
         if (tickFood()) return;    // eating
         if (tickForage()) return;  // starving with no food: an animal for itself
+        dev.agentnet.role.Sightings.look(this);              // a hitlist player in sight: told to the fighters
+        if (dev.agentnet.role.Sightings.follow(this)) return; // and the one that saw it keeps it in sight ("to add" 1)
         tickHub();
         if (module == null) return;
         try {

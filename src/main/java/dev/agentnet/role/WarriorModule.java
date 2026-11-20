@@ -159,6 +159,19 @@ final class WarriorModule implements RoleModule {
             if (t != null) { engine.tick(a, t); tactic = engine.tactic; if (!tactic.equals(lastTactic)) { dev.agentnet.AgentNet.LOG.info("[{}] tactic: {}", a.name(), tactic); lastTactic = tactic; } return; }
         }
         // Nothing to fight and nobody calling for help: wait inside the base, not out in the open.
+        // A hitlist player reported by anyone in the crew (a farmer out in the fields, the one following it): after it,
+        // by elytra when it has one (navigate flies the long trips). "to add" 1.
+        if (enemy == null) {
+            var sight = Sightings.latest(a.dimension());
+            if (sight != null && Math.sqrt(sight.pos().distanceToSqr(a.x(), a.y(), a.z())) > PLAYER_RANGE * 0.75) {
+                engine.idle(a); tactic = "";
+                if (!a.isNavigating() && ticks % 40 == 0) {
+                    a.log(String.format("§c[hitlist] going after %s (seen by %s, %.0f blocks off)", sight.enemy(), sight.by(), Math.sqrt(sight.pos().distanceToSqr(a.x(), a.y(), a.z()))));
+                    a.navigate((int) Math.floor(sight.pos().x), (int) Math.floor(sight.pos().y), (int) Math.floor(sight.pos().z), 8);
+                }
+                return;
+            }
+        }
         if (enemy == null) { engine.idle(a); tactic = ""; if (!goRescue(a) && rescues.isEmpty()) HomeBase.goHome(a, ticks); return; }
         engine.tick(a, enemy);
         tactic = engine.tactic;
