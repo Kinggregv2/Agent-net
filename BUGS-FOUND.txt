@@ -344,6 +344,13 @@ O64. AGENTS COULD NOT HANDLE WATER (the user, 2026-11-20 08:11, a screenshot of 
 O65. THE MAIN'S CROWN SHOWED AS "265B" (the user's screenshot): the code for the crown sign was
     written out as text. Fixed 08:10. Built, run 1120zf.
 
+O66. AN AGENT STOOD IN A "PHANTOM" BLOCK (run 1120zf, melon16, minutes): its picture had stone
+    where the server had air; every dig was refused ("too fast", the server has nothing there)
+    and the stone put back in its picture. This was O32 (b). Fixed 08:25: on your own world, a
+    refused dig takes the block the server really has there (not the one it was about to put
+    back). On someone else's server this cannot be asked; there it is as before. Built, not
+    deployed (run 1120zf left running).
+
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
     Fixed 03:35: stopped only once it has its shield. Built, run 1120n.

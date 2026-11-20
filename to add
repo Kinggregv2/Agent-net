@@ -26,3 +26,31 @@ Make speedrunners looking for a lava pool be able to detect lava pools undergrou
    portal of its own. Not seen yet: the diamond miners in a run, and the whole netherite part
    (no run has beaten the dragon since). Ancient debris needs a diamond pickaxe, which the
    miners make from their own diamonds.
+
+From chat on 2026-11-20:
+
+The nether kit for the speedrunner and its helpers: iron boots, iron leggings, iron chestplate, a
+golden helmet, an iron sword, an iron pickaxe, a shield and at least 32 cooked meat each, before
+going into the nether.
+
+   Progress (Claude, 08:28, built, not tested; run 1120zf left running): the kit check now asks
+   for all of it. After the armour each makes its iron sword (2 iron) and iron pickaxe (3 iron)
+   and a shield (chopping logs for the handles or the six planks when short), mining and smelting
+   the iron itself; then food: it asks the crew for what it lacks once a minute, hunts and cooks
+   the animals it sees, and walks on to find more. The main lights its portal only once its kit
+   is complete; helpers make theirs while it builds.
+
+The speedrunner, its helpers and the falloff speedrunners all enter the fortress at the same time.
+
+   Progress (Claude, 08:29, built, not tested): the main waits at the first fortress bricks it sees
+   until every helper and falloff online is in the nether within 16 blocks of it (four minutes at
+   most), then they go in together.
+
+Falloff speedrunners request an item pickup every 16 blaze rods they get, so that if they die most
+of the rods are saved.
+
+   Progress (Claude, 08:29, built, not tested): every 16 rods a falloff sends a pickup request to
+   the nearest distributor in the same dimension. NOT ENOUGH YET: distributors stay in the
+   overworld (none goes through a portal), so in the nether there is nobody to send it to; the
+   falloff says so and keeps the rods. Still to do: a distributor that goes through the
+   speedrunners' portal for it (and the falloff dropping the rods when it comes).
