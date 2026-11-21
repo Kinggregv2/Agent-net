@@ -4036,7 +4036,7 @@ public final class SpeedrunnerModule implements RoleModule {
                 double d = t.distToCenterSqr(a.x(), a.y(), a.z());
                 if (d < bd) { bd = d; best = t; }
             }
-            if (best == null) { if (stepTicks > 20 * 20) fail(a, "no dry ground to dig down from above the pool at " + origin.toShortString()); return true; }
+            if (best == null) { if (stepTicks > 20 * 20) descendFail(a, "no dry ground to dig down from above the pool at " + origin.toShortString()); return true; }
             descendTop = best;
         }
         int tx = descendTop.getX(), tz = descendTop.getZ();
@@ -4050,18 +4050,26 @@ public final class SpeedrunnerModule implements RoleModule {
             status = "walking to above the underground lava pool (" + Math.round(hd) + " blocks)";
             if (!a.isNavigating() && stepTicks % 40 == 1) a.navigate(tx, (int) Math.floor(a.y()), tz, 3);
             // A long way and no getting nearer (water, a cliff): down from here, the tunnel does the rest.
-            if (stepTicks > 20 * 120 && hd < 24) stepTicks = 0; else if (stepTicks > 20 * 120) { fail(a, "could not get above the underground pool at " + origin.toShortString()); return true; }
+            if (stepTicks > 20 * 120 && hd < 24) stepTicks = 0; else if (stepTicks > 20 * 120) { descendFail(a, "could not get above the underground pool at " + origin.toShortString()); return true; }
             if (hd > 4 && !(stepTicks > 20 * 90 && hd < 24)) return true;
         }
         if (a.isNavigating() && stairOrigin == null) a.stopNavigation();
         status = "digging down to the lava pool (y " + origin.getY() + ", it is at " + (int) Math.floor(a.y()) + ")";
         if (!descendSaid) { descendSaid = true; dryDone = true; }
-        if (!staircase(a, w, origin.getY() + 1) && a.y() > origin.getY() + 3.5 && stairOrigin == null) { fail(a, "could not dig down to the pool at " + origin.toShortString()); }
+        if (!staircase(a, w, origin.getY() + 1) && a.y() > origin.getY() + 3.5 && stairOrigin == null) { descendFail(a, "could not dig down to the pool at " + origin.toShortString()); }
         return true;
     }
 
     private final Tunnel shoreTunnel = new Tunnel();
     private boolean shoreTunnelOn;
+    private int lightBackAt = -100_000;
+
+    /** Getting down to the pool failed: a new site while casting; while lighting, its frame is kept (only the way down is dropped). */
+    private void descendFail(AgentHandle a, String why) {
+        if (stage != Stage.LIGHT) { fail(a, why); return; }
+        a.log("§e[speedrun] " + why + ": trying the walk to its frame instead");
+        poolDeep = false; descendTop = null; stairOrigin = null;
+    }
     private void cast(AgentHandle a) {
         BlockSource w = a.openWorld();
         if (w == null) return;
@@ -4283,6 +4291,15 @@ public final class SpeedrunnerModule implements RoleModule {
         // 90 s, and a second for each block it has to walk back (the gold for its helmet took it 140 blocks off, run 1120s).
         BlockPos lightAt = c(1, 1, 1);
         if (stageTicks > 20 * (90 + (int) Math.sqrt(lightAt.distToCenterSqr(a.x(), a.y(), a.z())))) { a.log("§e[speedrun] the portal didn't light: checking the frame again"); frameMap(a, "didn't light"); step = 0; stepTicks = 0; go(a, Stage.CAST); return; }
+        // Far from its frame (its kit took it up to the surface, 140 blocks off and 57 up from a frame at y 6): back the way
+        // it came, over the pool and down a staircase. A plain walk found no way, and it stood "getting into place" with the
+        // AFK watch off for lighting (run 1121a, the user: "the main guy is kinda stuck"; O99).
+        double lhd = Math.hypot(a.x() - (lightAt.getX() + 0.5), a.z() - (lightAt.getZ() + 0.5));
+        if (!poolDeep && (lhd > 20 || a.y() > lightAt.getY() + 10) && ticks - lightBackAt > 20 * 60) {
+            lightBackAt = ticks; poolDeep = true; stairOrigin = null; descendTop = null; descendSaid = false; stepTicks = 0;
+            a.log(String.format("[speedrun] its portal frame is %.0f blocks off and %.0f down: back over the pool and down to it", lhd, a.y() - lightAt.getY()));
+        }
+        if (poolDeep) { stageTicks = 2; if (descend(a)) return; } // the lighting clock waits while it walks back
         if (!standAt(a, w, c(1, 1, 1), 0)) { status = "getting into place to light the portal"; return; }
         // Water still running inside the frame puts the fire out: wait for it to drain.
         for (int dx = 1; dx <= 2; dx++) for (int dy = 0; dy <= 2; dy++) {
