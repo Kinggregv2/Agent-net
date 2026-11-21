@@ -4043,7 +4043,10 @@ public final class SpeedrunnerModule implements RoleModule {
         double hd = Math.hypot(a.x() - (tx + 0.5), a.z() - (tz + 0.5));
         // Only from up top: well down its staircase already (a step it gave up on, 20 blocks down), it starts again from
         // where it is. It walked back toward the top column at its own depth instead, through solid rock, "boxed in" (run 1120zg).
-        if (stairOrigin == null && hd > 4 && a.y() > descendTop.getY() - 4) {
+        // Far off (over 24 blocks) it walks over even when its dry column is on a hill higher up: "a.y > top - 4" alone let it
+        // start its staircase where it stood, 51 and 70 blocks from the pool, then tunnel the rest (run 1120zp, O96).
+        if (stairOrigin != null && stairK <= 2 && hd > 24) stairOrigin = null; // a staircase barely begun far from the pool
+        if (stairOrigin == null && hd > 4 && (a.y() > descendTop.getY() - 4 || hd > 24)) {
             status = "walking to above the underground lava pool (" + Math.round(hd) + " blocks)";
             if (!a.isNavigating() && stepTicks % 40 == 1) a.navigate(tx, (int) Math.floor(a.y()), tz, 3);
             // A long way and no getting nearer (water, a cliff): down from here, the tunnel does the rest.
@@ -4229,7 +4232,13 @@ public final class SpeedrunnerModule implements RoleModule {
     public void circling(AgentHandle a, String where) {
         // Its mining (iron for its kit, its own or for the main) started afresh: a new ore, a new way. A helper stood 8 minutes
         // "mining iron for its iron leggings" with nothing happening (run 1120zh).
-        if ("AFK".equals(where) && isMain(a) && (stage == Stage.CAST && origin != null && !poolDeep || stage == Stage.LIGHT && !kitMining)) return; // casting or lighting: standing still on purpose
+        // Casting or lighting: standing still on purpose. Not while still clearing the shore: there standing still is stuck,
+        // and with this skip nothing woke it for 36 minutes (run 1120zp, O97).
+        if ("AFK".equals(where) && isMain(a) && (stage == Stage.CAST && origin != null && !poolDeep && clear.isEmpty() || stage == Stage.LIGHT && !kitMining)) return;
+        if ("AFK".equals(where) && stage == Stage.CAST && !clear.isEmpty()) {
+            a.log("[speedrun] stuck clearing the shore (" + status + "; digging=" + a.isDigging() + ", navigating=" + a.isNavigating() + ", tunnel " + (shoreTunnelOn ? shoreTunnel.steps() + " steps" : "off") + "): its tunnel afresh");
+            shoreTunnelOn = false; shoreTunnel.reset(); clearTicks = Math.max(clearTicks, 61);
+        }
         mine(a, null); minerJob = null; kitMining = false; ownMining = false; helperMining = false;
         if (a.isNavigating()) a.stopNavigation();
         a.log("[speedrun] stuck (" + where + "): starting its job afresh");

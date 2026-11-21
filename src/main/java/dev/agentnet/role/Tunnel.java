@@ -40,7 +40,7 @@ final class Tunnel {
     private final Deque<BlockPos> toDig = new ArrayDeque<>();
     private List<BlockPos> stepCells = List.of();
     private final LinkedHashSet<BlockPos> floors = new LinkedHashSet<>();
-    private int redigs, stepFails, wait, timer, steps, plugs;
+    private int redigs, stepFails, wait, timer, steps, plugs, digHeld;
     private String problem = "";
 
     /** Cells this tunnel must never dig or step into (a temple's TNT pit...). */
@@ -73,7 +73,8 @@ final class Tunnel {
 
     Result tick(AgentHandle a, BlockPos goal) {
         timer++;
-        if (a.isDigging()) return Result.WORKING;
+        if (a.isDigging()) { if (++digHeld > 20 * 60) { digHeld = 0; problem = "a dig that never ended"; return Result.BLOCKED; } return Result.WORKING; }
+        digHeld = 0;
         if (wait > 0) { wait--; return Result.WORKING; }
         return switch (s) {
             case PLAN -> plan(a, goal);
@@ -149,7 +150,11 @@ final class Tunnel {
     }
 
     private Result move(AgentHandle a) {
-        if (a.isNavigating() || timer < 2) return Result.WORKING;
+        // A one-block step that never ends: the main stood 36 minutes "clearing the shore (54 to go)" with nothing in the log,
+        // its tunnel waiting on a walk that went nowhere (run 1120zp, O97). 10 s, then the step counts as failed.
+        if (a.isNavigating() && timer < 200) return Result.WORKING;
+        if (timer < 2) return Result.WORKING;
+        if (a.isNavigating()) a.stopNavigation();
         s = S.PLAN;
         if (feet(a).equals(next)) { stepFails = 0; steps++; return Result.WORKING; }
         if (++stepFails >= MAX_STEP_FAILS) { problem = "couldn't step into its own tunnel"; return Result.BLOCKED; }

@@ -1982,6 +1982,8 @@ public final class Agent implements AgentHandle {
         // stone block took 18 s and the main's staircase stalled a minute on every step (run 1120zj, O78).
         { long nowS = System.currentTimeMillis(); if (nowS - digSlowEasedAt > 30_000) { digSlowEasedAt = nowS; digSlow = Math.max(1.0, digSlow * 0.8); } }
         digTicksLeft = (int) Math.ceil(1f / perTick * digSlow) + 1; // one tick of margin so the server never says "too fast"
+        // A very long dig is said (the main's 36 silent minutes in run 1120zp: a dig nobody saw was one suspect, O97).
+        if (digTicksLeft > 20 * 30) log(String.format("a long dig: %s at %s will take %d s (tool speed %.1f, in the air %s, slowdown x%.1f)", state.getBlock().getDescriptionId().replace("block.minecraft.", ""), p.toShortString(), digTicksLeft / 20, speed, digAir, digSlow));
         return digTicksLeft;
     }
 
