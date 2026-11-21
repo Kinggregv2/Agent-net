@@ -540,7 +540,22 @@ O95. THE MAIN STOOD 40 MINUTES ON STAIRCASE STEP 1 OVER A CAVE (run 1120zo, itsC
     only "last: digging". Fixed 16:20: a restart on the spot it was stuck on turns the spiral a
     quarter; a cave under a step with a floor it can survive (fall - 3 < health - 12) is dropped
     into; a plug with nothing to place against gives up after 8 s; the gap and plug are logged.
-    Built (build-20261120-162014), not tested live yet.
+    Built (build-20261120-162014). Run 1120zp: the turning works (a new direction every 8 s), but
+    every direction there was water: see O96.
+
+O96. THE MAIN DUG DOWN 50-70 BLOCKS FROM ITS POOL (run 1120zp, itsCyber, CAST at 11.0 min, its best
+    start yet): staircases started where it stood, 138 64 -334 for a pool at 189 33 -324 (on a
+    lake shore: 20 restarts in water, the site given up at 13.6 min), then 142 -320 for a pool at
+    72 17 -331 (down, then a 70-block tunnel). The walk over was skipped whenever its dry column
+    was on higher ground ("only from up top": a.y > top - 4). Fixed 11:10: over 24 blocks off it
+    always walks over, and a staircase barely begun that far off is dropped. Built, not tested.
+
+O97. THE MAIN 36 MINUTES SILENT "CLEARING THE SHORE (54 TO GO)" (run 1120zp, 17:03-17:39, after its
+    70-block tunnel): nothing in the log. The shore tunnel waits on its one-block walk with no
+    time limit, the stuck watch is held for the tunnel, and the AFK watch was skipped for a
+    casting main (O90). Fixed 11:10: a tunnel step's walk ends after 10 s (a failed step), a dig
+    held over 60 s blocks the tunnel, AFK while still clearing the shore restarts the tunnel
+    and logs what it was doing, and any dig over 30 s is logged. Built, not tested.
 
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
