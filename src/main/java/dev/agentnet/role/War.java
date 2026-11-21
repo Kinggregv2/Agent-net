@@ -38,6 +38,11 @@ public final class War {
     public static boolean active() { return status != Status.PEACE; }
     public static void set(Status s) { status = s; }
 
+    /** "/agent war all": every player not on the whitelist (and not you, not an agent) is an enemy (the user, 2026-11-21). */
+    private static volatile boolean allOut;
+    public static boolean allOut() { return allOut; }
+    public static void allOut(boolean on) { allOut = on; }
+
     public static synchronized List<KitItem> kit() {
         if (kit != null) return kit;
         Path f = AgentFiles.dir().resolve("warkit.txt");

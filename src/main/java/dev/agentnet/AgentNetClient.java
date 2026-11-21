@@ -325,6 +325,9 @@ public final class AgentNetClient implements ClientModInitializer {
                 .then(literal("status").executes(c -> warStatus(c)))
                 .then(literal("prepare").executes(c -> feedback(c, startWar(false))))
                 .then(literal("on").executes(c -> feedback(c, startWar(true))))
+                .then(literal("all")
+                    .executes(c -> { dev.agentnet.role.War.allOut(true); return feedback(c, "§cWar on everyone: the warriors attack every player not on the whitelist (/agent whitelist add <player> to spare one; /agent war all off to stop)"); })
+                    .then(literal("off").executes(c -> { dev.agentnet.role.War.allOut(false); return feedback(c, "War on everyone is over: only the hitlist again"); })))
                 .then(literal("off").executes(c -> feedback(c, endWar()))))
             .then(literal("load").executes(c -> load(c, "all"))
                 .then(argument("name", StringArgumentType.word()).suggests((c, b) -> SharedSuggestionProvider.suggest(Stream.concat(Saves.names().stream(), Servers.current() == null ? Stream.<String>empty() : Roster.list(Servers.current()).stream().map(Roster.Entry::name)), b))
@@ -798,6 +801,7 @@ public final class AgentNetClient implements ClientModInitializer {
     }
 
     static String endWar() {
+        dev.agentnet.role.War.allOut(false);
         if (!dev.agentnet.role.War.active()) return "There's no war";
         dev.agentnet.role.War.set(dev.agentnet.role.War.Status.PEACE);
         int restored = 0;

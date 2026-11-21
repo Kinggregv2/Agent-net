@@ -33,7 +33,12 @@ final class PickupModule extends GathererModule {
     /** A long while with nothing on the ground and nothing to bring in. */
     @Override public boolean idle() { return state == State.LOOK && idle > 30; }
 
+    /** Who takes its load: the nearest distributor, who hands the soldiers what they lack from it (the user, 2026-11-21:
+     *  "the cleanup crew should hand this to the distributor for the distributor to distribute it amongst the soldiers").
+     *  The keeper only when no distributor is about. */
     private static AgentHandle keeper(AgentHandle a) {
+        var d = AgentBus.closest(Role.DISTRIBUTOR, a);
+        if (d.isPresent() && d.get().isOnline() && AgentHandle.sameDim(d.get().dimension(), a.dimension())) return d.get();
         var k = AgentBus.closest(Role.KEEPER, a);
         return k.isPresent() && k.get().isOnline() && AgentHandle.sameDim(k.get().dimension(), a.dimension()) ? k.get() : null;
     }
@@ -49,6 +54,14 @@ final class PickupModule extends GathererModule {
         return n;
     }
 
+    /** Something a soldier needs (totems, armor, weapons, golden apples, rockets, an elytra): taken over at once, not at half full. */
+    private boolean warLoot(AgentHandle a) {
+        java.util.Set<Integer> keep = keepSlots(a);
+        java.util.List<ItemStack> inv = a.inventory();
+        for (int i = 0; i < inv.size(); i++) if (!keep.contains(i) && DistributorModule.soldierItem(Gear.id(inv.get(i)))) return true;
+        return false;
+    }
+
     private static long key(Vec3 v) { return ((long) Math.floor(v.x) << 32) ^ ((long) Math.floor(v.z) & 0xffffffffL) ^ ((long) Math.floor(v.y) << 52); }
 
     @Override
@@ -60,7 +73,7 @@ final class PickupModule extends GathererModule {
                 if (ticks % 10 != 0) return;
                 gaveUp.values().removeIf(t -> ticks - t > 20 * 300);
                 // Full enough, or nothing more around while carrying something: take it in.
-                if (keeper(a) != null && (a.inventoryFill() > 0.5 || idle > 6 && loose(a) > 0)) { state = State.DELIVER; timer = 0; dropTicks = 0; return; }
+                if (keeper(a) != null && (a.inventoryFill() > 0.5 || idle > 6 && loose(a) > 0 || warLoot(a))) { state = State.DELIVER; timer = 0; dropTicks = 0; return; }
                 // Where a player just died first: all it carried is there, for 5 minutes. Not into the fight that killed it
                 // (an enemy seen within 20 blocks of the spot in the last 30 s: it waits).
                 Vec3 here = new Vec3(a.x(), a.y(), a.z());

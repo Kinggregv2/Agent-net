@@ -451,7 +451,18 @@ final class WarriorModule implements RoleModule {
         List<ItemStack> worn = a.armor();
         for (int slot = 0; slot < 4; slot++) {
             ItemStack on = worn.get(slot);
-            if (on.getItem() == net.minecraft.world.item.Items.ELYTRA) continue; // the elytra-mace swaps that one itself
+            if (on.getItem() == net.minecraft.world.item.Items.ELYTRA) {
+                // Standing on the ground in an elytra is standing there with no chestplate (the user, 2026-11-21): the chestplate
+                // back on as soon as it is down. Not mid-trip (ElytraTravel equips it on the ground before take-off) and not
+                // during an elytra mace (the engine swaps that itself).
+                if (a.airborne() || a.gliding() || a.flying() || engine.busy()) continue;
+                int c = Gear.bestArmor(inv, ARMOR[slot]);
+                if (c < 0) continue;
+                a.log("on the ground in its elytra: its chestplate back on");
+                hold(a, c);
+                a.useItem(); // swaps with the worn elytra, which goes into the pack
+                return true;
+            }
             if (!on.isEmpty() && Gear.level(on, net.minecraft.world.item.enchantment.Enchantments.BINDING_CURSE) > 0) continue; // can't come off
             int i = Gear.bestArmor(inv, ARMOR[slot]);
             if (i < 0) continue;
@@ -520,6 +531,9 @@ final class WarriorModule implements RoleModule {
         // XP bottles only repair Mending gear: ask only when a worn Mending piece is worn down.
         if (War.have(a, "minecraft:experience_bottle") == 0 && mendingNeedsXp(a)) request(a, "minecraft:experience_bottle", 64, false);
         if (boatSlot(a) < 0) request(a, "minecraft:oak_boat", 1, false); // clutches in the Nether, enderman traps
+        // Food to heal on between fights (regeneration needs a full bar): 32 when it is down to 16.
+        { int meals = 0; for (ItemStack s : a.inventory()) if (Gear.isFood(s) && !Gear.id(s).contains("golden_apple")) meals += s.getCount();
+          if (meals < 16) request(a, "food", 32 - meals, false); }
         // An elytra and rockets: to get to a player in trouble in time (flown from 40 blocks, ElytraTravel.RUSH_TRIP).
         if (findItem(a, Items.ELYTRA) < 0 && !(a.armor().size() > 1 && a.armor().get(1).getItem() == Items.ELYTRA)) request(a, "minecraft:elytra", 1, false);
         int rockets = War.have(a, "minecraft:firework_rocket");

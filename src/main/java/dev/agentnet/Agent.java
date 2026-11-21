@@ -733,7 +733,13 @@ public final class Agent implements AgentHandle {
     private boolean shieldUp;
     private long defendSwingAt;
 
+    /** The entity that last hit it (-1: none), fought back until it is dead or gone. */
+    private volatile int attackerId = -1;
+    private final dev.agentnet.role.SelfDefense selfDefense = new dev.agentnet.role.SelfDefense();
+
     private boolean tickThreats() {
+        // Hit by something: every agent fights back (warriors have their own fighting).
+        if (role != Role.WARRIOR && attackerId >= 0) { if (selfDefense.tick(this, attackerId)) return true; if (!selfDefense.active()) attackerId = -1; }
         // Warriors fight as they always did: never backing off, not even from a creeper (the user: the warrior combat
         // as before). The creeper back-off below is for the other fighters (speedrunners, a looter clearing a chamber).
         if (role == Role.WARRIOR) { fleeing = false; creeperFlee = false; return false; }
@@ -871,7 +877,9 @@ public final class Agent implements AgentHandle {
         if (module != null && module.fighting()) return false; // the fight comes first
         int food = food();
         float hp = health(), max = Math.max(1f, maxHealth());
-        boolean hungry = food <= 14, hurt = !Float.isNaN(hp) && hp < max * 0.75f && food < 20;
+        // Hurt at all and not full: eats, so vanilla regeneration (hunger 18 and up, fastest at 20 with saturation) heals it.
+        // Only under 75% before, so one at 16 hunger and 14 HP never healed (the user, 2026-11-21: "they don't heal themselves").
+        boolean hungry = food <= 14, hurt = !Float.isNaN(hp) && hp < max - 0.5f && food < 20;
         if (!hungry && !hurt) return false;
         var inv = inventory();
         int best = -1;
@@ -880,6 +888,8 @@ public final class Agent implements AgentHandle {
             if (!dev.agentnet.role.Gear.isFood(s) || dev.agentnet.role.Gear.id(s).contains("golden_apple")) continue; // gapples are for fights
             if (best < 0 || dev.agentnet.role.Gear.nutrition(s) > dev.agentnet.role.Gear.nutrition(inv.get(best))) best = i;
         }
+        // No ordinary food and badly hurt: a golden apple (Regeneration II) rather than staying low.
+        if (best < 0 && !Float.isNaN(hp) && hp < max * 0.5f) for (int i = 0; i < inv.size(); i++) if (dev.agentnet.role.Gear.id(inv.get(i)).contains("golden_apple")) { best = i; log("§ebadly hurt and no food: a golden apple to heal"); break; }
         if (best < 0) {
             long now = System.currentTimeMillis();
             if (now - foodAskedAt > 60_000) {
@@ -1631,6 +1641,7 @@ public final class Agent implements AgentHandle {
         if (player == null ||AgentNetClient.AGENTS.containsKey(player.toLowerCase())) return false;
         if (isFriendly(player)) return false; // whitelisted players and you are never fought, whatever they do
         if (recentlyHit(player)) return true; // just hit one of us: fight back
+        if (dev.agentnet.role.War.allOut()) return true; // "/agent war all": everyone not whitelisted
         return AgentFiles.HITLIST.contains(player) && !AgentFiles.WHITELIST.contains(player);
     }
 
@@ -3788,6 +3799,7 @@ public final class Agent implements AgentHandle {
                     UUID uuid = playerEntities.get(p.sourceCauseId());
                     lastAttacker = uuid == null ? null : PLAYER_NAMES.get(uuid);
                     lastAttackAt = System.currentTimeMillis();
+                    if (p.sourceCauseId() >= 0 && p.sourceCauseId() != myEntityId) attackerId = p.sourceCauseId(); // whoever it was: fought back (SelfDefense)
                     if (lastAttacker != null && !AgentNetClient.AGENTS.containsKey(lastAttacker.toLowerCase())) {
                         ATTACKERS.put(lastAttacker.toLowerCase(), lastAttackAt); // a threat to the whole crew for a while, friend or not
                     }
@@ -3908,6 +3920,7 @@ public final class Agent implements AgentHandle {
     private long diedAt = -1_000_000;
 
     private void afterDeath() {
+        attackerId = -1; selfDefense.reset(this);
         synchronized (inventory) {
             java.util.Arrays.fill(inventory, ItemStack.EMPTY);
             java.util.Arrays.fill(armor, ItemStack.EMPTY);

@@ -758,6 +758,7 @@ final class BuilderModule implements RoleModule {
 
     /** What getting it itself would take, in seconds; infinite for what it cannot get (or judge) itself. */
     static double ownSeconds(AgentHandle a, String item, int count) {
+        if (!SELF_GATHER) return Double.POSITIVE_INFINITY; // never itself: the players bring it (2026-11-21)
         if (!(a.openWorld() instanceof dev.agentnet.pathing.BlockView w)) return Double.POSITIVE_INFINITY;
         String id = item.replace("minecraft:", "");
         boolean pick = Gear.bestTool(a.inventory(), "pickaxe") >= 0;

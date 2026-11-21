@@ -398,6 +398,74 @@ final class DistributorModule implements RoleModule {
         return true;
     }
 
+    // ------------------------------------------------------------------ arming the soldiers from what it carries
+    // The user, 2026-11-21 (a screenshot of totems and armor on the ground after a fight): "the cleanup crew should hand
+    // this to the distributor for the distributor to distribute it amongst the soldiers that need this". What the cleanup
+    // crew brings (and anything else it carries) goes to the warriors that lack it, without them having to ask.
+
+    /** Things a soldier uses: what the cleanup crew hands over at once, and what a distributor offers the warriors. */
+    static boolean soldierItem(String id) {
+        return id.equals("minecraft:totem_of_undying") || id.contains("golden_apple") || id.equals("minecraft:firework_rocket")
+                || id.equals("minecraft:elytra") || id.equals("minecraft:shield") || id.equals("minecraft:ender_pearl") || id.equals("minecraft:mace")
+                || id.endsWith("_sword") || id.endsWith("_axe") || id.endsWith("_helmet") || id.endsWith("_chestplate")
+                || id.endsWith("_leggings") || id.endsWith("_boots") || id.equals("minecraft:experience_bottle");
+    }
+
+    private static final String[] ARMOR_KIND = {"_helmet", "_chestplate", "_leggings", "_boots"};
+    /** (warrior|item) -> when it was offered: not again for 90 s. */
+    private final Map<String, Long> offered = new java.util.HashMap<>();
+
+    private static int bestOf(AgentHandle h, String suffix) {
+        int t = -1;
+        List<ItemStack> all = new ArrayList<>(h.inventory());
+        all.addAll(h.armor());
+        all.add(h.offhand());
+        for (ItemStack s : all) if (!s.isEmpty() && Gear.id(s).endsWith(suffix)) t = Math.max(t, Gear.tier(s));
+        return t;
+    }
+
+    /** How many of this item the warrior should get from it (0: none). */
+    private static int wanted(AgentHandle h, ItemStack mine) {
+        String id = Gear.id(mine);
+        if (id.equals("minecraft:totem_of_undying")) return Math.max(0, 3 - War.have(h, id));
+        if (id.contains("golden_apple")) return Math.max(0, 32 - War.have(h, "minecraft:golden_apple") - War.have(h, "minecraft:enchanted_golden_apple"));
+        if (id.equals("minecraft:firework_rocket")) return Math.max(0, 32 - War.have(h, id));
+        if (id.equals("minecraft:ender_pearl")) return Math.max(0, 8 - War.have(h, id));
+        if (id.equals("minecraft:experience_bottle")) return Math.max(0, 32 - War.have(h, id));
+        if (id.equals("minecraft:elytra") || id.equals("minecraft:shield") || id.equals("minecraft:mace")) return War.have(h, id) == 0 ? 1 : 0;
+        for (String k : new String[]{"_sword", "_axe", "_helmet", "_chestplate", "_leggings", "_boots"})
+            if (id.endsWith(k) && !id.endsWith("_pickaxe")) return Gear.tier(mine) > bestOf(h, k) ? 1 : 0;
+        return 0;
+    }
+
+    /** One warrior lacking something it carries: a delivery to it, as if it had asked. True if one was queued. */
+    private boolean armSoldiers(AgentHandle a) {
+        long now = System.currentTimeMillis();
+        offered.values().removeIf(t -> now - t > 90_000);
+        List<ItemStack> inv = a.inventory();
+        AgentHandle bestTo = null; String bestItem = null; int bestN = 0; double bd = Double.MAX_VALUE;
+        for (AgentHandle h : AgentBus.agents.get()) {
+            if (!h.isOnline() || h.role() != Role.WARRIOR || !AgentHandle.sameDim(h.dimension(), a.dimension())) continue;
+            double d = AgentBus.distSq(a, h);
+            if (d > 256 * 256 || d >= bd) continue;
+            for (ItemStack s : inv) {
+                if (s.isEmpty() || !soldierItem(Gear.id(s))) continue;
+                String id = Gear.id(s);
+                if (offered.containsKey(h.name() + "|" + id)) continue;
+                int n = Math.min(wanted(h, s), War.have(a, id));
+                if (n <= 0) continue;
+                bestTo = h; bestItem = id; bestN = n; bd = d;
+                break;
+            }
+        }
+        if (bestTo == null) return false;
+        offered.put(bestTo.name() + "|" + bestItem, now);
+        a.log("bringing " + bestTo.name() + " " + bestN + "x " + bestItem.replace("minecraft:", "") + " it lacks");
+        deliveries.addFirst(Message.of(bestTo.name(), a.name(), Message.Type.ITEM_REQUEST, "need " + bestN + "x " + bestItem,
+                Map.of("item", bestItem, "count", String.valueOf(bestN), "x", GathererModule.coord(bestTo.x()), "y", GathererModule.coord(bestTo.y()), "z", GathererModule.coord(bestTo.z()))));
+        return true;
+    }
+
     private void idle(AgentHandle a) {
         if (timer % 10 != 0) return;
         if (War.active() && ++warChecks % 20 == 0 && deliveries.isEmpty() && redundant(a)) {
@@ -425,6 +493,7 @@ final class DistributorModule implements RoleModule {
         if (timer % 100 == 0) BaseWork.ensure(a); // a base going up: watch it, register its chests when done
         // A load on the ground comes first: it's gone in 5 minutes.
         if (!pickups.isEmpty() && pickups.peekFirst().type() == Message.Type.GROUND_PICKUP) { job = pickups.pollFirst(); go(State.GO_PICKUP); return; }
+        if (timer % 60 == 0 && deliveries.isEmpty()) armSoldiers(a); // the soldiers get what it carries and they lack
         // Deliveries first: someone is waiting on a tool or food.
         while (!deliveries.isEmpty()) {
             Message m = deliveries.peekFirst();
