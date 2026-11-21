@@ -2765,6 +2765,12 @@ public final class Agent implements AgentHandle {
             // Water or lava resting on it would pour down on the agent.
             BlockState over = w.get(fx, fy + dy + 1, fz);
             if (over == null || !over.getFluidState().isEmpty()) return false;
+            // Nor water beside it: dug, it runs in over its head. The main pillared up by hand from its pool, opened the side
+            // of a lake 25 blocks up and drowned in the shaft (run 1121c, O102).
+            for (Direction d : Direction.Plane.HORIZONTAL) {
+                BlockState side = w.get(fx + d.getStepX(), fy + dy, fz + d.getStepZ());
+                if (side == null || !side.getFluidState().isEmpty()) return false;
+            }
             // Sand or gravel resting on it would fall on the agent, and the next block of it after that: it dug up under
             // sand, the sand came down on its head, it dug again, and suffocated (run 1119d, the main, 8 minutes in).
             // (Sand or gravel: dug like anything else; dig() makes it wait for the next block to fall before it climbs.)

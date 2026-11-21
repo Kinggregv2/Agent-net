@@ -57,8 +57,10 @@ public final class SpeedrunnerModule implements RoleModule {
     private BlockPos origin, pool;
     private final List<Step> steps = new ArrayList<>();
     private int step, sub;
-    private final Set<BlockPos> badSpots = new HashSet<>();
-    private boolean nearBad(BlockPos p) { for (BlockPos b : badSpots) if (b.distSqr(p) <= 8 * 8) return true; return false; }
+    /** Sites given up on, kept across deaths (static): after dying it went back to the same three pools that had each failed
+     *  with "no dry ground", 20 s apiece and a long walk between (run 1121c, O102). 12 blocks round: two of them were 8 apart. */
+    private static final Set<BlockPos> badSpots = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private boolean nearBad(BlockPos p) { for (BlockPos b : badSpots) if (b.distSqr(p) <= 12 * 12) return true; return false; }
     /** Fetching a fluid: the spot to stand on and the fluid block to aim at. */
     private BlockPos fetchStand, fetchAt;
 
@@ -3702,7 +3704,7 @@ public final class SpeedrunnerModule implements RoleModule {
         origin = site;
         plan();
         step = 0; stepTicks = 0; tries = 0;
-        poolDeep = siteDeep; stairOrigin = null; descendSaid = false; descendTop = null;
+        poolDeep = siteDeep; stairOrigin = null; descendSaid = false; descendTop = null; spareAsked = false;
         if (poolDeep) a.log("§a[speedrun] a lava pool underground at " + origin.toShortString() + " (" + Math.round(a.y() - origin.getY()) + " blocks down): its own staircase down to it");
         a.log("[speedrun] building its portal in the pool edge at " + origin.toShortString() + " (" + steps.size() + " steps" + (clear.isEmpty() ? "" : ", " + clear.size() + " blocks to clear off the shore first") + ")");
         go(a, Stage.CAST);
@@ -3991,7 +3993,15 @@ public final class SpeedrunnerModule implements RoleModule {
     private boolean poolDeep, siteDeep, descendSaid;
     private BlockPos descendTop;
     /** Staircase starts that got stuck in water: never chosen again (nor anything within 6 blocks). */
-    private final List<BlockPos> badDescend = new ArrayList<>();
+    private static final List<BlockPos> badDescend = new java.util.concurrent.CopyOnWriteArrayList<>();
+    private boolean spareAsked;
+    private int underTries;
+    /** b's column is under a corner of its 0.6-wide hitbox. */
+    private static boolean underFeet(AgentHandle a, BlockPos b) {
+        for (double ox : new double[]{-0.3, 0.3}) for (double oz : new double[]{-0.3, 0.3})
+            if ((int) Math.floor(a.x() + ox) == b.getX() && (int) Math.floor(a.z() + oz) == b.getZ()) return true;
+        return false;
+    }
 
     /** The top of this column if it is dry land with no water or lava beside it (its staircase starts there); else null. */
     private static BlockPos dryTop(BlockView w, int x, int z, int fromY) {
@@ -4026,6 +4036,16 @@ public final class SpeedrunnerModule implements RoleModule {
         // Dry land to start from: agents cannot work under water (the user, 2026-11-19; run 1119i: its staircase began in a
         // lake and stood on step 1, "y60=water y61=water y62=water", until the run ended). The nearest dry column 6 to 20
         // blocks from the pool, the shore side first.
+        // A spare pickaxe first (the crafter makes a table from its planks when it has none): its only pickaxe broke 50
+        // blocks down at the pool, with no table it could not make another, gave the site up, dug up by hand into a lake
+        // and drowned (run 1121c, O102).
+        if (!spareAsked && a.y() > origin.getY() + 15 && countPickaxes(a) < 2 && !crafter.busy()) {
+            spareAsked = true;
+            int wood = 0;
+            for (ItemStack s : a.inventory()) { String id = Gear.id(s); if (id.endsWith("_planks")) wood += s.getCount(); else if (id.endsWith("_log") && !id.contains("stripped")) wood += 4 * s.getCount(); }
+            if (count(a, "minecraft:cobblestone") + count(a, "minecraft:cobbled_deepslate") >= 3 && wood >= (count(a, "minecraft:crafting_table") > 0 ? 2 : 6)
+                    && crafter.queueTool(a, "minecraft:stone_pickaxe")) { a.log("[speedrun] a spare stone pickaxe before the way down"); return true; }
+        }
         if (descendTop == null || descendTop.distSqr(origin) > 40 * 40) {
             BlockPos best = null; double bd = Double.MAX_VALUE;
             for (int r = 6; r <= 20; r += 2) for (int deg = 0; deg < 360; deg += 30) {
@@ -4036,7 +4056,19 @@ public final class SpeedrunnerModule implements RoleModule {
                 double d = t.distToCenterSqr(a.x(), a.y(), a.z());
                 if (d < bd) { bd = d; best = t; }
             }
-            if (best == null) { if (stepTicks > 20 * 20) descendFail(a, "no dry ground to dig down from above the pool at " + origin.toShortString()); return true; }
+            if (best == null) {
+                // Not seen yet (a pool the crew found, 60+ blocks off): walked toward first, then looked at again. It gave up
+                // three such pools in 20 s each from 66 blocks away, never going nearer (run 1121c, O102).
+                double ph = Math.hypot(a.x() - origin.getX() - 0.5, a.z() - origin.getZ() - 0.5);
+                if (ph > 28 && stepTicks < 20 * 150) {
+                    status = "walking toward the underground lava pool to see the ground above it (" + Math.round(ph) + " blocks)";
+                    if (!a.isNavigating() && stepTicks % 40 == 1) a.navigate(origin.getX(), (int) Math.floor(a.y()), origin.getZ(), 20);
+                    return true;
+                }
+                if (stepTicks > 20 * 20) descendFail(a, "no dry ground to dig down from above the pool at " + origin.toShortString());
+                return true;
+            }
+            if (a.isNavigating() && descendTop == null) a.stopNavigation();
             descendTop = best;
         }
         int tx = descendTop.getX(), tz = descendTop.getZ();
@@ -4111,6 +4143,17 @@ public final class SpeedrunnerModule implements RoleModule {
                 return;
             }
             shoreTunnelOn = false;
+            // Never the block it stands on (or one under it): it dug its own floor off the shore and fell into the pool
+            // (run 1121c, O102: "dropping to y=24", then "tried to swim in lava"). A step back from the pool first; one it
+            // keeps ending up over is left.
+            if (b.getY() < a.y() - 0.5 && b.getY() >= a.y() - 5 && underFeet(a, b)) {
+                if (!a.isNavigating() && clearTicks % 20 == 1) {
+                    if (++underTries > 6) { underTries = 0; clear.remove(0); a.log("§e[speedrun] the shore block " + b.toShortString() + " stays under its feet: left as it is"); return; }
+                    a.navigate(b.getX(), (int) Math.floor(a.y()), b.getZ() - 2, 0);
+                    a.log("[speedrun] the shore block " + b.toShortString() + " is under its feet: a step back before digging it");
+                }
+                return;
+            }
             if (a.isNavigating()) a.stopNavigation();
             if (a.isDigging() || clearTicks % 5 != 0) return;
             Gear.holdBestFor(a, cs);
