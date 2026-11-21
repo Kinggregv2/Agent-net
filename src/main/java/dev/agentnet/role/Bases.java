@@ -18,6 +18,8 @@ import net.minecraft.core.BlockPos;
  * stays together instead of being spread over the map).
  */
 public final class Bases {
+    /** A storage keeper working as a distributor until the base is finished (it is still the crew's keeper). */
+    public static boolean keeperWaiting(String name) { return KeeperModule.PENDING.contains(name.toLowerCase()); }
     private Bases() {}
 
     public record Base(String server, String dimension, BlockPos origin, String file, BlockPos hub, BlockPos door,

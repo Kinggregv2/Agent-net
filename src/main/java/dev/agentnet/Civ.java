@@ -152,7 +152,9 @@ public final class Civ {
         crew.removeIf(a -> !a.isOnline());
         CivLearning.judge(crew);
         Map<Role, Integer> roles = new EnumMap<>(Role.class);
-        for (Agent a : crew) if (a.role() != null) roles.merge(a.role(), 1, Integer::sum);
+        // A keeper with no finished base works as a distributor meanwhile: still counted as the keeper (run 1121d: nine
+        // keepers were hired in 27 s, each turning distributor at once).
+        for (Agent a : crew) if (a.role() != null) roles.merge(a.role() == Role.DISTRIBUTOR && dev.agentnet.role.Bases.keeperWaiting(a.name) ? Role.KEEPER : a.role(), 1, Integer::sum);
         // A distributor or the cleanup crew stuck for two minutes (not moved, dug or had its pack change, not waiting on
         // purpose): not counted, so another is brought in.
         stalled.clear();
