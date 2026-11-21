@@ -575,6 +575,14 @@ O99. THE MAIN STOOD STILL "GETTING INTO PLACE TO LIGHT THE PORTAL" (run 1121a, 1
     pool and down a staircase (the same descent as casting; a failure there keeps the frame).
     Built (build-20261121-121911), testing in run 1121b.
 
+O100. AGENTS "STAIRCASE STUCK" (the user, 2026-11-21, run 1121b, screenshot: hawk1 and lynxorca on a
+    dug staircase in a cliff; 165 "boxed in" in 10 minutes, 43 for lynxorca alone): digging out
+    toward a goal (here the builder at -22 64 -15, on its own level), the escape stepped up at
+    every solid block in the way, so through rock it carved a staircase upward; at the stone
+    above it the trip failed again, it dropped back and started over. Fixed 12:30: it steps up
+    only when the goal is higher; rock toward a level goal is dug through level. Built
+    (build-20261121-123057), not deployed (run 1121b left running).
+
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
     Fixed 03:35: stopped only once it has its shield. Built, run 1120n.
