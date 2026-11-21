@@ -1075,6 +1075,7 @@ public final class Agent implements AgentHandle {
         if (tickFood()) return;    // eating
         if (tickForage()) return;  // starving with no food: an animal for itself
         dev.agentnet.role.Sightings.look(this);              // a hitlist player in sight: told to the fighters
+        if (baseGuardTicks % 20 == 10) dev.agentnet.role.Allies.look(this); // the real players on our side, and whether one is in trouble
         if (dev.agentnet.role.Sightings.follow(this)) return; // and the one that saw it keeps it in sight ("to add" 1)
         tickHub();
         if (module == null) return;
@@ -2181,12 +2182,15 @@ public final class Agent implements AgentHandle {
 
     // ---------------------------------------------------------------- navigation
 
+    private long rushUntil;
+    @Override public void rush(int x, int y, int z, int radius) { rushUntil = System.currentTimeMillis() + 1_000; try { navigate(x, y, z, radius); } finally { rushUntil = 0; } }
+
     @Override
     public void navigate(int x, int y, int z, int radius) {
         if (!isOnline()) return;
         // Long trips by elytra (any role): flying, or about to.
         if (flight.active()) { flightGoal = new PathFinder.Node(x, y, z); flightRadius = radius; flight.retarget(x, y, z); return; }
-        if (myVehicle < 0 && escapeGoal == null && Math.hypot(x + 0.5 - pos.position().x, z + 0.5 - pos.position().z) > dev.agentnet.role.ElytraTravel.MIN_TRIP
+        if (myVehicle < 0 && escapeGoal == null && Math.hypot(x + 0.5 - pos.position().x, z + 0.5 - pos.position().z) > (System.currentTimeMillis() < rushUntil ? dev.agentnet.role.ElytraTravel.RUSH_TRIP : dev.agentnet.role.ElytraTravel.MIN_TRIP)
                 && dev.agentnet.role.ElytraTravel.ready(this)) {
             flightGoal = new PathFinder.Node(x, y, z); flightRadius = radius;
             pendingGoal = null; navigator.stop();

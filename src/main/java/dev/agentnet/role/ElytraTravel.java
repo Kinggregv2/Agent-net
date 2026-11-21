@@ -15,6 +15,9 @@ import net.minecraft.world.item.Items;
 public final class ElytraTravel {
     /** Shorter trips are walked. */
     public static final int MIN_TRIP = 160;
+    /** In a hurry (a warrior on its way to save someone, the user 2026-11-21: "they should travel by elytra if they have one
+     *  to save players"): flown from this far. */
+    public static final int RUSH_TRIP = 40;
     /** Rockets kept back for the climb out of a bad landing. */
     private static final int RESERVE = 1;
     private static final double CRUISE_ABOVE = 40;

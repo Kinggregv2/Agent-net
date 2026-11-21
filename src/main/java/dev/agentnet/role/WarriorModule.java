@@ -86,6 +86,18 @@ final class WarriorModule implements RoleModule {
         return Allies.near(String.valueOf(a.dimension()), s.pos(), GUARD); // the real players on our side too
     }
 
+    /** A real player of ours in trouble (Allies.danger): the two warriors nearest go, by elytra from 40 blocks. */
+    private String helpSaid;
+    private boolean defendAlly(AgentHandle a) {
+        Allies.Danger d = Allies.danger(String.valueOf(a.dimension()));
+        if (d == null || !Allies.oneOfNearest(a, d.pos())) { helpSaid = null; return false; }
+        double dist = Math.sqrt(d.pos().distanceToSqr(a.x(), a.y(), a.z()));
+        if (dist < 5) return false; // there: whatever is on them gets picked as the enemy
+        if (!d.name().equals(helpSaid)) { helpSaid = d.name(); a.log(String.format("§cgoing to save %s (%s, %.0f blocks off)", d.name(), d.why(), dist)); }
+        if (!a.isNavigating() || ticks % 20 == 0) a.rush((int) Math.floor(d.pos().x), (int) Math.floor(d.pos().y), (int) Math.floor(d.pos().z), 3);
+        return true;
+    }
+
     /** Nothing to fight: with the real player it guards (Allies.guarding), staying within 6 blocks. False: it guards the base. */
     private String guardSaid;
     private boolean bodyguard(AgentHandle a) {
@@ -93,7 +105,8 @@ final class WarriorModule implements RoleModule {
         if (p == null) return false;
         if (!p.name().equals(guardSaid)) { guardSaid = p.name(); a.log("guarding " + p.name()); }
         double d = Math.sqrt(p.pos().distanceToSqr(a.x(), a.y(), a.z()));
-        if (d > 6 && (!a.isNavigating() || ticks % 40 == 0)) a.navigate((int) Math.floor(p.pos().x), (int) Math.floor(p.pos().y), (int) Math.floor(p.pos().z), 3);
+        if (d > 40 && (!a.isNavigating() || ticks % 40 == 0)) a.rush((int) Math.floor(p.pos().x), (int) Math.floor(p.pos().y), (int) Math.floor(p.pos().z), 3); // far behind: by elytra
+        else if (d > 6 && (!a.isNavigating() || ticks % 40 == 0)) a.navigate((int) Math.floor(p.pos().x), (int) Math.floor(p.pos().y), (int) Math.floor(p.pos().z), 3);
         else if (d <= 4 && a.isNavigating()) a.stopNavigation();
         return true;
     }
@@ -109,7 +122,7 @@ final class WarriorModule implements RoleModule {
         if (dx * dx + dz * dz < 8 * 8) { rescues.values().remove(r); return false; } // there, nothing to fight: done
         if (--rescueNav <= 0) {
             rescueNav = 40;
-            a.navigate((int) Math.floor(r.at().x), (int) Math.floor(r.at().y), (int) Math.floor(r.at().z), 4);
+            a.rush((int) Math.floor(r.at().x), (int) Math.floor(r.at().y), (int) Math.floor(r.at().z), 4); // by elytra from 40 blocks: someone needs saving
         }
         return true;
     }
@@ -131,7 +144,6 @@ final class WarriorModule implements RoleModule {
         if (ticks % 10 == 0 && equip(a)) { equipCooldown = 5; return; }
         if (enemy == null && ticks % 10 == 5 && arrange(a)) return;
         if (ticks % 20 == 0) { checkGear(a); requestSupplies(a); }
-        if (ticks % 20 == 7) Allies.look(a);
         // Combat tests only (-Dagentnet.sparring): what it sees while it has nobody to fight.
         if (enemy == null && ticks % 100 == 0 && System.getProperty("agentnet.sparring") != null) {
             StringBuilder sb = new StringBuilder();
@@ -180,12 +192,12 @@ final class WarriorModule implements RoleModule {
                 engine.idle(a); tactic = "";
                 if (!a.isNavigating() && ticks % 40 == 0) {
                     a.log(String.format("§c[hitlist] going after %s (seen by %s, %.0f blocks off)", sight.enemy(), sight.by(), Math.sqrt(sight.pos().distanceToSqr(a.x(), a.y(), a.z()))));
-                    a.navigate((int) Math.floor(sight.pos().x), (int) Math.floor(sight.pos().y), (int) Math.floor(sight.pos().z), 8);
+                    a.rush((int) Math.floor(sight.pos().x), (int) Math.floor(sight.pos().y), (int) Math.floor(sight.pos().z), 8);
                 }
                 return;
             }
         }
-        if (enemy == null) { engine.idle(a); tactic = ""; if (!goRescue(a) && rescues.isEmpty() && !bodyguard(a)) { guardSaid = null; HomeBase.goHome(a, ticks); } return; }
+        if (enemy == null) { engine.idle(a); tactic = ""; if (!goRescue(a) && rescues.isEmpty() && !defendAlly(a) && !bodyguard(a)) { guardSaid = null; HomeBase.goHome(a, ticks); } return; }
         engine.tick(a, enemy);
         tactic = engine.tactic;
         if (!tactic.equals(lastTactic)) { dev.agentnet.AgentNet.LOG.info("[{}] tactic: {}", a.name(), tactic); lastTactic = tactic; }
@@ -508,6 +520,10 @@ final class WarriorModule implements RoleModule {
         // XP bottles only repair Mending gear: ask only when a worn Mending piece is worn down.
         if (War.have(a, "minecraft:experience_bottle") == 0 && mendingNeedsXp(a)) request(a, "minecraft:experience_bottle", 64, false);
         if (boatSlot(a) < 0) request(a, "minecraft:oak_boat", 1, false); // clutches in the Nether, enderman traps
+        // An elytra and rockets: to get to a player in trouble in time (flown from 40 blocks, ElytraTravel.RUSH_TRIP).
+        if (findItem(a, Items.ELYTRA) < 0 && !(a.armor().size() > 1 && a.armor().get(1).getItem() == Items.ELYTRA)) request(a, "minecraft:elytra", 1, false);
+        int rockets = War.have(a, "minecraft:firework_rocket");
+        if (rockets < 16) request(a, "minecraft:firework_rocket", 64 - rockets, false);
         // Weapons: below diamond, ask for a better sword and axe every 5 minutes. The distributor makes
         // the best one the materials around allow (and drops the request if nothing beats what we have).
         long nowMs = System.currentTimeMillis();

@@ -28,13 +28,56 @@ public final class Allies {
         return false;
     }
 
+    /** A real player of ours in trouble: a hostile mob on it, a hitlist player near it, or its health going down. */
+    public record Danger(String name, String dim, Vec3 pos, String why, long at) {}
+    public static final long DANGER_MS = 15_000;
+    private static final Map<String, Danger> DANGER = new ConcurrentHashMap<>();
+    private static final Map<String, Float> HEALTH = new ConcurrentHashMap<>();
+    private static final java.util.Set<String> MOBS_LEFT_ALONE = java.util.Set.of("zombified_piglin", "enderman", "piglin", "piglin_brute");
+
     /** What this agent sees right now goes into the list. */
     public static void look(AgentHandle a) {
         long now = System.currentTimeMillis();
-        for (Seen s : a.entitiesNear(128)) {
+        List<Seen> seen = a.entitiesNear(128);
+        String dim = String.valueOf(a.dimension());
+        for (Seen s : seen) {
             if (!s.player() || s.name() == null || a.isEnemy(s.name()) || s.name().equalsIgnoreCase(Training.partner) || agent(s.name())) continue;
-            SEEN.put(s.name().toLowerCase(), new Ally(s.name(), String.valueOf(a.dimension()), s.pos(), now));
+            String k = s.name().toLowerCase();
+            SEEN.put(k, new Ally(s.name(), dim, s.pos(), now));
+            String why = null;
+            for (Seen o : seen) {
+                if (o.id() == s.id()) continue;
+                double d = o.pos().distanceTo(s.pos());
+                if (o.player() && o.name() != null && a.isEnemy(o.name()) && d <= 16) { why = o.name() + " (hitlist) is on them"; break; }
+                if (!o.player() && o.hostile() && !MOBS_LEFT_ALONE.contains(o.name()) && d <= 8) { why = "a " + o.name() + " is on them"; break; }
+            }
+            float hp = a.healthOf(s.id());
+            if (!Float.isNaN(hp)) {
+                Float before = HEALTH.put(k, hp);
+                if (why == null && before != null && hp < before - 0.5f && hp < 14) why = "they are getting hurt (" + Math.round(hp) + " HP)";
+            }
+            if (why != null) {
+                Danger old = DANGER.put(k, new Danger(s.name(), dim, s.pos(), why, now));
+                if (old == null || now - old.at() > DANGER_MS) dev.agentnet.AgentNet.LOG.info("[{}] {} needs help: {}", a.name(), s.name(), why);
+            }
         }
+    }
+
+    /** The real player of ours most recently in trouble in this dimension, or null. */
+    public static Danger danger(String dim) {
+        long now = System.currentTimeMillis();
+        Danger best = null;
+        for (Danger d : DANGER.values()) if (now - d.at() <= DANGER_MS && AgentHandle.sameDim(d.dim(), dim) && (best == null || d.at() > best.at())) best = d;
+        return best;
+    }
+
+    /** One of the two warriors nearest to that player (they go to help; the rest keep their posts). */
+    public static boolean oneOfNearest(AgentHandle a, Vec3 to) {
+        double mine = to.distanceToSqr(a.x(), a.y(), a.z());
+        int closer = 0;
+        for (AgentHandle h : AgentBus.agents.get())
+            if (h != a && h.isOnline() && h.role() == Role.WARRIOR && AgentHandle.sameDim(h.dimension(), a.dimension()) && to.distanceToSqr(h.x(), h.y(), h.z()) < mine) closer++;
+        return closer < 2;
     }
 
     /** The real players seen lately in this dimension, by name (the same order for every warrior). */

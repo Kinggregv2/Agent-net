@@ -109,6 +109,8 @@ public interface AgentHandle {
     // ---- travelling (Baritone-derived pathfinder; its memory is freed after every trip)
     /** Walk to this block (within radius blocks; 0 = exactly on it). Replaces any current trip. */
     void navigate(int x, int y, int z, int radius);
+    /** Somewhere in a hurry (saving someone): like navigate, but flown by elytra from {@link ElytraTravel#RUSH_TRIP} blocks on. */
+    default void rush(int x, int y, int z, int radius) { navigate(x, y, z, radius); }
     void stopNavigation();
     boolean isNavigating();
     /** "idle", "planning", "walking", "arrived", "failed (why)", "waiting for chunks". */
