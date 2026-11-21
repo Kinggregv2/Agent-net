@@ -2689,7 +2689,11 @@ public final class Agent implements AgentHandle {
             int nx = fx + d[0], nz = fz + d[1];
             BlockState next = w.get(nx, fy, nz);
             if (next == null) continue;
-            boolean stepUp = !dev.agentnet.pathing.Rules.canWalkThrough(next);
+            // A step up only when the goal is higher: rock in the way of a goal on its own level is dug through level. Stepping up
+            // at every solid block carved a staircase upward toward a level goal until it hit the stone above; the trip failed
+            // again from there, it dropped back down and started over (run 1121b, the user: "the agents keep getting staircase
+            // stuck"; hawk1 and lynxorca on one staircase for minutes, "boxed in" every 10 s, O100).
+            boolean stepUp = !dev.agentnet.pathing.Rules.canWalkThrough(next) && escapeGoal.y() > fy;
             int[][] cells = stepUp ? new int[][]{{fx, fy + 2, fz}, {nx, fy + 1, nz}, {nx, fy + 2, nz}} : new int[][]{{nx, fy, nz}, {nx, fy + 1, nz}};
             boolean blocked = false;
             int[] dig = null;
