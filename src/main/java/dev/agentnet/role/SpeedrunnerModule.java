@@ -4063,6 +4063,7 @@ public final class SpeedrunnerModule implements RoleModule {
     private final Tunnel shoreTunnel = new Tunnel();
     private boolean shoreTunnelOn;
     private int lightBackAt = -100_000;
+    private int shoreBlocks, shoreWalkUntil;
 
     /** Getting down to the pool failed: a new site while casting; while lighting, its frame is kept (only the way down is dropped). */
     private void descendFail(AgentHandle a, String why) {
@@ -4089,14 +4090,21 @@ public final class SpeedrunnerModule implements RoleModule {
                 // Walked to when there is a way; when not, a tunnel straight to it. Its staircase ends 6 to 20 blocks from an
                 // underground pool (on dry ground), in rock, and "no way there" every 10 s kept the main at the foot of
                 // its staircase for 6 minutes until it gave the pool up (run 1120p; run 1120d too).
-                if (shoreTunnelOn || clearTicks > 60 && !a.isNavigating()) {
+                if (shoreTunnelOn || clearTicks > 60 && !a.isNavigating() && ticks > shoreWalkUntil) {
                     if (!shoreTunnelOn) { shoreTunnelOn = true; shoreTunnel.reset(); if (a.isNavigating()) a.stopNavigation(); a.log("[speedrun] tunnelling to the pool's shore at " + b.toShortString()); }
                     if (a.escaping()) a.cancelEscape(); // its own tunnel, not a dig-out the stuck watch started (run 1120zi: 7 minutes for 16 blocks)
                     a.holdStuckWatch(3_000); // and the stuck watch out of it: it escalated to "straight up to the surface" and leaving the game mid-tunnel (run 1120zl)
                     int before = shoreTunnel.steps();
                     Tunnel.Result r = shoreTunnel.tick(a, b);
-                    if (shoreTunnel.steps() > before) clearTicks = Math.max(0, clearTicks - 20 * 20); // a step made: the clearing clock waits (it ran out on the way, run 1120zi)
-                    if (r == Tunnel.Result.BLOCKED) { shoreTunnelOn = false; clearTicks = Math.max(clearTicks, 61); a.log("§e[speedrun] the tunnel to the shore is blocked (" + shoreTunnel.problem() + "): walking again"); }
+                    if (shoreTunnel.steps() > before) { clearTicks = Math.max(0, clearTicks - 20 * 20); shoreBlocks = 0; } // a step made: the clearing clock waits (it ran out on the way, run 1120zi)
+                    if (r == Tunnel.Result.BLOCKED) {
+                        // A walk for 15 s before the next tunnel (it went straight back to the same flooding tunnel every 6 s), and a flooding
+                        // way four times over: the site is given up (run 1121b: the main at a lake by its pool, "water keeps running in"
+                        // every 6 s for minutes, O101).
+                        shoreTunnelOn = false; clearTicks = Math.max(clearTicks, 61); shoreWalkUntil = ticks + 20 * 15;
+                        a.log("§e[speedrun] the tunnel to the shore is blocked (" + shoreTunnel.problem() + "): walking again");
+                        if (++shoreBlocks >= 4) { shoreBlocks = 0; clear.clear(); fail(a, "the way to the shore keeps getting blocked (" + shoreTunnel.problem() + ")"); return; }
+                    }
                     return;
                 }
                 if (!a.isNavigating() && clearTicks % 20 == 1) a.navigate(b.getX(), b.getY(), b.getZ(), 3);
@@ -4256,6 +4264,7 @@ public final class SpeedrunnerModule implements RoleModule {
         if (!"AFK".equals(where) && origin != null && (stage == Stage.CAST || stage == Stage.POOL)) fail(a, "going in circles round " + where);
     }
     private void fail(AgentHandle a, String why) {
+        shoreBlocks = 0; shoreWalkUntil = 0; shoreTunnelOn = false;
         SAVED.remove(a.name());
         a.log("§e[speedrun] " + why + ": starting the portal again somewhere else");
         frameMap(a, "failed: " + why);
