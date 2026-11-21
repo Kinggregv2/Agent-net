@@ -589,6 +589,17 @@ O101. THE MAIN STUCK IN A LAKE BY ITS POOL (the user, 2026-11-21, run 1121b, scr
     tunnelling. Fixed 12:38: after a blocked tunnel it walks for 15 s first, and four blocked
     tunnels with no step made give the site up (another pool). Built, testing in run 1121c.
 
+O102. RUN 1121c: NO PORTAL AFTER 77 MINUTES, THE MAIN DIED TWICE (game closed 14:06):
+    1. Its pickaxe broke at the pool 50 blocks down, no crafting table to make another; it gave
+       the site up, pillared up by hand, opened the side of a lake and drowned (13:16).
+    2. Clearing the shore it dug the block under its own feet and fell into the lava (13:45).
+    3. Three pools failed with "no dry ground" in 20 s each from 66 blocks away (not loaded
+       yet), and after each death it went back to the same pools.
+    Fixed 14:11 (build-20261121-141153): a spare stone pickaxe before the way down; never digs a
+    shore block under its feet (a step back first); far pools it walks toward before judging the
+    ground; given-up pools are kept across deaths (and 12 blocks round); a pillar never digs a
+    block with water beside it. Built, not yet tested in game.
+
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
     Fixed 03:35: stopped only once it has its shield. Built, run 1120n.
