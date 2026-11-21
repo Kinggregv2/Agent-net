@@ -137,8 +137,11 @@ public final class Civ {
 
     /** The storage keeper and the base itself (its builder and its materials): before guards, gear and the rest. */
 
+    // One speedrunner, handling the run on its own (the user, 2026-11-21: "only one speedrunner ... gotta be able to handle it
+    // alone"), and the base crew from the start: beating the game is not the only thing the crew does ("there's no distributor,
+    // no builder, no storage keeper"; run 1121a: four runners held the slots and a builder waited at the cap for an hour).
     private static final Role[] STARTERS = {Role.SPEEDRUNNER, Role.MINER, Role.BUILDER, Role.DISTRIBUTOR,
-            Role.SPEEDRUNNER, Role.MINER, Role.SPEEDRUNNER, Role.MINER, Role.SPEEDRUNNER};
+            Role.KEEPER, Role.MINER, Role.DISTRIBUTOR, Role.MINER, Role.HUNTER};
 
     /** The next of the starting crew still missing, or null once all nine are in (or the crew is past them). */
     private static Need starterNeed(int crewSize, Map<Role, Integer> roles) {
@@ -153,7 +156,9 @@ public final class Civ {
                         : "the starting crew: a speedrun helper (" + have + " of 4 runners)");
                 case MINER -> new Need(r, "mine 64 stone", "the starting crew: miner " + (have + 1) + " of 3");
                 case BUILDER -> new Need(r, null, "the starting crew: a builder for the base");
-                default -> new Need(r, null, "the starting crew: a distributor");
+                case KEEPER -> new Need(r, null, "the starting crew: a storage keeper for the base");
+                case HUNTER -> new Need(r, "hunt", "the starting crew: a hunter for food");
+                default -> new Need(r, null, "the starting crew: distributor " + (have + 1) + " of 2");
             };
         }
         return null;
@@ -267,7 +272,8 @@ public final class Civ {
             if (roles.getOrDefault(Role.DISTRIBUTOR, 0) == 0 && needs.stream().noneMatch(n -> n.role() == Role.DISTRIBUTOR))
                 needs.add(new Need(Role.DISTRIBUTOR, null, "the base is going up and nobody carries for it"));
         }
-        if (baseBuilt && roles.getOrDefault(Role.KEEPER, 0) == 0 && crew.size() >= 5) needs.add(new Need(Role.KEEPER, null, "the base's storage has no keeper"));
+        // From the start (the keeper waits at the base until it is built): the user wants one in every crew.
+        if (roles.getOrDefault(Role.KEEPER, 0) == 0 && crew.size() >= 5) needs.add(new Need(Role.KEEPER, null, "the base's storage has no keeper"));
         // Distributors carry everything (tools, food, base materials, gear): one per 4 crew members, up to 4,
         // and more again for a big army.
         // Every target 15% over what is needed (rounded up): the crew aims for an oversupply of everything.
@@ -277,15 +283,14 @@ public final class Civ {
         // Four on it: one main speedrunner (it carries the rods and pearls and builds the portals) and three helpers that
         // go with it and kill the blazes and endermen for it. The first is hired first of all; the helpers as the crew grows.
         int runners = roles.getOrDefault(Role.SPEEDRUNNER, 0);
-        if (runners < 1 || runners < 4 && crew.size() >= 2) needs.add(new Need(Role.SPEEDRUNNER, "speedrun", runners == 0
-                ? "a runner to beat the game: its own portal into the nether, then the End"
-                : "the speedrunner needs helpers (" + runners + " of 4): blazes and endermen for it"));
+        // Just the one now (the user, 2026-11-21): no helpers; it handles the run on its own, the falloffs go with it later.
+        if (runners < 1) needs.add(new Need(Role.SPEEDRUNNER, "speedrun", "a runner to beat the game: its own portal into the nether, then the End"));
         // Falloff speedrunners: two that go with the team and stay at the blaze spawner for two stacks of rods (potions),
         // then come home as brewers. Once the four runners are in, and while the dragon is not dead yet.
         int falloffs = roles.getOrDefault(Role.FALLOFF, 0);
         // Only once the main has its portal up: hired at the start they looked like more helpers (the user counted four)
         // and had nothing to do for 15 minutes.
-        if (runners >= 4 && falloffs < 2 && crew.size() >= 6 && dev.agentnet.role.SpeedrunnerModule.priorityRunner() != null && dev.agentnet.role.SpeedrunnerModule.mainAtPortal())
+        if (runners >= 1 && falloffs < 2 && crew.size() >= 6 && dev.agentnet.role.SpeedrunnerModule.priorityRunner() != null && dev.agentnet.role.SpeedrunnerModule.mainAtPortal())
             needs.add(new Need(Role.FALLOFF, "speedrun", "the speedrunners need falloffs (" + falloffs + " of 2): blaze rods for potions, then brewers"));
         // Until the dragon is dead the speedrunner comes first for everyone (the user: "if he happens to need iron, everyone
         // should bend their knees and go get him some iron"): two more on iron for it, taken off other work if need be;
@@ -429,7 +434,11 @@ public final class Civ {
         // The starting crew is hired, never reshuffled: a distributor slot took the miner just hired, and "miner 2 of 3"
         // made the same miner a miner again every 3 s (run 1120z).
         boolean starting = n.why().startsWith("the starting crew") || n.why().startsWith("a runner to beat the game");
-        if (!starting) for (Agent a : crew) {
+        // One speedrunner only (the user, 2026-11-21): a helper left from an older crew (or one that comes back saved as a
+        // speedrunner) takes any other job first, cap or no cap.
+        if (n.role() != Role.SPEEDRUNNER && dev.agentnet.role.SpeedrunnerModule.mainRunner() != null && crew.stream().filter(x -> x.role() == Role.SPEEDRUNNER).count() > 1)
+            for (Agent a : crew) if (a.role() == Role.SPEEDRUNNER && !AgentNetClient.isMainRunner(a.name) && !pickedThisRound.contains(a.name)) { pick = a; break; }
+        if (!starting && pick == null) for (Agent a : crew) {
             if (pickedThisRound.contains(a.name)) continue; // already got a job this round
             if (a.role() == null) { pick = a; break; }
             // Nothing to do in its role for 5 minutes (not a warrior): it takes the job instead of a newcomer.
@@ -445,8 +454,8 @@ public final class Civ {
         if (pick == null && (runnerNeed(n) || hungerNeed(n) || scout || threat)) {
             List<Role> order = threat ? List.of(Role.LOOTER, Role.PICKUP, Role.HUNTER, Role.FISHER, Role.MINER, Role.EXPLORER)
                     : scout ? List.of(Role.LOOTER, Role.PICKUP, Role.HUNTER, Role.FISHER, Role.MINER)
-                    : hungerNeed(n) ? List.of(Role.LOOTER, Role.PICKUP, Role.MINER, Role.BUILDER)
-                    : List.of(Role.MINER, Role.LOOTER, Role.HUNTER, Role.FISHER, Role.FARMER, Role.PICKUP, Role.BUILDER);
+                    : hungerNeed(n) ? List.of(Role.LOOTER, Role.PICKUP, Role.MINER)
+                    : List.of(Role.MINER, Role.LOOTER, Role.HUNTER, Role.FISHER, Role.FARMER, Role.PICKUP);
             for (Role r : order) {
                 for (Agent a : crew) {
                     if (pickedThisRound.contains(a.name) || a.role() != r) continue;
@@ -460,7 +469,7 @@ public final class Civ {
         // distributors are vital"). Run 1119c: five distributors became miners and hunters one by one, each "idle" between
         // deliveries when the speedrunner wanted iron or someone was hungry, and at the cap none could be hired back.
         if (pick == null && !starting && n.role() == Role.DISTRIBUTOR && crew.stream().noneMatch(x -> x.role() == Role.DISTRIBUTOR && !stalled.contains(x.name))) {
-            for (Role r : List.of(Role.LOOTER, Role.PICKUP, Role.MINER, Role.FISHER, Role.HUNTER, Role.BUILDER)) {
+            for (Role r : List.of(Role.LOOTER, Role.PICKUP, Role.MINER, Role.FISHER, Role.HUNTER)) {
                 for (Agent a : crew) { if (pickedThisRound.contains(a.name) || a.role() != r) continue; pick = a; break; }
                 if (pick != null) break;
             }
@@ -548,6 +557,9 @@ public final class Civ {
         Map<Role, Integer> limit = Map.of(Role.FARMER, Integer.MAX_VALUE, Role.FISHER, (int) spots, Role.EXPLORER, 1);
         Map<Role, Integer> count = new EnumMap<>(Role.class);
         for (Agent a : crew) if (a.role() != null) count.merge(a.role(), 1, Integer::sum);
+        // A speedrunner beyond the one (a helper from an older crew, or one that came back saved): free for anything.
+        if (needed != Role.SPEEDRUNNER && dev.agentnet.role.SpeedrunnerModule.mainRunner() != null)
+            for (Agent a : crew) if (a.role() == Role.SPEEDRUNNER && !AgentNetClient.isMainRunner(a.name) && count.getOrDefault(Role.SPEEDRUNNER, 0) > 1) return a;
         if (first(need)) {
             // The base and its storage outrank a second distributor, then one guard.
             for (Agent a : crew) if (a.role() == Role.DISTRIBUTOR && count.getOrDefault(Role.DISTRIBUTOR, 0) > 2) return a; // never below two
