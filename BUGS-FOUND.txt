@@ -583,6 +583,12 @@ O100. AGENTS "STAIRCASE STUCK" (the user, 2026-11-21, run 1121b, screenshot: haw
     only when the goal is higher; rock toward a level goal is dug through level. Built
     (build-20261121-123057), not deployed (run 1121b left running).
 
+O101. THE MAIN STUCK IN A LAKE BY ITS POOL (the user, 2026-11-21, run 1121b, screenshot; 12:34-12:37):
+    its staircase came out by a lake next to the pool, and its tunnel to the shore was "blocked
+    (water keeps running in)" every 6 s: "walking again" never walked, it went straight back to
+    tunnelling. Fixed 12:38: after a blocked tunnel it walks for 15 s first, and four blocked
+    tunnels with no step made give the site up (another pool). Built, testing in run 1121c.
+
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
     Fixed 03:35: stopped only once it has its shield. Built, run 1120n.
