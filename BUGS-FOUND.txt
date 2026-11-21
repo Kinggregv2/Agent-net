@@ -555,7 +555,18 @@ O97. THE MAIN 36 MINUTES SILENT "CLEARING THE SHORE (54 TO GO)" (run 1120zp, 17:
     time limit, the stuck watch is held for the tunnel, and the AFK watch was skipped for a
     casting main (O90). Fixed 11:10: a tunnel step's walk ends after 10 s (a failed step), a dig
     held over 60 s blocks the tunnel, AFK while still clearing the shore restarts the tunnel
-    and logs what it was doing, and any dig over 30 s is logged. Built, not tested.
+    and logs what it was doing, and any dig over 30 s is logged. Built. Run 1121a: O96 works (dug
+    down about 20 blocks from its pool, at the pool 5 min later; frame cast at 15.7 min).
+
+O98. NO DISTRIBUTOR, NO BUILDER, NO STORAGE KEEPER (the user, 2026-11-21, run 1121a, screenshot of
+    the supply map): four speedrunners (main + 3 helpers) and two falloffs held the 14 slots; the
+    builder was wanted for an hour ("at its cap of 14"), distributors were moved to miner and
+    falloff, and a keeper was only hired once the base was built. The user: only one speedrunner,
+    and it handles the run alone. Fixed 12:17: the starting crew is speedrunner, miner, builder,
+    distributor, keeper, miner, distributor, miner, hunter; no helpers are hired; any speedrunner
+    besides the main is the first one moved to another job (cap or not); the builder is never
+    taken for other jobs; a keeper is wanted from 5 agents on (it waits for the base). Built
+    (build-20261121-121729), not deployed (run 1121a left running, at the user's word).
 
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
