@@ -56,8 +56,7 @@ public final class Sightings {
 
     private static boolean mayFollow(AgentHandle a) {
         Role r = a.role();
-        if (r == Role.WARRIOR || r == Role.SPEEDRUNNER || r == Role.FALLOFF) return false;
-        return !a.name().equalsIgnoreCase(SpeedrunnerModule.mainRunner());
+        return r != Role.WARRIOR;
     }
 
     /** A hitlist player seen anywhere within FRESH_MS. */

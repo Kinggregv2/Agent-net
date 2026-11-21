@@ -106,16 +106,13 @@ final class AfkChecker {
      */
     private static String hints(Agent a) {
         List<String> ideas = new ArrayList<>();
-        for (String t : dev.agentnet.role.Bases.supplyNeeds()) {
-            String[] p = t.split(" "); // mine <block> <n>
-            ideas.add("/agent mine " + a.name + " " + p[1] + " " + p[2] + " (the base needs " + p[2] + " more " + (p[1].equals("stone") ? "cobblestone" : p[1]) + ")");
-        }
         Map<Role, Integer> roles = new java.util.EnumMap<>(Role.class);
         for (Agent o : AgentNetClient.AGENTS.values()) if (o.isOnline() && o.role() != null) roles.merge(o.role(), 1, Integer::sum);
-        if (roles.getOrDefault(Role.FARMER, 0) == 0) ideas.add("/agent role " + a.name + " farmer (nobody grows food; it makes its own field)");
-        if (roles.getOrDefault(Role.HUNTER, 0) == 0) ideas.add("/agent role " + a.name + " hunter (food from animals)");
-        ideas.add("/agent mine " + a.name + " iron_ore 16 (iron for tools and armor)");
-        if (roles.getOrDefault(Role.EXPLORER, 0) == 0) ideas.add("/agent explore " + a.name + " (map the area)");
+        // The fighting crew (2026-11-21): no gathering jobs to suggest; fighters first, then the base crew.
+        ideas.add("/agent role " + a.name + " warrior (guard the base and the players)");
+        if (roles.getOrDefault(Role.PICKUP, 0) == 0) ideas.add("/agent role " + a.name + " pickup (clean up what the dead drop)");
+        if (roles.getOrDefault(Role.KEEPER, 0) == 0) ideas.add("/agent role " + a.name + " keeper (keep the base storage)");
+        if (roles.getOrDefault(Role.DISTRIBUTOR, 0) == 0) ideas.add("/agent role " + a.name + " distributor (hand out gear from storage)");
         return "Useful right now: " + String.join("; ", ideas.subList(0, Math.min(4, ideas.size())))
                 + ". Pick one of these commands (or a better one); don't set the role it already has, and there is no role \"none\".";
     }

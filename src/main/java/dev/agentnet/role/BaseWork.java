@@ -129,42 +129,13 @@ final class BaseWork {
         if (planks > havePlanks) short_.put("logs", (planks - havePlanks + 3) / 4);
         if (coal > haveCoal) short_.put("coal_ore", coal - haveCoal);
         if (short_.isEmpty()) return;
-        List<String> unassigned = new ArrayList<>();
-        for (var e : short_.entrySet()) {
-            String block = e.getKey();
-            int n = Math.min(batch(block), e.getValue() + (block.equals("stone") ? 16 : 2)); // a little extra: miners keep a few for their tools
-            String task = "mine " + n + " " + block;
-            int onIt = 0;
-            for (AgentHandle h : AgentBus.agents.get()) {
-                if (h.isOnline() && h.role() == Role.MINER && h.task().contains(block) && dev.agentnet.role.AgentHandle.sameDim(h.dimension(), b.dimension()) && !minerDone(h)) onIt++;
-            }
-            if (onIt >= minersWanted(block, e.getValue())) continue;
-            AgentHandle free = null;
-            double best = Double.MAX_VALUE;
-            for (AgentHandle h : AgentBus.agents.get()) {
-                if (!h.isOnline() || !dev.agentnet.role.AgentHandle.sameDim(h.dimension(), b.dimension())) continue;
-                boolean freeMiner = h.role() == Role.MINER && ("idle".equals(h.task()) || minerDone(h));
-                if (!freeMiner && !(h.role() == null && "idle".equals(h.task()))) continue; // only idle miners and agents without a job
-                double d = b.origin().distToCenterSqr(h.x(), h.y(), h.z());
-                if (d < best && d < 160 * 160) { best = d; free = h; }
-            }
-            if (free != null) {
-                free.assignTask(task);
-                a.log("§athe base needs " + e.getValue() + " more " + (block.equals("stone") ? "cobblestone" : block.equals("logs") ? "logs" : "coal")
-                        + ": " + free.name() + " is getting it");
-            } else unassigned.add(e.getValue() + " " + (block.equals("stone") ? "cobblestone" : block.equals("logs") ? "logs" : "coal"));
-        }
-        if (!unassigned.isEmpty() && now - supplyWarnedAt > 5 * 60_000) {
+        // No miners any more: the real players bring what the base needs (the user, 2026-11-21). It is asked for, every 5 minutes.
+        List<String> wanted = new ArrayList<>();
+        for (var e : short_.entrySet()) wanted.add(e.getValue() + " " + (e.getKey().equals("stone") ? "cobblestone" : e.getKey().equals("logs") ? "logs" : "coal"));
+        if (now - supplyWarnedAt > 5 * 60_000) {
             supplyWarnedAt = now;
-            a.log("§ethe base still needs " + String.join(", ", unassigned) + " and no miner is free to get it (/agent spawn 1 miner, or the civ autopilot adds one)");
+            a.log("§ethe base still needs " + String.join(", ", wanted) + ": put them in the base storage (or hand them to a distributor)");
         }
-    }
-
-    /** A miner whose job is over (done, or nothing of its kind around). */
-    private static boolean minerDone(AgentHandle h) {
-        String s = h.moduleStatus();
-        if (h.task() != null && h.task().contains("useful")) return true; // bored: free for any real request
-        return s != null && (s.startsWith("done") || s.startsWith("waiting for /agent mine") || s.startsWith("no ") && s.contains("found nearby"));
     }
 
     /** No agent of the crew anywhere near it: a base left behind somewhere else, the crew needs one where it is now. */

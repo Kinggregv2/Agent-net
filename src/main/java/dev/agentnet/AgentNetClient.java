@@ -59,8 +59,7 @@ public final class AgentNetClient implements ClientModInitializer {
 
     /** The main speedrunner (not a helper). */
     public static boolean isMainRunner(String name) {
-        Agent a = name == null ? null : AGENTS.get(name.toLowerCase());
-        return a != null && a.role() == Role.SPEEDRUNNER && a.name.equalsIgnoreCase(String.valueOf(dev.agentnet.role.SpeedrunnerModule.mainRunner()));
+        return false; // no speedrunner any more (the fighting crew, 2026-11-21)
     }
 
     /**
@@ -69,7 +68,6 @@ public final class AgentNetClient implements ClientModInitializer {
      */
     public static String roleName(Agent a) {
         if (a == null || a.role() == null) return "no role";
-        if (a.role() == Role.SPEEDRUNNER) return isMainRunner(a.name) ? "Speedrunner (main)" : "Speedrun helper";
         return a.role().displayName;
     }
 
@@ -77,8 +75,6 @@ public final class AgentNetClient implements ClientModInitializer {
     public static int roleColor(String name) {
         Agent a = name == null ? null : AGENTS.get(name.toLowerCase());
         if (a == null || a.role() == null) return -1;
-        // The speedrunner's helpers in light purple, the main one in the role's purple: told apart at a glance.
-        if (a.role() == Role.SPEEDRUNNER && !a.name.equalsIgnoreCase(String.valueOf(dev.agentnet.role.SpeedrunnerModule.mainRunner()))) return 0xFF55FF;
         return a.role().color & 0xFFFFFF;
     }
     /** An agent moves to another role by itself (a falloff speedrunner home becomes a brewer): next tick, as "/agent role". */

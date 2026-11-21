@@ -1297,7 +1297,6 @@ final class MinerModule extends GathererModule {
     private void portal(AgentHandle a) {
         if (a.dimension() != null && a.dimension().endsWith("the_nether")) { a.log("§ain the nether: " + currentTask); wanderTries = 0; go(State.SCAN); return; }
         BlockPos in = PortalWork.inside();
-        if (in == null) in = SpeedrunnerModule.runnersPortal(); // the speedrunners' portal: theirs to use once the game is beaten
         if (in == null) { status = "waiting for a lit nether portal (the crew's or the speedrunners')"; pause(20 * 20, State.PORTAL); return; }
         boolean there = (int) Math.floor(a.x()) == in.getX() && (int) Math.floor(a.z()) == in.getZ() && Math.abs(a.y() - in.getY()) < 1.2;
         if (!there) {

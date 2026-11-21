@@ -10,7 +10,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Picker-upper: walks to items lying on the ground (what mobs dropped, what fell off a tunnel, loads nobody came
+ * Cleanup crew: first where a player just died (its whole inventory is on the ground there, {@link LootSpots}), then
+ * any other items lying on the ground (what mobs dropped, what fell off a tunnel, loads nobody came
  * back for) and picks them up. Its load goes to the storage keeper (dropped at the keeper's feet, who puts it in the
  * chests); with no keeper online, a distributor is called to collect it, as for any gatherer.
  */
@@ -24,6 +25,7 @@ final class PickupModule extends GathererModule {
     private final Map<Long, Integer> gaveUp = new HashMap<>();
     private int ticks;
     private String status = "looking for items on the ground";
+    private LootSpots.Spot lastSpot;
 
     @Override public void onStart(AgentHandle a) { a.keepWorld(true); }
     @Override public void onStop(AgentHandle a) { a.keepWorld(false); if (a.isNavigating()) a.stopNavigation(); }
@@ -59,6 +61,33 @@ final class PickupModule extends GathererModule {
                 gaveUp.values().removeIf(t -> ticks - t > 20 * 300);
                 // Full enough, or nothing more around while carrying something: take it in.
                 if (keeper(a) != null && (a.inventoryFill() > 0.5 || idle > 6 && loose(a) > 0)) { state = State.DELIVER; timer = 0; dropTicks = 0; return; }
+                // Where a player just died first: all it carried is there, for 5 minutes. Not into the fight that killed it
+                // (an enemy seen within 20 blocks of the spot in the last 30 s: it waits).
+                Vec3 here = new Vec3(a.x(), a.y(), a.z());
+                LootSpots.Spot spot = LootSpots.next(String.valueOf(a.dimension()), here, 192);
+                if (spot != null) {
+                    Sightings.Sighting en = Sightings.latest(String.valueOf(a.dimension()));
+                    boolean hot = en != null && en.pos().distanceToSqr(spot.pos()) < 20 * 20;
+                    double sd = spot.pos().distanceToSqr(here);
+                    if (hot) { status = "waiting for the fight to end before cleaning up after " + spot.who(); idle = 0; if (a.isNavigating()) a.stopNavigation(); return; }
+                    if (sd > 6 * 6) {
+                        if (!spot.equals(lastSpot)) { lastSpot = spot; a.log("going to clean up where " + spot.who() + " died (" + Math.round(Math.sqrt(sd)) + " blocks)"); }
+                        status = "going to where " + spot.who() + " died (" + Math.round(Math.sqrt(sd)) + " blocks)";
+                        idle = 0;
+                        if (!a.isNavigating()) a.navigate((int) Math.floor(spot.pos().x), (int) Math.floor(spot.pos().y), (int) Math.floor(spot.pos().z), 2);
+                        return;
+                    }
+                    Vec3 near = null; double nd = Double.MAX_VALUE;
+                    for (Vec3 v : a.itemsNear(16)) {
+                        if (gaveUp.containsKey(key(v)) || v.distanceToSqr(spot.pos()) > 10 * 10) continue;
+                        double d = v.distanceToSqr(here);
+                        if (d < nd) { nd = d; near = v; }
+                    }
+                    if (near == null) { LootSpots.cleared(spot); a.log("cleaned up where " + spot.who() + " died"); return; }
+                    idle = 0; item = near; timer = 0; state = State.FETCH;
+                    a.navigate((int) Math.floor(item.x), (int) Math.floor(item.y + 0.2), (int) Math.floor(item.z), 0);
+                    return;
+                }
                 Vec3 best = null;
                 double bd = Double.MAX_VALUE;
                 for (Vec3 v : a.itemsNear(SEARCH)) {

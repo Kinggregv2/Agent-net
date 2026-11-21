@@ -83,7 +83,19 @@ final class WarriorModule implements RoleModule {
             double dx = o.x() - s.pos().x, dy = o.y() - s.pos().y, dz = o.z() - s.pos().z;
             if (dx * dx + dy * dy + dz * dz <= GUARD * GUARD) return true;
         }
-        return false;
+        return Allies.near(String.valueOf(a.dimension()), s.pos(), GUARD); // the real players on our side too
+    }
+
+    /** Nothing to fight: with the real player it guards (Allies.guarding), staying within 6 blocks. False: it guards the base. */
+    private String guardSaid;
+    private boolean bodyguard(AgentHandle a) {
+        Allies.Ally p = Allies.guarding(a);
+        if (p == null) return false;
+        if (!p.name().equals(guardSaid)) { guardSaid = p.name(); a.log("guarding " + p.name()); }
+        double d = Math.sqrt(p.pos().distanceToSqr(a.x(), a.y(), a.z()));
+        if (d > 6 && (!a.isNavigating() || ticks % 40 == 0)) a.navigate((int) Math.floor(p.pos().x), (int) Math.floor(p.pos().y), (int) Math.floor(p.pos().z), 3);
+        else if (d <= 4 && a.isNavigating()) a.stopNavigation();
+        return true;
     }
 
     /** No fight here: walk to whoever called for help most recently, if it's out of sight. */
@@ -119,6 +131,7 @@ final class WarriorModule implements RoleModule {
         if (ticks % 10 == 0 && equip(a)) { equipCooldown = 5; return; }
         if (enemy == null && ticks % 10 == 5 && arrange(a)) return;
         if (ticks % 20 == 0) { checkGear(a); requestSupplies(a); }
+        if (ticks % 20 == 7) Allies.look(a);
         // Combat tests only (-Dagentnet.sparring): what it sees while it has nobody to fight.
         if (enemy == null && ticks % 100 == 0 && System.getProperty("agentnet.sparring") != null) {
             StringBuilder sb = new StringBuilder();
@@ -172,7 +185,7 @@ final class WarriorModule implements RoleModule {
                 return;
             }
         }
-        if (enemy == null) { engine.idle(a); tactic = ""; if (!goRescue(a) && rescues.isEmpty()) HomeBase.goHome(a, ticks); return; }
+        if (enemy == null) { engine.idle(a); tactic = ""; if (!goRescue(a) && rescues.isEmpty() && !bodyguard(a)) { guardSaid = null; HomeBase.goHome(a, ticks); } return; }
         engine.tick(a, enemy);
         tactic = engine.tactic;
         if (!tactic.equals(lastTactic)) { dev.agentnet.AgentNet.LOG.info("[{}] tactic: {}", a.name(), tactic); lastTactic = tactic; }

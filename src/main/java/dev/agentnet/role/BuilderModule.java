@@ -112,6 +112,8 @@ final class BuilderModule implements RoleModule {
     private final MinerModule ownMiner = new MinerModule();
     { ownMiner.keepsLoad = true; }
     private boolean selfMining;
+    /** Off: materials come from the real players through the storage, not from the agents going out for them. */
+    static final boolean SELF_GATHER = false;
     private int selfTarget;
 
     /**
@@ -120,6 +122,7 @@ final class BuilderModule implements RoleModule {
      * building with it; the miners and distributors still bring the rest. True while it is at it.
      */
     private boolean selfMine(AgentHandle a) {
+        if (!SELF_GATHER) return false; // the real players bring the materials now (the user, 2026-11-21)
         int have = 0;
         for (ItemStack s : a.inventory()) { String id = Gear.id(s); if (id.equals("minecraft:cobblestone") || id.equals("minecraft:cobbled_deepslate")) have += s.getCount(); }
         if (!selfMining) {
@@ -156,14 +159,6 @@ final class BuilderModule implements RoleModule {
         // Keep the crew's base list up to date whatever it's doing: what the base still needs (the miners the
         // autopilot hires come from this), progress, and finishing it. Nobody else may be around to do it.
         if (++ensureTicks % 200 == 0) BaseWork.ensure(a);
-        if (ensureTicks % 20 == 0 && status.startsWith("waiting for materials")) {
-            // For the supply-chain map: the miners getting what it waits for.
-            for (AgentHandle h : AgentBus.agents.get()) {
-                if (!h.isOnline() || h.role() != Role.MINER || h.task() == null) continue;
-                String t = h.task();
-                if (t.contains("stone") || t.contains("logs") || t.contains("coal")) Links.mark(a.name(), h.name(), Links.Kind.WAITING, "waiting for its " + t.replace("mine ", ""));
-            }
-        }
         if (!selfMining && leash(a)) return;
         if (fetchAt != null) {
             // A load left for it a few blocks off (the deliverer couldn't get the last bit): go and get it.

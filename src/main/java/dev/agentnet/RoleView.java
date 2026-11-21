@@ -28,8 +28,6 @@ public final class RoleView {
     /** Defaults: idle jobs see little, miners and explorers see more. */
     private static int defaultFor(Role r) {
         return switch (r) {
-            case MINER -> 4;
-            case EXPLORER -> 8;
             case WARRIOR, BUILDER, DISTRIBUTOR -> 3;
             default -> 2;
         };

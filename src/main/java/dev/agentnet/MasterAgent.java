@@ -163,8 +163,6 @@ final class MasterAgent {
         if (word == null) return null;
         String w = word.toLowerCase(Locale.ROOT).replaceAll("(men|man|s)$", "");
         Map<String, Role> alias = new LinkedHashMap<>();
-        alias.put("fisher", Role.FISHER);
-        alias.put("fish", Role.FISHER);
         alias.put("guard", Role.WARRIOR);
         alias.put("soldier", Role.WARRIOR);
         alias.put("fighter", Role.WARRIOR);
@@ -174,6 +172,10 @@ final class MasterAgent {
         alias.put("smith", Role.parse("maker"));
         alias.put("puller", Role.parse("pearler"));
         alias.put("pearl", Role.parse("pearler"));
+        alias.put("cleanup", Role.PICKUP);
+        alias.put("cleaner", Role.PICKUP);
+        alias.put("looter", Role.PICKUP);
+        alias.put("keeper", Role.KEEPER);
         Role r = alias.get(w);
         if (r != null) return r;
         for (Role role : Role.values()) {
@@ -670,7 +672,7 @@ final class MasterAgent {
             if (!seen.add(c)) why = "duplicate";
             // Crew jobs the autopilot keeps filled (food, storage, rescue...): an idle report is no reason to send one off
             // mining; only the player saying so (a role change asked for in words) moves them. Three farmers became miners that way.
-            else if (a != null && a.role() != null && java.util.Set.of(Role.FARMER, Role.HUNTER, Role.KEEPER, Role.BUILDER, Role.DISTRIBUTOR, Role.RESCUER, Role.TRIAL_GRINDER, Role.SPEEDRUNNER, Role.PICKUP).contains(a.role())
+            else if (a != null && a.role() != null && java.util.Set.of(Role.KEEPER, Role.BUILDER, Role.DISTRIBUTOR, Role.PICKUP, Role.WARRIOR).contains(a.role())
                     && java.util.Set.of("role", "mine", "hunt", "loot", "explore", "leave", "golem").contains(verb) && !t.matches("(?s).*\b(role|become|switch|turn into|make (him|her|them|it)? ?an?)\b.*"))
                 why = a.name + " is a " + a.role().id() + ": that job stays filled (the player didn't ask to change it)";
             else if (verb.equals("role") && a != null && p.length > 3 && a.role() != null && a.role() == Role.parse(p[3])) why = a.name + " is a " + p[3] + " already (that changes nothing)";
@@ -789,15 +791,11 @@ final class MasterAgent {
     private static String plannerVeto(String line) {
         String[] p = line.split("\\s+");
         java.util.List<Agent> crew = new java.util.ArrayList<>(AgentNetClient.AGENTS.values());
-        // A fisher needs a rod: no spare one, no new fisher.
-        if (p.length >= 3 && (p[1].equals("spawn") || p[1].equals("role")) && line.endsWith(" fisher")
-                && Civ.count(crew, "minecraft:fishing_rod") <= crew.stream().filter(x -> x.role() == Role.FISHER).count())
-            return "no spare fishing rod for a fisher";
         if (p.length < 3 || p[1].equals("spawn")) return null;
         Agent a = AgentNetClient.AGENTS.get(p[2].toLowerCase(java.util.Locale.ROOT));
         if (a == null) return "no agent named " + p[2];
         if (p[1].equals("role") && a.role() != null) return p[2] + " already has a role";
-        if (p[1].equals("mine") && a.role() != Role.MINER) return p[2] + " isn't a miner";
+        if (java.util.Set.of("mine", "hunt", "loot", "explore", "golem", "speedrun", "grind", "trade").contains(p[1])) return "there are no gathering jobs any more (the crew fights; players bring the materials)";
         return null;
     }
 

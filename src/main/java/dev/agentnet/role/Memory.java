@@ -14,10 +14,7 @@ public final class Memory {
     public static void wipe() {
         ChestMemory.CONTENTS.clear();
         BaseWork.BAD.clear();
-        LooterModule.LOOTED.clear();
-        LooterModule.PLATES.clear();
         MinerModule.CLAIMS.clear();
-        FisherModule.AUTO.clear();
         KeeperModule.PENDING.clear();
         KeeperModule.HALVES.clear();
         synchronized (FarmWork.class) { FarmWork.RESERVED.clear(); }

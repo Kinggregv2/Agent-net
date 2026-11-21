@@ -315,7 +315,7 @@ public final class Agent implements AgentHandle {
         role = newRole;
         module = newRole == null ? null : newRole.createModule();
         // The old job doesn't carry over (a "mine ..." task saved with a rescuer turned it back into a miner on the next start).
-        if (newRole != Role.MINER && task != null && task.startsWith("mine")) task = newRole == Role.SPEEDRUNNER || newRole == Role.FALLOFF ? "speedrun" : "idle";
+        if (task != null && (task.startsWith("mine") || task.startsWith("speedrun") || task.startsWith("explore") || task.startsWith("loot") || task.startsWith("hunt") || task.startsWith("grind") || task.startsWith("trade"))) task = "idle";
         Roster.remember(this);
         sendClientInfo();
     }
@@ -332,28 +332,6 @@ public final class Agent implements AgentHandle {
             } catch (NumberFormatException ignored) {}
         } else if (newTask.equals("idle")) {
             stopNavigation();
-        } else if (p[0].equals("mine") && role != Role.MINER) {
-            // Only miners mine: "/agent mine" makes the agent one.
-            log("now a miner");
-            setRole(Role.MINER);
-        } else if ((p[0].equals("explore") || p[0].equals("scout")) && role != Role.EXPLORER) {
-            log("now an explorer");
-            setRole(Role.EXPLORER);
-        } else if (p[0].equals("trade") && role != Role.TRADER) {
-            log("now a trader");
-            setRole(Role.TRADER);
-        } else if (p[0].equals("speedrun") && role != Role.SPEEDRUNNER && role != Role.FALLOFF) { // a falloff is a speedrunner already
-            log("now a speedrunner");
-            setRole(Role.SPEEDRUNNER);
-        } else if (p[0].equals("grind") && role != Role.TRIAL_GRINDER) {
-            log("now a trial grinder");
-            setRole(Role.TRIAL_GRINDER);
-        } else if ((p[0].equals("loot") || p[0].equals("golem")) && role != Role.LOOTER && role != Role.TRIAL_GRINDER) {
-            log("now a looter");
-            setRole(Role.LOOTER);
-        } else if (p[0].equals("hunt") && role != Role.HUNTER) {
-            log("now a hunter-gatherer");
-            setRole(Role.HUNTER);
         } else if (p[0].equals("build") && role != Role.BUILDER) {
             log("now a builder");
             setRole(Role.BUILDER);
@@ -368,7 +346,7 @@ public final class Agent implements AgentHandle {
     void deliver(Message m) {
         // Any role gives what it can spare; not the speedrunners and falloffs: all they carry is their run (the main gave its
         // furnace to a distributor, run 1120zh, and had none for its iron).
-        if (m.type() == Message.Type.HAND_OVER) { if (role != Role.SPEEDRUNNER && role != Role.FALLOFF) startHandOver(m); return; }
+        if (m.type() == Message.Type.HAND_OVER) { startHandOver(m); return; }
         if (m.type() == Message.Type.STEP_ASIDE && !isDigging()) { // any role: standing where a builder puts a block
             try {
                 double bx = Integer.parseInt(m.get("x")) + 0.5, bz = Integer.parseInt(m.get("z")) + 0.5;
@@ -941,7 +919,6 @@ public final class Agent implements AgentHandle {
     private boolean tickForage() {
         if (forageId < 0 && !foragePickup) {
             if (foodTicks % 20 != 0 || System.currentTimeMillis() < forageAgainAt || !isOnline()) return false;
-            if (role == Role.HUNTER || role == Role.FARMER || role == Role.FISHER) return false; // food is their job anyway
             int food = food();
             float hp = health(), max = Math.max(1f, maxHealth());
             // Starving, or hurt with too little food to heal (under 18 it doesn't regenerate: the main walked about at 5 hp for
@@ -1108,15 +1085,7 @@ public final class Agent implements AgentHandle {
                 // Came back after a reconnect: pick the job up where it was (mine X, explore...).
                 if (replayTask) { replayTask = false; if (!task.equals("idle")) module.onTask(this, task); }
             }
-            if (role == Role.SPEEDRUNNER) dev.agentnet.role.SpeedrunnerModule.noteStart(name);
-            // A pickaxe first, whatever the job; not the main speedrunner (or a speedrunner while there is no main yet): it
-            // makes its own in its first stage, and the kit kept every speedrunner's own code from running for 2 minutes, so
-            // there was no main at all and the first to join was not it (run 1120zb).
-            String mr = dev.agentnet.role.SpeedrunnerModule.mainRunner();
-            boolean runnerFirst = role == Role.SPEEDRUNNER && (mr == null || mr.equalsIgnoreCase(name));
-            if (!runnerFirst && dev.agentnet.role.PickaxeKit.tick(this)) return;
             module.tick(this);
-            dev.agentnet.role.SpeedrunnerModule.crewLavaLook(this); // every agent is a lava-pool scout for the main (cheap: once in ten seconds)
         } catch (RuntimeException e) {
             AgentNet.LOG.warn("[{}] {} module failed, removing role", name, role, e);
             log("§c" + role.id() + " module crashed: " + e);
@@ -1857,7 +1826,7 @@ public final class Agent implements AgentHandle {
         if (++circleTicks % 200 != 0 || closed || role == null || !hasWorldHere()) return;
         if (burrow != Burrow.NONE || airVel != null || myVehicle >= 0) return;
         // Jobs that go back to the same place on purpose (the base, storage, a field, a fishing spot): not circling.
-        if (java.util.EnumSet.of(Role.DISTRIBUTOR, Role.KEEPER, Role.BUILDER, Role.FARMER, Role.FISHER, Role.WARRIOR, Role.PICKUP, Role.BREWER, Role.MAKER, Role.TRADER).contains(role)) return;
+        if (java.util.EnumSet.of(Role.DISTRIBUTOR, Role.KEEPER, Role.BUILDER, Role.WARRIOR, Role.PICKUP, Role.MAKER, Role.PEARLER).contains(role)) return;
         long now = System.currentTimeMillis();
         Vec3 here = pos.position();
         visits.addLast(new Visit(here, now));
@@ -3667,6 +3636,9 @@ public final class Agent implements AgentHandle {
                 if (ev >= 24 && ev <= 28 && eventEntity(p) == myEntityId) opLevel = ev - 24;
                 // 35 = a totem of undying just saved it.
                 if (ev == 35 && eventEntity(p) == myEntityId) AgentNet.LOG.info("[{}] totem popped (#{})", name, ++totemPops);
+                // 3 = a living thing died: a player (ours, an enemy, a real player on our side) leaves all it carried there, for the cleanup crew.
+                if (ev == 3) { Tracked dt = tracked.get(eventEntity(p)); if (dt != null && dt.type == EntityTypes.PLAYER && dt.pos != null)
+                    dev.agentnet.role.LootSpots.add(String.valueOf(dimension()), dt.pos, PLAYER_NAMES.getOrDefault(dt.uuid, "a player")); }
             } else if (packet instanceof net.minecraft.network.protocol.game.ClientboundGameEventPacket p) {
                 if (p.getEvent() == net.minecraft.network.protocol.game.ClientboundGameEventPacket.START_RAINING) raining = true;
                 else if (p.getEvent() == net.minecraft.network.protocol.game.ClientboundGameEventPacket.STOP_RAINING) raining = false;
@@ -3970,6 +3942,7 @@ public final class Agent implements AgentHandle {
     private void noteDeathSpot() {
         if (died) return; // the health packet and the kill packet both come: once
         Vec3 p = pos.position();
+        dev.agentnet.role.LootSpots.add(String.valueOf(dimension()), p, name); // its things are on the ground here: for the cleanup crew
         // Not a fall or lava death in the middle of nowhere: only where something was after it.
         if (System.currentTimeMillis() - threatSeenAt > 15_000) return;
         DEATH_SPOTS.add(new DeathSpot(String.valueOf(dimension()), (int) Math.floor(p.x), (int) Math.floor(p.y), (int) Math.floor(p.z), System.currentTimeMillis()));

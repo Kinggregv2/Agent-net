@@ -213,7 +213,7 @@ final class DistributorModule implements RoleModule {
                 if (nowP - pickAskedAt > 120_000) { pickAskedAt = nowP; BuilderModule.requestMaterial(a, "minecraft:stone_pickaxe", 1); a.log("no pickaxe and nothing to make one from: asking for one"); }
                 // And not waiting for it: the other distributor has none either (they asked each other, and both stood
                 // at the mouth of the mine for minutes). A tree gives it all it needs.
-                if (!chopping && wood < needWood && state != State.WAIT_DROP && state != State.COLLECT && state != State.KEEPER_DROP) {
+                if (BuilderModule.SELF_GATHER && !chopping && wood < needWood && state != State.WAIT_DROP && state != State.COLLECT && state != State.KEEPER_DROP) {
                     chopping = true; chopTicks = 0;
                     if (!chopStarted) { chopStarted = true; woodcutter.onStart(a); }
                     if (a.isNavigating()) a.stopNavigation();
@@ -289,11 +289,9 @@ final class DistributorModule implements RoleModule {
     private static int priority(Message m) {
         AgentHandle h = GathererModule.find(m.from());
         Role r = h == null ? null : h.role();
-        // The main speedrunner, until the dragon is dead: before everyone, the base included.
-        if (m.from().equalsIgnoreCase(String.valueOf(SpeedrunnerModule.priorityRunner()))) return -1;
         if (r == Role.BUILDER) return 0;
         if (r == Role.KEEPER) return 1;
-        if (r == Role.MINER) return 2;
+        if (r == Role.PICKUP) return 2;
         if (r == Role.WARRIOR) return 4;
         return 3;
     }
@@ -324,7 +322,7 @@ final class DistributorModule implements RoleModule {
         int bestSpare = 0;
         double bestD = Double.MAX_VALUE;
         for (AgentHandle h : AgentBus.agents.get()) {
-            if (!h.isOnline() || h.role() != Role.MINER || !AgentHandle.sameDim(h.dimension(), a.dimension())) continue;
+            if (!h.isOnline() || h.role() != Role.PICKUP || !AgentHandle.sameDim(h.dimension(), a.dimension())) continue;
             Long at = COLLECTING_FROM.get(h.name().toLowerCase());
             if (at != null && now - at < 2 * 60_000) continue; // another distributor is on its way
             Map<String, Integer> kinds = new java.util.HashMap<>();
@@ -468,7 +466,12 @@ final class DistributorModule implements RoleModule {
             // request (repeat requests for it are ignored for 5 minutes).
             deliveries.pollFirst();
             unavailable.put(item, System.currentTimeMillis());
-            a.log("no " + item.replace("minecraft:", "") + " anywhere for " + m.from() + "; dropped the request (give it one to change that)");
+            // Nobody goes out for it any more (the user, 2026-11-21): the real players bring it. Asked for in chat, once in 5 minutes per item.
+            Long saidAt = ASKED_PLAYERS.get(item);
+            if (saidAt == null || System.currentTimeMillis() - saidAt > 5 * 60_000) {
+                ASKED_PLAYERS.put(item, System.currentTimeMillis());
+                a.log("§e[storage] out of " + item.replace("minecraft:", "") + ": " + m.from() + " needs " + m.get("count") + ". Put some in the base storage (or hand it to a distributor)");
+            } else a.log("no " + item.replace("minecraft:", "") + " anywhere for " + m.from() + "; dropped the request");
             AgentBus.send(Message.of(a.name(), m.from(), Message.Type.TEXT, "none available: " + item, Map.of()));
             continue;
         }
@@ -1466,6 +1469,8 @@ final class DistributorModule implements RoleModule {
     private final Map<String, Long> warnedAt = new java.util.HashMap<>();
     /** item -> when it last found none anywhere. */
     private final Map<String, Long> unavailable = new java.util.HashMap<>();
+    /** Items the players were asked for (item -> when): every distributor shares it, so it is said once. */
+    private static final Map<String, Long> ASKED_PLAYERS = new java.util.concurrent.ConcurrentHashMap<>();
 
     private void warn(AgentHandle a, String message) {
         Long at = warnedAt.get(message);
