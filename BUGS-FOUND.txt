@@ -568,6 +568,13 @@ O98. NO DISTRIBUTOR, NO BUILDER, NO STORAGE KEEPER (the user, 2026-11-21, run 11
     taken for other jobs; a keeper is wanted from 5 agents on (it waits for the base). Built
     (build-20261121-121729), not deployed (run 1121a left running, at the user's word).
 
+O99. THE MAIN STOOD STILL "GETTING INTO PLACE TO LIGHT THE PORTAL" (run 1121a, 12:15, the user:
+    "the main guy is kinda stuck"): its kit food took it up to the surface, 140 blocks off and 57
+    up from its frame at y 6; a plain walk there found no way, and the AFK watch is off while
+    lighting. Fixed 12:19: more than 20 blocks off or 10 above its frame, it goes back over the
+    pool and down a staircase (the same descent as casting; a failure there keeps the frame).
+    Built (build-20261121-121911), testing in run 1121b.
+
 O39. A HELPER STARTED AND STOPPED ITS IRON MINING 5208 TIMES (run 1120m, BlazeDratal2006): my
     O29 change stopped its mining at CAST every tick, and the shield step under it started it again.
     Fixed 03:35: stopped only once it has its shield. Built, run 1120n.
