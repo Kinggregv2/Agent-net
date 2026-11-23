@@ -292,7 +292,19 @@ final class Fight {
     private int windAt = -1000, windCd, windSmashes;
     private boolean windStruck;
 
+    /** The enemy's movement a tick (smoothed), for leading jumps and dives at it. */
+    private net.minecraft.world.phys.Vec3 enemyVel = net.minecraft.world.phys.Vec3.ZERO, lastEnemyPos;
+    private int lastEnemyId = -1;
+    private void trackEnemy(Seen enemy) {
+        if (enemy.id() != lastEnemyId || lastEnemyPos == null) { lastEnemyId = enemy.id(); lastEnemyPos = enemy.pos(); enemyVel = net.minecraft.world.phys.Vec3.ZERO; return; }
+        net.minecraft.world.phys.Vec3 v = enemy.pos().subtract(lastEnemyPos);
+        if (v.lengthSqr() > 4) v = net.minecraft.world.phys.Vec3.ZERO; // a teleport (a pearl): no speed to lead by
+        enemyVel = enemyVel.scale(0.5).add(v.scale(0.5));
+        lastEnemyPos = enemy.pos();
+    }
+
     private boolean windSmash(AgentHandle a, Seen enemy) {
+        trackEnemy(enemy);
         if (windCd > 0) windCd--;
         List<ItemStack> inv = a.inventory();
         int mace = -1, wind = -1;
@@ -304,7 +316,13 @@ final class Fight {
                 windAt = -1000;
                 return false;
             }
-            a.steer(enemy.pos().x - a.x(), enemy.pos().z - a.z());
+            // Toward where it will be when this fall reaches it, not where it is: it walks on meanwhile and the jump came down
+            // beside it (bench 2026-11-24, mace kit vs VexBot: "never came into reach on the way down").
+            double above = Math.max(0, a.y() - enemy.pos().y), vy = a.verticalSpeed();
+            double land = (vy + Math.sqrt(Math.max(0, vy * vy + 2 * 0.08 * above))) / 0.08; // ticks until it is down at its height
+            land = Math.min(land, 20);
+            double px = enemy.pos().x + enemyVel.x * land, pz = enemy.pos().z + enemyVel.z * land;
+            a.steer(px - a.x(), pz - a.z());
             a.faceWhileMoving(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z);
             if (mace >= 0 && mace < 9) a.selectHotbar(mace);
             double fallen = a.airPeakY() - a.y();
@@ -324,6 +342,8 @@ final class Fight {
         double d = enemy.distance();
         if (mace < 0 || wind < 0 || windCd > 0 || a.airborne() || a.riding() || air.active() || ElytraMace.ready(a)) return false;
         if (!(enemy.player() || CombatSettings.aerialOnMobs) || enemy.name().equals("creeper") || d < 2.0 || d > 6.0 || !ElytraMace.openAbove(a, enemy.pos())) return false;
+        // Not at one in the air (its own launch, a jump): it is somewhere else by the time this jump comes down.
+        if (Math.abs(enemyVel.y) > 0.1) return false;
         lower(a);
         if (drawing >= 0) { a.releaseUse(); drawing = -1; }
         if (a.isNavigating()) a.stopNavigation();
