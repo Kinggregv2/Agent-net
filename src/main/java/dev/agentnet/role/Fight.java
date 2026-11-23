@@ -327,7 +327,12 @@ final class Fight {
             if (mace >= 0 && mace < 9) a.selectHotbar(mace);
             double fallen = a.airPeakY() - a.y();
             tactic = String.format("wind-charge jump over %s (%.1f up)", enemy.name(), a.y() - enemy.pos().y);
-            if (!windStruck && mace >= 0 && a.verticalSpeed() < -0.1 && fallen > 1.6 && eyeToBox(a, enemy) <= REACH && Sight.canHit(a, enemy)) {
+            // As late in the fall as it can: the mace adds damage for every block fallen, and swinging the moment it came into
+            // reach smashed after 2 of 6 blocks (bench 2026-11-24: 5 of 8 smashes "after 2.0 blocks"). It waits while it is still
+            // over 2 blocks above the target with reach to spare (half a block a tick at this speed), then swings.
+            double rch = eyeToBox(a, enemy);
+            boolean wait = a.y() - enemy.pos().y > 2.0 && rch < REACH - Math.max(0.5, -a.verticalSpeed());
+            if (!windStruck && !wait && mace >= 0 && a.verticalSpeed() < -0.1 && fallen > 1.6 && rch <= REACH && Sight.canHit(a, enemy)) {
                 a.attack(enemy.id());
                 windStruck = true;
                 windSmashes++;
