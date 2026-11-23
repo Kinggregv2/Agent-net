@@ -1608,6 +1608,19 @@ public final class Agent implements AgentHandle {
     }
 
     /** A swing with another hotbar item, and straight back to the one in hand: all four packets in order behind the queued moves. */
+    @Override public void useItemWith(int hotbarSlot, float yaw, float pitch) {
+        int back = selectedSlot;
+        if (hotbarSlot < 0 || hotbarSlot > 8) return;
+        java.util.List<Packet<?>> ps = hotbarSlot == back
+                ? java.util.List.of(new ServerboundUseItemPacket(net.minecraft.world.InteractionHand.MAIN_HAND, ++useSequence, yaw, pitch))
+                : java.util.List.of(new ServerboundSetCarriedItemPacket(hotbarSlot), new ServerboundUseItemPacket(net.minecraft.world.InteractionHand.MAIN_HAND, ++useSequence, yaw, pitch), new ServerboundSetCarriedItemPacket(back));
+        synchronized (this) {
+            ServerboundMovePlayerPacket last = moveQueue.peekLast();
+            if (last != null) { afterMove.computeIfAbsent(last, k -> new java.util.ArrayList<>()).addAll(ps); return; }
+        }
+        for (Packet<?> p : ps) send(p);
+    }
+
     @Override public void attackWith(int entityId, int hotbarSlot) {
         int back = selectedSlot;
         if (hotbarSlot == back || hotbarSlot < 0 || hotbarSlot > 8) { attack(entityId); return; }

@@ -289,7 +289,7 @@ final class Fight {
     // forgives the fall damage of a wind-charge jump down to the height it started from, so a miss costs nothing.
     // Without an elytra this is how the mace gets used: a few blocks from the enemy, up, over it, down on it.
 
-    private int windAt = -1000, windCd, windSmashes;
+    private int windAt = -1000, windCd, windSmashes, maceHeldAt = -1000;
     private boolean windStruck;
 
     /** The enemy's movement a tick (smoothed), for leading jumps and dives at it. */
@@ -346,18 +346,21 @@ final class Fight {
         }
         double d = enemy.distance();
         if (mace < 0 || wind < 0 || windCd > 0 || a.airborne() || a.riding() || air.active() || ElytraMace.ready(a)) return false;
-        if (!(enemy.player() || CombatSettings.aerialOnMobs) || enemy.name().equals("creeper") || d < 2.0 || d > 6.0 || !ElytraMace.openAbove(a, enemy.pos())) return false;
+        if (!(enemy.player() || CombatSettings.aerialOnMobs) || enemy.name().equals("creeper") || d < 2.0 || d > 8.0 || !ElytraMace.openAbove(a, enemy.pos())) return false;
         // Not at one in the air (its own launch, a jump): it is somewhere else by the time this jump comes down.
         if (Math.abs(enemyVel.y) > 0.1) return false;
+        // The mace in hand first, charging (a mace takes 33 ticks to charge; selected only up in the air, the smashes went in
+        // at 55-67% charge, and Density is scaled by the charge: bench 2026-11-24). Then the wind charge from its slot and
+        // straight back to the mace in the same tick, so the mace keeps its charge.
         lower(a);
         if (drawing >= 0) { a.releaseUse(); drawing = -1; }
-        if (a.isNavigating()) a.stopNavigation();
-        if (mace >= 9) { a.moveToHotbar(mace, 2); }
+        if (mace >= 9) { a.moveToHotbar(mace, 2); return true; }
         int hb = wind < 9 ? wind : 6;
-        if (wind >= 9) a.moveToHotbar(wind, hb);
-        a.selectHotbar(hb);
-        a.look(a.yaw(), 90f); // straight down at its own feet
-        a.useItem();
+        if (wind >= 9) { a.moveToHotbar(wind, hb); return true; }
+        if (a.selectedSlot() != mace) { a.selectHotbar(mace); maceHeldAt = ticks; charge = 0; }
+        if (ticks - maceHeldAt < 14 && d > 2.5) { tactic = "mace in hand, charging it before the jump"; a.faceWhileMoving(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z); if (d > 5) chase(a, enemy, 1); return true; }
+        if (a.isNavigating()) a.stopNavigation();
+        a.useItemWith(hb, a.yaw(), 90f); // straight down at its own feet
         windAt = ticks; windCd = 60; windStruck = false;
         a.log("§cwind charge at its feet: up and over " + enemy.name() + " with the mace");
         tactic = "wind-charge jump at " + enemy.name();
@@ -642,12 +645,18 @@ final class Fight {
         boolean crit = falling;
         lower(a); // no swinging with the shield up
         hpBefore = a.healthOf(enemy.id());
-        a.attack(enemy.id());
+        // Breach swap: against armor, the Breach mace swapped in for the hit and the blade straight back, all in one tick
+        // (the server reads the held item when the attack packet arrives and resets the charge only at the end of the tick
+        // if the item then differs, so the hit has the blade's charge with the mace's damage and Breach).
+        int breach = breachSlot(a);
+        if (breach >= 0 && breach != a.selectedSlot() && enemy.armorPieces() >= 2 && !Gear.id(hand).equals("minecraft:mace")) { a.attackWith(enemy.id(), breach); breachSwaps++; }
+        else a.attack(enemy.id());
         if (crit) crits++;
         swings++;
         checkAt = ticks + 8;
         dev.agentnet.AgentNet.LOG.info("[{}] swing {} at {}{}: {} from its eyes, charge {} of {} ticks, {} ({} damage); server: {}", a.name(), swings, enemy.name(), crit ? " (falling: a critical hit)" : " (on the ground)",
                 String.format("%.2f", reach), charge, String.format("%.1f", full), Gear.id(hand).replace("minecraft:", ""), String.format("%.0f", damage(hand)), serverSide(a));
+        if (breach >= 0 && breachSwaps > 0) dev.agentnet.AgentNet.LOG.info("[{}] (that swing was a breach swap, #{})", a.name(), breachSwaps);
         charge = 0;
         tactic = "hitting " + enemy.name();
     }
@@ -666,6 +675,20 @@ final class Fight {
     }
 
     /** The slot of the item with the most damage a second at full charge (ties: the one already in hand). -1: bare hands. */
+    private int breachSwaps;
+    /** Hotbar slot of a mace with Breach, or -1. */
+    private static int breachSlot(AgentHandle a) {
+        List<ItemStack> inv = a.inventory();
+        int best = -1, lvl = 0;
+        for (int i = 0; i < 9 && i < inv.size(); i++) {
+            ItemStack s = inv.get(i);
+            if (s.getItem() != net.minecraft.world.item.Items.MACE) continue;
+            int l = Gear.level(s, net.minecraft.world.item.enchantment.Enchantments.BREACH);
+            if (l > lvl) { lvl = l; best = i; }
+        }
+        return best;
+    }
+
     private static int bestWeapon(AgentHandle a) {
         List<ItemStack> inv = a.inventory();
         int best = -1;

@@ -247,6 +247,9 @@ public interface AgentHandle {
     void attack(int entityId);
     /** One swing with the item in this hotbar slot, then back to the one in hand (an axe against a raised shield). */
     default void attackWith(int entityId, int hotbarSlot) { attack(entityId); }
+    /** Use the item in another hotbar slot and go straight back to the one held, in one tick: the held item's attack charge
+     *  is not reset (the server only resets it when the item at the end of the tick differs). Looking this way for the use. */
+    default void useItemWith(int hotbarSlot, float yaw, float pitch) { selectHotbar(hotbarSlot); look(yaw, pitch); useItem(); }
     /** Swing the arm (26.3 punch): the animation everyone sees, and it resets the attack charge. */
     void swingArm();
     /** On the hitlist (and not whitelisted, not one of ours). */
