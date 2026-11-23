@@ -358,7 +358,9 @@ final class Fight {
         int hb = wind < 9 ? wind : 6;
         if (wind >= 9) { a.moveToHotbar(wind, hb); return true; }
         if (a.selectedSlot() != mace) { a.selectHotbar(mace); maceHeldAt = ticks; charge = 0; }
-        if (ticks - maceHeldAt < 14 && d > 2.5) { tactic = "mace in hand, charging it before the jump"; a.faceWhileMoving(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z); if (d > 5) chase(a, enemy, 1); return true; }
+        // (No charging before the jump: in 26.3 a wind charge use swings the arm, and a swing resets the attack charge
+        // (ServerPlayer.swingAndResetAttackStrength), whatever is held. The charge at the smash is the flight time; bench
+        // 2026-11-24: 0.40 at the launch after 14 ticks of holding, 0.67 at the smash 22 ticks later.)
         if (a.isNavigating()) a.stopNavigation();
         a.useItemWith(hb, a.yaw(), 90f); // straight down at its own feet
         dev.agentnet.AgentNet.LOG.info("[{}] wind-charge launch: mace held {} ticks; the server has: {}", a.name(), ticks - maceHeldAt, serverSide(a));
@@ -382,6 +384,7 @@ final class Fight {
     }
 
     private final CartPvp cart = new CartPvp();
+    private final CrystalPvp crystal = new CrystalPvp();
 
     // ------------------------------------------------------------------ step 9b: the boat trap
     //
@@ -559,6 +562,8 @@ final class Fight {
             charge = 0;
             return;
         }
+        // Crystal PvP: with end crystals in the pack, against a player in reach (CrystalPvp).
+        if (enemy.player() && CrystalPvp.ready(a) && !a.airborne()) { lower(a); if (crystal.tick(a, enemy)) { tactic = crystal.tactic; charge = 0; return; } }
         if (windSmash(a, enemy)) return; // step 9a
         if (enemy.name().equals("enderman") && enemy.vehicle() < 0 && boatTrap(a, enemy)) return; // step 9b
         if (enemy.name().equals("creeper") && creeper(a, enemy)) return; // step 6
