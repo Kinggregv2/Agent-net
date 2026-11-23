@@ -554,6 +554,12 @@ final class Fight {
         if (reach > REACH || walled) {
             tactic = walled ? "getting around a wall to " + enemy.name() : "closing in on " + enemy.name();
             if (!walled && lunge(a, enemy)) return; // step 9c
+            // Jumping in: just out of reach with the swing nearly charged, the jump on the way, so the hit comes on the way
+            // down as it arrives (knock-back puts the enemy 3 blocks off after every hit; walking in and only then jumping
+            // gave it half a second to step away again).
+            if (!walled && !a.airborne() && !a.riding() && !inWater(a) && reach <= REACH + 1.8 && (int) Math.ceil(full) - charge <= JUMP_LEAD && ticks - jumpedAt > 4) {
+                a.jump(); jumpedAt = ticks; tactic = "jumping in on " + enemy.name();
+            }
             // Facing it as it walks, never a look of its own: a look is a move packet, and only one goes out a tick, so
             // looking every tick swallowed every step (it stood "closing in" for 40 s in the first test).
             a.faceWhileMoving(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z);
@@ -594,12 +600,14 @@ final class Fight {
         boolean canJump = !a.airborne() && !a.riding() && !inWater(a) && !(plainHits && enemy.name().equals("creeper"));
         if (left > 0) {
             raise(a); // between its swings: the shield (it blocks from 5 ticks after it goes up, vanilla's block delay)
-            if (canJump && left <= JUMP_LEAD && ticks - jumpedAt > 14) { a.jump(); jumpedAt = ticks; tactic = "jumping for a critical hit on " + enemy.name(); return; }
+            // Crit spam (the user, 2026-11-23: "Fsword is horrible at critspaming"): the next jump the moment it lands, so jump
+            // after jump lines up with the sword's 12.5-tick charge. Waiting 14 ticks after each jump made it one crit in 16.
+            if (canJump && left <= JUMP_LEAD && ticks - jumpedAt > 4) { a.jump(); jumpedAt = ticks; tactic = "jumping for a critical hit on " + enemy.name(); return; }
             tactic = a.airborne() ? "in the air over " + enemy.name() : "in reach of " + enemy.name() + ", charging the swing";
             return;
         }
         // Charged. On the ground with no jump under way (it just got here): the jump first, the hit on the way down.
-        if (canJump && ticks - jumpedAt > 14) { a.jump(); jumpedAt = ticks; tactic = "jumping for a critical hit on " + enemy.name(); return; }
+        if (canJump && ticks - jumpedAt > 4) { a.jump(); jumpedAt = ticks; tactic = "jumping for a critical hit on " + enemy.name(); return; }
         // After the jump: the swing only on the way DOWN (the user: "he's supposed to hit when falling down not jumping
         // up"), and a tick into the fall, so the server has a falling move from us before the hit (its fall distance must
         // be over 0). Leaving the ground takes a tick, so "not in the air yet" right after a jump is waited out too.
@@ -613,8 +621,8 @@ final class Fight {
         if (crit) crits++;
         swings++;
         checkAt = ticks + 8;
-        dev.agentnet.AgentNet.LOG.info("[{}] swing {} at {}{}: {} from its eyes, charge {} of {} ticks, {} ({} damage)", a.name(), swings, enemy.name(), crit ? " (falling: a critical hit)" : " (on the ground)",
-                String.format("%.2f", reach), charge, String.format("%.1f", full), Gear.id(hand).replace("minecraft:", ""), String.format("%.0f", damage(hand)));
+        dev.agentnet.AgentNet.LOG.info("[{}] swing {} at {}{}: {} from its eyes, charge {} of {} ticks, {} ({} damage); server: {}", a.name(), swings, enemy.name(), crit ? " (falling: a critical hit)" : " (on the ground)",
+                String.format("%.2f", reach), charge, String.format("%.1f", full), Gear.id(hand).replace("minecraft:", ""), String.format("%.0f", damage(hand)), serverSide(a));
         charge = 0;
         tactic = "hitting " + enemy.name();
     }
