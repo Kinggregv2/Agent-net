@@ -361,6 +361,7 @@ final class Fight {
         if (ticks - maceHeldAt < 14 && d > 2.5) { tactic = "mace in hand, charging it before the jump"; a.faceWhileMoving(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z); if (d > 5) chase(a, enemy, 1); return true; }
         if (a.isNavigating()) a.stopNavigation();
         a.useItemWith(hb, a.yaw(), 90f); // straight down at its own feet
+        dev.agentnet.AgentNet.LOG.info("[{}] wind-charge launch: mace held {} ticks; the server has: {}", a.name(), ticks - maceHeldAt, serverSide(a));
         windAt = ticks; windCd = 60; windStruck = false;
         a.log("§cwind charge at its feet: up and over " + enemy.name() + " with the mace");
         tactic = "wind-charge jump at " + enemy.name();
