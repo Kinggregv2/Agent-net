@@ -238,6 +238,14 @@ final class AutoTest {
                     AgentNet.LOG.info("[AutoTest] {}", sb);
                 }
             }
+            case "usage" -> { // usage <command>: every path of a server command, from your own world's dispatcher
+                var srv = mc.getSingleplayerServer();
+                if (srv == null) { AgentNet.LOG.warn("[AutoTest] usage: not on your own world"); return; }
+                var d = srv.getCommands().getDispatcher();
+                var node = d.getRoot().getChild(p[1].trim());
+                if (node == null) { AgentNet.LOG.warn("[AutoTest] usage: no command {}", p[1]); return; }
+                for (String u : d.getAllUsage(node, srv.createCommandSourceStack(), false)) AgentNet.LOG.info("[AutoTest] usage: /{} {}", p[1].trim(), u);
+            }
             case "quit" -> mc.stop();
             default -> {
                 if (!line.startsWith("/")) { AgentNet.LOG.warn("[AutoTest] unknown line: {}", line); return; }
