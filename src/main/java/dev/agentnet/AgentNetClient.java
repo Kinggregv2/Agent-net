@@ -43,6 +43,8 @@ import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.network.chat.Component;
 
 public final class AgentNetClient implements ClientModInitializer {
+    /** Test setting (/agent leaveondeath on, or -Dagentnet.leaveOnDeath=true): an agent that dies leaves the game. */
+    static volatile boolean LEAVE_ON_DEATH = Boolean.getBoolean("agentnet.leaveOnDeath");
     private static final Pattern VALID_NAME = Pattern.compile("[A-Za-z0-9_]{3,16}");
     private static final Pattern COUNT = Pattern.compile("\\d{1,3}");
     private static final int MAX_BATCH = 100;
@@ -211,6 +213,11 @@ public final class AgentNetClient implements ClientModInitializer {
                     .executes(c -> join(c, ""))
                     .then(argument("duration address", StringArgumentType.greedyString())
                         .executes(c -> join(c, StringArgumentType.getString(c, "duration address"))))))
+            // /agent leaveondeath on|off: a test setting, an agent that dies leaves the game (fights end in a clear result)
+            .then(literal("leaveondeath")
+                .executes(c -> feedback(c, "Leave on death: " + (LEAVE_ON_DEATH ? "on" : "off")))
+                .then(literal("on").executes(c -> { LEAVE_ON_DEATH = true; return feedback(c, "Test setting: an agent that dies leaves the game"); }))
+                .then(literal("off").executes(c -> { LEAVE_ON_DEATH = false; return feedback(c, "Agents respawn after dying again"); })))
             // /agent leave <all|count|name> [duration]
             .then(literal("leave")
                 .then(argument("all|count|name", StringArgumentType.word()).suggests(AGENT_TARGETS)

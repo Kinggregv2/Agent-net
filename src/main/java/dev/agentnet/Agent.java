@@ -3920,6 +3920,7 @@ public final class Agent implements AgentHandle {
     private long diedAt = -1_000_000;
 
     private void afterDeath() {
+        if (AgentNetClient.LEAVE_ON_DEATH) { AgentNet.LOG.info("[{}] died: leaving the game (test setting leaveondeath)", name); log("§cdied: leaving the game (test setting)"); mc.execute(() -> MasterAgent.run("agent leave " + name)); }
         attackerId = -1; selfDefense.reset(this);
         synchronized (inventory) {
             java.util.Arrays.fill(inventory, ItemStack.EMPTY);
