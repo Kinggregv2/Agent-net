@@ -209,7 +209,7 @@ final class Fight {
     //  - under 30% with nothing to heal with: away from the enemy, shield toward it, ordinary food once it is 6 blocks
     //    off; back into the fight at 60% (or after 20 s).
 
-    private int busyTicks, retreatAt = -1000, appleAt = -1000, ate;
+    private int busyTicks, retreatAt = -1000, appleAt = -1000, ate, topUpAt = -1000;
     private boolean retreating;
 
     private boolean heal(AgentHandle a, Seen enemy) {
@@ -234,6 +234,19 @@ final class Fight {
             // Not on top of the last one: its Regeneration II runs 5 s. (It ate four in six seconds.) Unless it is nearly dead.
             if (g >= 0 && ticks - appleAt < 110 && hp / max >= 0.2f) g = -1;
             if (g >= 0) { appleAt = ticks; eat(a, g); a.log(String.format("§e%.0f of %.0f health: a golden apple", hp, max)); tactic = "eating a golden apple"; return true; }
+        }
+        // Topping up in the gaps: hurt, the hunger bar not full (sprinting drains it) and the enemy just out of reach (its
+        // own knockback hit or ours): ordinary food now, eaten on the way back, so regeneration keeps running. Against VexBot
+        // with swords the agent had it at 5.9 HP while it had 11.4; VexBot ate its steak in the gaps and came back to 11,
+        // the agent never ate and lost (bench 2026-11-23, round 1). Steak gives 12.8 saturation: a heart a second for 12 s.
+        if (!retreating && a.food() < 20 && hp < max - 3f && enemy.distance() > 3.6 && ticks - topUpAt > 50) {
+            int f = -1;
+            for (int i = 0; i < inv.size() && i < 36; i++) {
+                ItemStack s = inv.get(i);
+                if (!Gear.isFood(s) || Gear.id(s).contains("golden_apple") || Gear.id(s).equals("minecraft:chorus_fruit")) continue;
+                if (f < 0 || Gear.nutrition(s) > Gear.nutrition(inv.get(f))) f = i;
+            }
+            if (f >= 0) { topUpAt = ticks; eat(a, f); ate++; tactic = "eating in the gap (" + Math.round(hp) + " HP, hunger " + a.food() + ")"; return true; }
         }
         if (!retreating && hp / max < 0.3f) { retreating = true; retreatAt = ticks; a.log(String.format("§e%.0f of %.0f health and nothing to heal with: backing off from %s", hp, max, enemy.name())); }
         if (!retreating) return false;
