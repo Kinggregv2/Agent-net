@@ -336,6 +336,7 @@ final class Fight {
 
     private int windAt = -1000, windCd, windSmashes, maceHeldAt = -1000;
     private boolean windStruck, windDashed;
+    private double windPeak = -1e9;
 
     /** The enemy's movement a tick (smoothed), for leading jumps and dives at it. */
     private net.minecraft.world.phys.Vec3 enemyVel = net.minecraft.world.phys.Vec3.ZERO, lastEnemyPos;
@@ -382,14 +383,17 @@ final class Fight {
             }
             a.faceWhileMoving(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z);
             if (mace >= 0 && mace < 9) a.selectHotbar(mace);
-            double fallen = a.airPeakY() - a.y();
+            // Its own highest point since the jump (a pearl teleport is no jump: the air peak was still the old one), and 2.5
+            // blocks of fall before the swing: the server runs a couple of blocks behind, and at "1.9 fallen" it had 0.02.
+            windPeak = Math.max(windPeak, a.y());
+            double fallen = windPeak - a.y();
             tactic = String.format("wind-charge jump over %s (%.1f up)", enemy.name(), a.y() - enemy.pos().y);
             // As late in the fall as it can: the mace adds damage for every block fallen, and swinging the moment it came into
             // reach smashed after 2 of 6 blocks (bench 2026-11-24: 5 of 8 smashes "after 2.0 blocks"). It waits while it is still
             // over 2 blocks above the target with reach to spare (half a block a tick at this speed), then swings.
             double rch = eyeToBox(a, enemy);
             boolean wait = a.y() - enemy.pos().y > 2.0 && rch < REACH - Math.max(0.5, -a.verticalSpeed());
-            if (!windStruck && !wait && mace >= 0 && a.verticalSpeed() < -0.1 && fallen > 1.6 && rch <= REACH && Sight.canHit(a, enemy)) {
+            if (!windStruck && !wait && mace >= 0 && a.verticalSpeed() < -0.1 && fallen > 2.5 && rch <= REACH && Sight.canHit(a, enemy)) {
                 a.attack(enemy.id());
                 windStruck = true;
                 windSmashes++;
@@ -420,6 +424,7 @@ final class Fight {
         // 2026-11-24: 0.40 at the launch after 14 ticks of holding, 0.67 at the smash 22 ticks later.)
         if (a.isNavigating()) a.stopNavigation();
         a.useItemWith(hb, a.yaw(), 90f); // straight down at its own feet
+        windPeak = a.y();
         windDashed = false;
         dev.agentnet.AgentNet.LOG.info("[{}] wind-charge launch: mace held {} ticks; the server has: {}", a.name(), ticks - maceHeldAt, serverSide(a));
         windAt = ticks; windCd = 60; windStruck = false;
@@ -450,11 +455,11 @@ final class Fight {
         }
         int since = ticks - pcAt;
         if (since <= 45) {
-            if (since == 2 && wind >= 0) { a.useItemWith(wind, a.yaw(), -90f); tactic = "pearl catch: the wind charge up after the pearl"; return true; }
-            if (since == 3 && mace >= 0) { a.selectHotbar(mace); charge = 0; }
+            if (since == 5 && wind >= 0) { a.useItemWith(wind, a.yaw(), -90f); tactic = "pearl catch: the wind charge up after the pearl"; return true; }
+            if (since == 6 && mace >= 0) { a.selectHotbar(mace); charge = 0; }
             // Up there: the pearl took it (a jump of over 8 blocks in a tick). The wind-charge smash's air part from here.
             if (a.y() > pcY + 8) {
-                pcAt = -1000; windAt = ticks; windStruck = false; windDashed = true;
+                pcAt = -1000; windAt = ticks; windStruck = false; windDashed = true; windPeak = a.y();
                 dev.agentnet.AgentNet.LOG.info("[{}] pearl catch: up {} blocks, {} below", a.name(), String.format("%.1f", a.y() - pcY), enemy.name());
                 a.log("§cpearl catch: up " + Math.round(a.y() - pcY) + " blocks over " + enemy.name());
                 return false;
