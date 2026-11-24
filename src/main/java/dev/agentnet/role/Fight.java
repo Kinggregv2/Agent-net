@@ -289,6 +289,21 @@ final class Fight {
         double ax = a.x() - lx, az = a.z() - lz, n = Math.hypot(ax, az);
         if (n < 0.3) { ax = -(e.pos().z - a.z()); az = e.pos().x - a.x(); n = Math.max(0.01, Math.hypot(ax, az)); }
         int gx = (int) Math.floor(a.x() + ax / n * 4), gz = (int) Math.floor(a.z() + az / n * 4);
+        // A wind charge into the ground between it and where the mace comes down: the blast throws it several blocks away at
+        // once. Walking away was too slow against a dive from 29 blocks up that steered onto it (bench 2026-11-24: a
+        // totem gone from full health in one smash). When the dive is close: 3 to 14 blocks up, nearly over it.
+        if (windCd == 0 && !a.airborne() && up >= 3 && up <= 14 && hz < 3.5 && enemyVel.y < -0.2) {
+            int wc = -1; List<ItemStack> inv = a.inventory();
+            for (int i = 0; i < 9 && i < inv.size(); i++) if (inv.get(i).getItem() == net.minecraft.world.item.Items.WIND_CHARGE) { wc = i; break; }
+            if (wc >= 0) {
+                float yaw = (float) Math.toDegrees(Math.atan2(-(lx - a.x()), lz - a.z())); // toward where it lands: the push is the other way
+                a.useItemWith(wc, yaw, 70f);
+                windCd = 30; dodgeUntil = ticks;
+                tactic = "wind charge away from " + e.name() + "'s mace";
+                dev.agentnet.AgentNet.LOG.info("[{}] wind-charge dodge: {} is {} up, {} over", a.name(), e.name(), String.format("%.1f", up), String.format("%.1f", hz));
+                return true;
+            }
+        }
         if (a.isNavigating()) a.stopNavigation();
         a.stepToward(gx + 0.5, gz + 0.5);
         boolean first = dodgeUntil < 0; dodgeUntil = ticks;
