@@ -292,7 +292,7 @@ final class Fight {
         // A wind charge into the ground between it and where the mace comes down: the blast throws it several blocks away at
         // once. Walking away was too slow against a dive from 29 blocks up that steered onto it (bench 2026-11-24: a
         // totem gone from full health in one smash). When the dive is close: 3 to 14 blocks up, nearly over it.
-        if (windCd == 0 && !a.airborne() && up >= 3 && up <= 14 && hz < 3.5 && enemyVel.y < -0.2) {
+        if (windCd == 0 && !a.airborne() && up >= 3 && up <= 22 && hz < 4.5 && enemyVel.y < -0.2) {
             int wc = -1; List<ItemStack> inv = a.inventory();
             for (int i = 0; i < 9 && i < inv.size(); i++) if (inv.get(i).getItem() == net.minecraft.world.item.Items.WIND_CHARGE) { wc = i; break; }
             if (wc >= 0) {
@@ -346,7 +346,6 @@ final class Fight {
     }
 
     private boolean windSmash(AgentHandle a, Seen enemy) {
-        if (windCd > 0) windCd--;
         List<ItemStack> inv = a.inventory();
         int mace = -1, wind = -1;
         for (int i = 0; i < inv.size() && i < 36; i++) { if (inv.get(i).getItem() == net.minecraft.world.item.Items.MACE && mace < 0) mace = i; if (inv.get(i).getItem() == net.minecraft.world.item.Items.WIND_CHARGE && wind < 0) wind = i; }
@@ -592,6 +591,7 @@ final class Fight {
         }
 
         trackEnemy(enemy);
+        if (windCd > 0) windCd--; // every tick (only in windSmash it stood still while dodging, and the dodge never fired)
         if (!air.active() && dodge(a, enemy)) return; // a mace coming down on it: out from under
         if (!air.active() && heal(a, enemy)) return; // step 8
 
