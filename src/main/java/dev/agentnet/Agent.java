@@ -1237,6 +1237,8 @@ public final class Agent implements AgentHandle {
     @Override public void clearClutch() { clutchBoatAt = null; clutchWater = null; }
     @Override public void holdFall(int ticks) { fallHold = ticks; }
 
+    @Override public void startFall() { airVel = null; launch(Vec3.ZERO); }
+
     void launch(Vec3 push) {
         if (airVel == null) airPeakY = pos.position().y;
         airVel = (airVel == null ? Vec3.ZERO : airVel).add(push);

@@ -249,6 +249,8 @@ public interface AgentHandle {
     default void attackWith(int entityId, int hotbarSlot) { attack(entityId); }
     /** The ender pearl it threw last (within this many ms): where it appeared and its speed then, or null. */
     default net.minecraft.world.phys.Vec3[] ownPearl(long withinMs) { return null; }
+    /** Up in the air with no speed (a pearl teleport): its own air physics from here, so it falls and can steer. */
+    default void startFall() {}
     /** Use the item in another hotbar slot and go straight back to the one held, in one tick: the held item's attack charge
      *  is not reset (the server only resets it when the item at the end of the tick differs). Looking this way for the use. */
     default void useItemWith(int hotbarSlot, float yaw, float pitch) { selectHotbar(hotbarSlot); look(yaw, pitch); useItem(); }

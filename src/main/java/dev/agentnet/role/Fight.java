@@ -368,6 +368,7 @@ final class Fight {
             land = Math.min(land, 20);
             double px = enemy.pos().x + enemyVel.x * land, pz = enemy.pos().z + enemyVel.z * land;
             a.steer(px - a.x(), pz - a.z());
+            if ((ticks - windAt) % 4 == 0) dev.agentnet.AgentNet.LOG.info("[{}] dive: {} up, {} across from {} (led {} across), falling {}, its speed {} a tick", a.name(), String.format("%.1f", a.y() - enemy.pos().y), String.format("%.1f", Math.hypot(enemy.pos().x - a.x(), enemy.pos().z - a.z())), enemy.name(), String.format("%.1f", Math.hypot(px - a.x(), pz - a.z())), String.format("%.2f", vy), String.format("%.2f", Math.hypot(enemyVel.x, enemyVel.z)));
             // Spear dash at the top (VexBot's "speardash"): a Lunge spear pushes it flat toward the target from the apex, so a
             // jump that went up beside it still comes down on it. Once a jump.
             double hz = Math.hypot(px - a.x(), pz - a.z());
@@ -494,6 +495,7 @@ final class Fight {
             if (pcFired && since == 6 && mace >= 0) { a.selectHotbar(mace); charge = 0; }
             // Up there: the pearl took it (a jump of over 8 blocks in a tick). The wind-charge smash's air part from here.
             if (a.y() > pcY + 8) {
+                a.startFall(); // teleported: no flight of its own yet, and it dropped straight down without steering (2026-11-24)
                 pcAt = -1000; windAt = ticks; windStruck = false; windDashed = true; windPeak = a.y();
                 dev.agentnet.AgentNet.LOG.info("[{}] pearl catch: up {} blocks, {} below", a.name(), String.format("%.1f", a.y() - pcY), enemy.name());
                 a.log("§cpearl catch: up " + Math.round(a.y() - pcY) + " blocks over " + enemy.name());
