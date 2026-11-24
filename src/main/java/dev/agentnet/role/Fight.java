@@ -435,6 +435,46 @@ final class Fight {
         return true;
     }
 
+    // ------------------------------------------------------------------ step 9a++: the trident mace
+    //
+    // Vanilla (TridentItem): a Riptide trident held for 10 ticks and let go, in rain or in water, throws its holder the way
+    // it looks (Riptide III about 3 blocks a tick). Up and toward the target, then the mace on the way down: the
+    // wind-charge smash's air part steers and swings. The user, 2026-11-23: "trident spear, trident elytra".
+    private int ripAt = -1000, ripCd;
+    private boolean riptideSmash(AgentHandle a, Seen enemy) {
+        if (ripCd > 0) ripCd--;
+        List<ItemStack> inv = a.inventory();
+        int mace = -1, tri = -1;
+        for (int i = 0; i < 9 && i < inv.size(); i++) {
+            ItemStack s = inv.get(i);
+            if (s.getItem() == net.minecraft.world.item.Items.MACE && mace < 0) mace = i;
+            if (s.getItem() == net.minecraft.world.item.Items.TRIDENT && Gear.level(s, net.minecraft.world.item.enchantment.Enchantments.RIPTIDE) > 0 && tri < 0) tri = i;
+        }
+        int since = ticks - ripAt;
+        if (since <= 14) {
+            float yaw = (float) Math.toDegrees(Math.atan2(-(enemy.pos().x - a.x()), enemy.pos().z - a.z()));
+            float pitch = enemy.distance() > 6 ? -55f : -75f; // farther off: flatter, it covers the distance on the way up
+            a.look(yaw, pitch);
+            if (since < 11) { tactic = "trident mace: charging the riptide"; return true; }
+            a.releaseUse();
+            ripAt = -1000;
+            if (mace >= 0) a.selectHotbar(mace);
+            windAt = ticks; windStruck = false; windDashed = true; windPeak = a.y(); charge = 0;
+            dev.agentnet.AgentNet.LOG.info("[{}] riptide launch at {} ({} off)", a.name(), enemy.name(), String.format("%.1f", enemy.distance()));
+            return true;
+        }
+        if (mace < 0 || tri < 0 || ripCd > 0 || a.airborne() || a.riding() || air.active() || ticks - windAt < 60) return false;
+        if (!a.raining() && !inWater(a)) return false;
+        if (!enemy.player() || enemy.distance() < 2 || enemy.distance() > 12 || !ElytraMace.openAbove(a, new net.minecraft.world.phys.Vec3(a.x(), a.y(), a.z()))) return false;
+        if (a.isNavigating()) a.stopNavigation();
+        lower(a);
+        a.selectHotbar(tri);
+        a.useItem();
+        ripAt = ticks; ripCd = 40;
+        tactic = "trident mace: charging the riptide";
+        return true;
+    }
+
     // ------------------------------------------------------------------ step 9a+: the pearl catch
     //
     // VexBot's way up (traced from the server, 2026-11-24; the user: "the bot can ender pearl wind charge up"): a pearl
@@ -734,6 +774,7 @@ final class Fight {
         }
         // Crystal PvP: with end crystals in the pack, against a player in reach (CrystalPvp).
         if (enemy.player() && CrystalPvp.ready(a) && !a.airborne()) { lower(a); if (crystal.tick(a, enemy)) { tactic = crystal.tactic; charge = 0; return; } }
+        if (riptideSmash(a, enemy)) return; // step 9a++: a Riptide trident up, then the mace
         if (pearlCatch(a, enemy)) return; // step 9a+: pearl and wind charge up, then the mace from 20 blocks
         if (windSmash(a, enemy)) return; // step 9a
         if (enemy.name().equals("enderman") && enemy.vehicle() < 0 && boatTrap(a, enemy)) return; // step 9b
