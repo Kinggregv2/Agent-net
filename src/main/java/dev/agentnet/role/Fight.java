@@ -271,6 +271,30 @@ final class Fight {
         return true;
     }
 
+    // ------------------------------------------------------------------ dodging a mace from above
+    //
+    // VexBot's dives (a wind charge or a pearl up, the mace down) took 7 and 8 a hit, and the agent stood under them (bench
+    // 2026-11-24, mace and spear mace kits, 0-5). A smash needs it within reach at the moment of the hit: when the enemy is
+    // 2.5+ blocks up, coming down, a mace in hand and nearly over it, it steps out sideways, away from where it lands.
+    private int dodgeUntil = -1;
+    private boolean dodge(AgentHandle a, Seen e) {
+        double up = e.pos().y - a.y(), hz = Math.hypot(e.pos().x - a.x(), e.pos().z - a.z());
+        boolean mace = e.mainHand().getItem() == net.minecraft.world.item.Items.MACE;
+        if (ticks < dodgeUntil) return true;
+        if (!mace || up < 2.5 || enemyVel.y > -0.15 || hz > 4.5 || a.airborne()) return false;
+        // Where it comes down (its fall so far, led), and the way out: straight away from that, sideways if it is right on top.
+        double t = Math.min(12, up / Math.max(0.3, -enemyVel.y));
+        double lx = e.pos().x + enemyVel.x * t, lz = e.pos().z + enemyVel.z * t;
+        double ax = a.x() - lx, az = a.z() - lz, n = Math.hypot(ax, az);
+        if (n < 0.3) { ax = -(e.pos().z - a.z()); az = e.pos().x - a.x(); n = Math.max(0.01, Math.hypot(ax, az)); }
+        int gx = (int) Math.floor(a.x() + ax / n * 4), gz = (int) Math.floor(a.z() + az / n * 4);
+        a.navigate(gx, (int) Math.floor(a.y()), gz, 0);
+        dodgeUntil = ticks + 8;
+        tactic = "out from under " + e.name() + "'s mace";
+        dev.agentnet.AgentNet.LOG.info("[{}] dodging {}'s mace: it is {} up, {} over, falling {} a tick", a.name(), e.name(), String.format("%.1f", up), String.format("%.1f", hz), String.format("%.2f", enemyVel.y));
+        return true;
+    }
+
     private void eat(AgentHandle a, int slot) {
         lower(a);
         if (drawing >= 0) { a.releaseUse(); drawing = -1; }
@@ -304,7 +328,6 @@ final class Fight {
     }
 
     private boolean windSmash(AgentHandle a, Seen enemy) {
-        trackEnemy(enemy);
         if (windCd > 0) windCd--;
         List<ItemStack> inv = a.inventory();
         int mace = -1, wind = -1;
@@ -550,6 +573,8 @@ final class Fight {
             checkAt = -1;
         }
 
+        trackEnemy(enemy);
+        if (!air.active() && dodge(a, enemy)) return; // a mace coming down on it: out from under
         if (!air.active() && heal(a, enemy)) return; // step 8
 
         // Step 7, the mace from the air. Vanilla (MaceItem): a smash needs a fall of over 1.5 blocks and no gliding; it adds
