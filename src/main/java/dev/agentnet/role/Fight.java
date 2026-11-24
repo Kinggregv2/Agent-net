@@ -290,7 +290,7 @@ final class Fight {
     // Without an elytra this is how the mace gets used: a few blocks from the enemy, up, over it, down on it.
 
     private int windAt = -1000, windCd, windSmashes, maceHeldAt = -1000;
-    private boolean windStruck;
+    private boolean windStruck, windDashed;
 
     /** The enemy's movement a tick (smoothed), for leading jumps and dives at it. */
     private net.minecraft.world.phys.Vec3 enemyVel = net.minecraft.world.phys.Vec3.ZERO, lastEnemyPos;
@@ -323,6 +323,20 @@ final class Fight {
             land = Math.min(land, 20);
             double px = enemy.pos().x + enemyVel.x * land, pz = enemy.pos().z + enemyVel.z * land;
             a.steer(px - a.x(), pz - a.z());
+            // Spear dash at the top (VexBot's "speardash"): a Lunge spear pushes it flat toward the target from the apex, so a
+            // jump that went up beside it still comes down on it. Once a jump.
+            double hz = Math.hypot(px - a.x(), pz - a.z());
+            if (!windDashed && Math.abs(vy) < 0.12 && hz > 2.5 && hz < 12) {
+                int sp = -1, lv = 0;
+                for (int i = 0; i < 9; i++) { int l = Gear.id(inv.get(i)).endsWith("_spear") ? Gear.level(inv.get(i), net.minecraft.world.item.enchantment.Enchantments.LUNGE) : 0; if (l > lv) { lv = l; sp = i; } }
+                if (sp >= 0) {
+                    windDashed = true;
+                    int back = a.selectedSlot();
+                    a.look((float) Math.toDegrees(Math.atan2(-(px - a.x()), pz - a.z())), 0f);
+                    a.selectHotbar(sp); a.stab(); a.swingArm(); a.selectHotbar(back);
+                    dev.agentnet.AgentNet.LOG.info("[{}] spear dash at the top of the jump: {} blocks flat to {}", a.name(), String.format("%.1f", hz), enemy.name());
+                }
+            }
             a.faceWhileMoving(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z);
             if (mace >= 0 && mace < 9) a.selectHotbar(mace);
             double fallen = a.airPeakY() - a.y();
@@ -363,6 +377,7 @@ final class Fight {
         // 2026-11-24: 0.40 at the launch after 14 ticks of holding, 0.67 at the smash 22 ticks later.)
         if (a.isNavigating()) a.stopNavigation();
         a.useItemWith(hb, a.yaw(), 90f); // straight down at its own feet
+        windDashed = false;
         dev.agentnet.AgentNet.LOG.info("[{}] wind-charge launch: mace held {} ticks; the server has: {}", a.name(), ticks - maceHeldAt, serverSide(a));
         windAt = ticks; windCd = 60; windStruck = false;
         a.log("§cwind charge at its feet: up and over " + enemy.name() + " with the mace");
