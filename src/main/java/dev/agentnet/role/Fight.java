@@ -276,6 +276,7 @@ final class Fight {
     // VexBot's dives (a wind charge or a pearl up, the mace down) took 7 and 8 a hit, and the agent stood under them (bench
     // 2026-11-24, mace and spear mace kits, 0-5). A smash needs it within reach at the moment of the hit: when the enemy is
     // 2.5+ blocks up, coming down, a mace in hand and nearly over it, it steps out sideways, away from where it lands.
+    static final boolean TRACE_ENEMY = Boolean.parseBoolean(System.getProperty("agentnet.traceEnemy", "true"));
     private int dodgeUntil = -1;
     private boolean dodge(AgentHandle a, Seen e) {
         double up = e.pos().y - a.y(), hz = Math.hypot(e.pos().x - a.x(), e.pos().z - a.z());
@@ -593,6 +594,14 @@ final class Fight {
         }
 
         trackEnemy(enemy);
+        // Study (-Dagentnet.traceEnemy or a mace kit test): the enemy's height and the pearls and wind charges by it, every tick it
+        // is rising fast or high: how VexBot gets 29 blocks up with wind charges and pearls.
+        if (TRACE_ENEMY && (enemyVel.y > 0.3 || enemy.pos().y - a.y() > 6)) {
+            StringBuilder sb = new StringBuilder();
+            for (Seen s : a.entitiesNear(48)) if (s.name().equals("ender_pearl") || s.name().equals("wind_charge") || s.name().equals("breeze_wind_charge"))
+                sb.append(String.format(" %s@(%.1f,%.1f,%.1f)", s.name(), s.pos().x - enemy.pos().x, s.pos().y - enemy.pos().y, s.pos().z - enemy.pos().z));
+            dev.agentnet.AgentNet.LOG.info("[{}] trace {}: y {} over us, vy {}, holding {}{}", a.name(), enemy.name(), String.format("%.1f", enemy.pos().y - a.y()), String.format("%.2f", enemyVel.y), Gear.id(enemy.mainHand()).replace("minecraft:", ""), sb);
+        }
         if (windCd > 0) windCd--; // every tick (only in windSmash it stood still while dodging, and the dodge never fired)
         if (!air.active() && dodge(a, enemy)) return; // a mace coming down on it: out from under
         if (!air.active() && heal(a, enemy)) return; // step 8
