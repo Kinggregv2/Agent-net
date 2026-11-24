@@ -251,6 +251,8 @@ public interface AgentHandle {
     default net.minecraft.world.phys.Vec3[] ownPearl(long withinMs) { return null; }
     /** Up in the air with no speed (a pearl teleport): its own air physics from here, so it falls and can steer. */
     default void startFall() {}
+    /** A push it gives itself (vanilla does a Riptide throw on the thrower's own side): into its air physics. */
+    default void selfPush(double x, double y, double z) {}
     /** Use the item in another hotbar slot and go straight back to the one held, in one tick: the held item's attack charge
      *  is not reset (the server only resets it when the item at the end of the tick differs). Looking this way for the use. */
     default void useItemWith(int hotbarSlot, float yaw, float pitch) { selectHotbar(hotbarSlot); look(yaw, pitch); useItem(); }

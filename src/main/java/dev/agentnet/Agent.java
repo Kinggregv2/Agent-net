@@ -1238,6 +1238,7 @@ public final class Agent implements AgentHandle {
     @Override public void holdFall(int ticks) { fallHold = ticks; }
 
     @Override public void startFall() { airVel = null; launch(Vec3.ZERO); }
+    @Override public void selfPush(double x, double y, double z) { launch(new Vec3(x, y, z)); }
 
     void launch(Vec3 push) {
         if (airVel == null) airPeakY = pos.position().y;

@@ -457,6 +457,13 @@ final class Fight {
             a.look(yaw, pitch);
             if (since < 11) { tactic = "trident mace: charging the riptide"; return true; }
             a.releaseUse();
+            // Vanilla TridentItem.releaseUsing: the Riptide push is done by the thrower's own client (the server only starts
+            // the spin), so the agent does it: the look direction times 3 x (1 + level) / 4, and a step up off the ground (vanilla moves it 1.2 up; as speed that is about 0.5).
+            // Without it 22 of 24 releases did nothing (bench 2026-11-24).
+            int lvl = Gear.level(inv.get(tri), net.minecraft.world.item.enchantment.Enchantments.RIPTIDE);
+            double sp = 3.0 * (1 + lvl) / 4.0, yr = Math.toRadians(yaw), pr = Math.toRadians(pitch);
+            double dx = -Math.sin(yr) * Math.cos(pr), dy = -Math.sin(pr), dz = Math.cos(yr) * Math.cos(pr);
+            a.selfPush(dx * sp, dy * sp + (a.airborne() ? 0 : 0.5), dz * sp);
             ripAt = -1000;
             if (mace >= 0) a.selectHotbar(mace);
             windAt = ticks; windStruck = false; windDashed = true; windPeak = a.y(); charge = 0;
