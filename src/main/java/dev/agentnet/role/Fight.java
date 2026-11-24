@@ -455,7 +455,32 @@ final class Fight {
         }
         int since = ticks - pcAt;
         if (since <= 45) {
-            if (since == 5 && wind >= 0) { a.useItemWith(wind, a.yaw(), -90f); tactic = "pearl catch: the wind charge up after the pearl"; return true; }
+            if (since == 5 && wind >= 0) {
+                // Aimed at where the pearl will be when the charge gets there, not straight up: both start with a random
+                // spread, and straight up the charge passed the pearl by (13 throws, 2 catches). The pearl: its own spawn
+                // position and speed from the server, then vanilla's throwable physics (move, x0.99, -0.03 a tick). The charge:
+                // about 1.55 a tick, a little faster each tick (fitted from VexBot's, traced on the server).
+                float yaw = a.yaw(), pitch = -90f;
+                var pv = a.ownPearl(2000);
+                if (pv != null) {
+                    net.minecraft.world.phys.Vec3 p = pv[0], v = pv[1], eye = new net.minecraft.world.phys.Vec3(a.x(), a.y() + 1.62, a.z());
+                    int elapsed = 4;
+                    for (int k = 0; k < elapsed; k++) { p = p.add(v); v = v.scale(0.99).add(0, -0.03, 0); }
+                    for (int n = 1; n <= 40; n++) {
+                        p = p.add(v); v = v.scale(0.99).add(0, -0.03, 0);
+                        if (1.55 * n + 0.03 * n * n >= p.distanceTo(eye)) {
+                            double dx = p.x - eye.x, dy = p.y - eye.y, dz = p.z - eye.z;
+                            yaw = (float) Math.toDegrees(Math.atan2(-dx, dz));
+                            pitch = (float) -Math.toDegrees(Math.atan2(dy, Math.hypot(dx, dz)));
+                            dev.agentnet.AgentNet.LOG.info("[{}] pearl catch: charge aimed to meet the pearl {} ticks out, {} up ({} off straight up)", a.name(), n, String.format("%.1f", dy), String.format("%.2f", Math.hypot(dx, dz)));
+                            break;
+                        }
+                    }
+                }
+                a.useItemWith(wind, yaw, pitch);
+                tactic = "pearl catch: the wind charge up after the pearl";
+                return true;
+            }
             if (since == 6 && mace >= 0) { a.selectHotbar(mace); charge = 0; }
             // Up there: the pearl took it (a jump of over 8 blocks in a tick). The wind-charge smash's air part from here.
             if (a.y() > pcY + 8) {

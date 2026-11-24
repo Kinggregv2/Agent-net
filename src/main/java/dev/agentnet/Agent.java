@@ -1510,6 +1510,10 @@ public final class Agent implements AgentHandle {
         AgentNet.LOG.info("[{}] got in a vehicle #{}", name, vehicle);
     }
 
+    private volatile Vec3 ownPearlPos, ownPearlVel;
+    private volatile long ownPearlAt;
+    @Override public Vec3[] ownPearl(long withinMs) { return ownPearlPos == null || System.currentTimeMillis() - ownPearlAt > withinMs ? null : new Vec3[]{ownPearlPos, ownPearlVel}; }
+
     private void trackEntity(ClientboundAddEntityPacket p) {
         var type = p.getType();
         String typeName = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(type).getPath();
@@ -3723,6 +3727,8 @@ public final class Agent implements AgentHandle {
                     bobberId = p.getId();
                     bobberBiting = false;
                 }
+                // Its own ender pearl: where and how fast it started (the pearl catch aims its wind charge at it).
+                if (p.getType() == EntityTypes.ENDER_PEARL && p.getData() == myEntityId) { ownPearlPos = new Vec3(p.getX(), p.getY(), p.getZ()); ownPearlVel = p.getMovement(); ownPearlAt = System.currentTimeMillis(); }
                 if (p.getType() == EntityTypes.ITEM) {
                     // Guess where a thrown item lands: it slides ~8 ticks' worth of its starting speed.
                     Vec3 m = p.getMovement();
