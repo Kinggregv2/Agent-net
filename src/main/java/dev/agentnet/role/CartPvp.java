@@ -58,15 +58,15 @@ final class CartPvp {
     }
 
     private static boolean flame(ItemStack s) { return Gear.level(s, Enchantments.FLAME) > 0; }
-    private static int railSlot(AgentHandle a) { return slotOf(a, s -> s.getItem() == Items.RAIL); }
-    private static int cartSlot(AgentHandle a) { return slotOf(a, s -> s.getItem() == Items.TNT_MINECART); }
-    private static int flintSlot(AgentHandle a) { return slotOf(a, s -> s.getItem() == Items.FLINT_AND_STEEL); }
+    static int railSlot(AgentHandle a) { return slotOf(a, s -> s.getItem() == Items.RAIL); }
+    static int cartSlot(AgentHandle a) { return slotOf(a, s -> s.getItem() == Items.TNT_MINECART); }
+    static int flintSlot(AgentHandle a) { return slotOf(a, s -> s.getItem() == Items.FLINT_AND_STEEL); }
     /** Its crossbow: one with Flame first (a command-made one), else any. */
-    private static int crossbowSlot(AgentHandle a) {
+    static int crossbowSlot(AgentHandle a) {
         int f = slotOf(a, s -> s.getItem() == Items.CROSSBOW && flame(s));
         return f >= 0 ? f : slotOf(a, s -> s.getItem() == Items.CROSSBOW);
     }
-    private static int flameBow(AgentHandle a) { return slotOf(a, s -> s.getItem() == Items.BOW && flame(s)); }
+    static int flameBow(AgentHandle a) { return slotOf(a, s -> s.getItem() == Items.BOW && flame(s)); }
     private static boolean arrows(AgentHandle a) { return slotOf(a, s -> s.getItem() == Items.ARROW || s.getItem() == Items.SPECTRAL_ARROW || s.getItem() == Items.TIPPED_ARROW) >= 0; }
     private static boolean block(ItemStack s) {
         String id = Gear.id(s);
