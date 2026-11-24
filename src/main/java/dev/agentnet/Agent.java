@@ -3728,6 +3728,7 @@ public final class Agent implements AgentHandle {
                     bobberBiting = false;
                 }
                 // Its own ender pearl: where and how fast it started (the pearl catch aims its wind charge at it).
+                if (p.getType() == EntityTypes.ENDER_PEARL && new Vec3(p.getX(), p.getY(), p.getZ()).distanceTo(pos.position()) < 6) AgentNet.LOG.info("[{}] pearl #{} appeared, owner data {} (we are {}), {} blocks from us", name, p.getId(), p.getData(), myEntityId, String.format("%.1f", new Vec3(p.getX(), p.getY(), p.getZ()).distanceTo(pos.position())));
                 if (p.getType() == EntityTypes.ENDER_PEARL && p.getData() == myEntityId) { ownPearlPos = new Vec3(p.getX(), p.getY(), p.getZ()); ownPearlVel = p.getMovement(); ownPearlAt = System.currentTimeMillis(); }
                 if (p.getType() == EntityTypes.ITEM) {
                     // Guess where a thrown item lands: it slides ~8 ticks' worth of its starting speed.

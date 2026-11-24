@@ -276,6 +276,7 @@ final class Fight {
     // VexBot's dives (a wind charge or a pearl up, the mace down) took 7 and 8 a hit, and the agent stood under them (bench
     // 2026-11-24, mace and spear mace kits, 0-5). A smash needs it within reach at the moment of the hit: when the enemy is
     // 2.5+ blocks up, coming down, a mace in hand and nearly over it, it steps out sideways, away from where it lands.
+    public static final boolean TRACE_PEARLS = true;
     static final boolean TRACE_ENEMY = Boolean.parseBoolean(System.getProperty("agentnet.traceEnemy", "true"));
     private int dodgeUntil = -1;
     private boolean dodge(AgentHandle a, Seen e) {
@@ -462,6 +463,7 @@ final class Fight {
                 // about 1.55 a tick, a little faster each tick (fitted from VexBot's, traced on the server).
                 float yaw = a.yaw(), pitch = -90f;
                 var pv = a.ownPearl(2000);
+                if (pv == null) dev.agentnet.AgentNet.LOG.info("[{}] pearl catch: no pearl of ours seen yet, 5 ticks after the throw", a.name());
                 if (pv != null) {
                     net.minecraft.world.phys.Vec3 p = pv[0], v = pv[1], eye = new net.minecraft.world.phys.Vec3(a.x(), a.y() + 1.62, a.z());
                     int elapsed = 4;
