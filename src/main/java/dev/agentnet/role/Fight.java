@@ -598,8 +598,16 @@ final class Fight {
         // is rising fast or high: how VexBot gets 29 blocks up with wind charges and pearls.
         if (TRACE_ENEMY && (enemyVel.y > 0.3 || enemy.pos().y - a.y() > 6)) {
             StringBuilder sb = new StringBuilder();
-            for (Seen s : a.entitiesNear(48)) if (s.name().equals("ender_pearl") || s.name().equals("wind_charge") || s.name().equals("breeze_wind_charge"))
-                sb.append(String.format(" %s@(%.1f,%.1f,%.1f)", s.name(), s.pos().x - enemy.pos().x, s.pos().y - enemy.pos().y, s.pos().z - enemy.pos().z));
+            try { // the server's own projectiles (the agent does not track them): on your own world only
+                var srv = net.minecraft.client.Minecraft.getInstance().getSingleplayerServer();
+                var sp = srv == null ? null : srv.getPlayerList().getPlayerByName(enemy.name());
+                if (sp != null) for (var en : sp.level().getEntities((net.minecraft.world.entity.Entity) null, sp.getBoundingBox().inflate(48), x -> x instanceof net.minecraft.world.entity.projectile.Projectile)) {
+                    var pr = (net.minecraft.world.entity.projectile.Projectile) en;
+                    sb.append(String.format(" %s%s@(%.1f,%.1f,%.1f v%.2f)", net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(en.getType()).getPath(), pr.getOwner() == sp ? "(its)" : "",
+                            en.getX() - sp.getX(), en.getY() - sp.getY(), en.getZ() - sp.getZ(), en.getDeltaMovement().y));
+                }
+                if (sp != null) sb.append(String.format(" | server: y %.1f, vy %.2f, vehicle %s, fall %.1f", sp.getY() - a.y(), sp.getDeltaMovement().y, sp.getVehicle() == null ? "-" : net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(sp.getVehicle().getType()).getPath(), sp.fallDistance));
+            } catch (RuntimeException ex) { sb.append(" (").append(ex).append(")"); }
             dev.agentnet.AgentNet.LOG.info("[{}] trace {}: y {} over us, vy {}, holding {}{}", a.name(), enemy.name(), String.format("%.1f", enemy.pos().y - a.y()), String.format("%.2f", enemyVel.y), Gear.id(enemy.mainHand()).replace("minecraft:", ""), sb);
         }
         if (windCd > 0) windCd--; // every tick (only in windSmash it stood still while dodging, and the dodge never fired)
