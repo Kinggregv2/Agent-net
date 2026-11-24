@@ -297,7 +297,9 @@ final class Fight {
             for (int i = 0; i < 9 && i < inv.size(); i++) if (inv.get(i).getItem() == net.minecraft.world.item.Items.WIND_CHARGE) { wc = i; break; }
             if (wc >= 0) {
                 float yaw = (float) Math.toDegrees(Math.atan2(-(lx - a.x()), lz - a.z())); // toward where it lands: the push is the other way
-                a.useItemWith(wc, yaw, 70f);
+                // 45 degrees down: the charge bursts on the ground about 1.6 blocks off, level with its legs, and the push is mostly
+                // sideways. At 70 it burst at its feet and threw it straight up (1.0 up, 0.2 across) into the dive.
+                a.useItemWith(wc, yaw, 45f);
                 windCd = 30; dodgeUntil = ticks;
                 tactic = "wind charge away from " + e.name() + "'s mace";
                 dev.agentnet.AgentNet.LOG.info("[{}] wind-charge dodge: {} is {} up, {} over", a.name(), e.name(), String.format("%.1f", up), String.format("%.1f", hz));
