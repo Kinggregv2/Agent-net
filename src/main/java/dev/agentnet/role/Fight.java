@@ -443,6 +443,9 @@ final class Fight {
     // there, the mace: the wind-charge smash's air part steers it down onto the target and swings at the end of the fall.
     // Both thrown standing still (a projectile takes on its thrower's speed and they would miss each other sideways).
     private int pcAt = -1000, pcCd;
+    private boolean pcFired;
+    /** When that pearl was first seen (ms). */
+    private long pcSeenAt(net.minecraft.world.phys.Vec3[] pv) { return (long) pv[2].x; }
     private double pcY;
     private boolean pearlCatch(AgentHandle a, Seen enemy) {
         if (pcCd > 0) pcCd--;
@@ -456,17 +459,22 @@ final class Fight {
         }
         int since = ticks - pcAt;
         if (since <= 45) {
-            if (since == 5 && wind >= 0) {
+            // Timed from when the pearl shows up, not from the throw: the server handles the throw a few ticks after it is
+            // sent (behind the queued moves), and 5 ticks after the throw it had never been seen yet (debug run 2026-11-24).
+            var seen = since >= 2 && !pcFired ? a.ownPearl(since * 50L + 400) : null;
+            if (!pcFired && since >= 2 && since < 30 && (seen == null || System.currentTimeMillis() - pcSeenAt(seen) < 200)) { if (a.isNavigating()) a.stopNavigation(); tactic = "pearl catch: waiting to see the pearl"; return true; }
+            if (!pcFired && since >= 2 && wind >= 0) {
+                pcFired = true; pcAt = ticks - 5; since = 5;
                 // Aimed at where the pearl will be when the charge gets there, not straight up: both start with a random
                 // spread, and straight up the charge passed the pearl by (13 throws, 2 catches). The pearl: its own spawn
                 // position and speed from the server, then vanilla's throwable physics (move, x0.99, -0.03 a tick). The charge:
                 // about 1.55 a tick, a little faster each tick (fitted from VexBot's, traced on the server).
                 float yaw = a.yaw(), pitch = -90f;
-                var pv = a.ownPearl(2000);
+                var pv = seen;
                 if (pv == null) dev.agentnet.AgentNet.LOG.info("[{}] pearl catch: no pearl of ours seen yet, 5 ticks after the throw", a.name());
                 if (pv != null) {
                     net.minecraft.world.phys.Vec3 p = pv[0], v = pv[1], eye = new net.minecraft.world.phys.Vec3(a.x(), a.y() + 1.62, a.z());
-                    int elapsed = 4;
+                    int elapsed = (int) Math.round((System.currentTimeMillis() - pcSeenAt(pv)) / 50.0);
                     for (int k = 0; k < elapsed; k++) { p = p.add(v); v = v.scale(0.99).add(0, -0.03, 0); }
                     for (int n = 1; n <= 40; n++) {
                         p = p.add(v); v = v.scale(0.99).add(0, -0.03, 0);
@@ -483,7 +491,7 @@ final class Fight {
                 tactic = "pearl catch: the wind charge up after the pearl";
                 return true;
             }
-            if (since == 6 && mace >= 0) { a.selectHotbar(mace); charge = 0; }
+            if (pcFired && since == 6 && mace >= 0) { a.selectHotbar(mace); charge = 0; }
             // Up there: the pearl took it (a jump of over 8 blocks in a tick). The wind-charge smash's air part from here.
             if (a.y() > pcY + 8) {
                 pcAt = -1000; windAt = ticks; windStruck = false; windDashed = true; windPeak = a.y();
@@ -503,7 +511,7 @@ final class Fight {
         if (a.isNavigating()) a.stopNavigation();
         lower(a);
         a.useItemWith(pearl, a.yaw(), -90f);
-        pcAt = ticks; pcY = a.y(); pcCd = 200;
+        pcAt = ticks; pcY = a.y(); pcCd = 200; pcFired = false;
         tactic = "pearl catch: a pearl straight up";
         dev.agentnet.AgentNet.LOG.info("[{}] pearl catch: pearl up, {} is {} off", a.name(), enemy.name(), String.format("%.1f", enemy.distance()));
         return true;

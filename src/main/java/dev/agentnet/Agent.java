@@ -1512,7 +1512,7 @@ public final class Agent implements AgentHandle {
 
     private volatile Vec3 ownPearlPos, ownPearlVel;
     private volatile long ownPearlAt;
-    @Override public Vec3[] ownPearl(long withinMs) { return ownPearlPos == null || System.currentTimeMillis() - ownPearlAt > withinMs ? null : new Vec3[]{ownPearlPos, ownPearlVel}; }
+    @Override public Vec3[] ownPearl(long withinMs) { return ownPearlPos == null || System.currentTimeMillis() - ownPearlAt > withinMs ? null : new Vec3[]{ownPearlPos, ownPearlVel, new Vec3(ownPearlAt, 0, 0)}; }
 
     private void trackEntity(ClientboundAddEntityPacket p) {
         var type = p.getType();
