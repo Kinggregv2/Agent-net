@@ -428,6 +428,55 @@ final class Fight {
         return true;
     }
 
+    // ------------------------------------------------------------------ step 9a+: the pearl catch
+    //
+    // VexBot's way up (traced from the server, 2026-11-24; the user: "the bot can ender pearl wind charge up"): a pearl
+    // thrown straight up, then a wind charge straight up after it. A wind charge does not fall; the pearl slows down; the
+    // charge catches it, the pearl hits it and takes its thrower up there (vanilla: teleported where the pearl hit, no
+    // speed, fall distance reset). With the charge 2 ticks behind, they meet about 20 blocks up 16-19 ticks later. From
+    // there, the mace: the wind-charge smash's air part steers it down onto the target and swings at the end of the fall.
+    // Both thrown standing still (a projectile takes on its thrower's speed and they would miss each other sideways).
+    private int pcAt = -1000, pcCd;
+    private double pcY;
+    private boolean pearlCatch(AgentHandle a, Seen enemy) {
+        if (pcCd > 0) pcCd--;
+        List<ItemStack> inv = a.inventory();
+        int mace = -1, wind = -1, pearl = -1;
+        for (int i = 0; i < 9 && i < inv.size(); i++) {
+            var it = inv.get(i).getItem();
+            if (it == net.minecraft.world.item.Items.MACE && mace < 0) mace = i;
+            if (it == net.minecraft.world.item.Items.WIND_CHARGE && wind < 0) wind = i;
+            if (it == net.minecraft.world.item.Items.ENDER_PEARL && pearl < 0) pearl = i;
+        }
+        int since = ticks - pcAt;
+        if (since <= 45) {
+            if (since == 2 && wind >= 0) { a.useItemWith(wind, a.yaw(), -90f); tactic = "pearl catch: the wind charge up after the pearl"; return true; }
+            if (since == 3 && mace >= 0) { a.selectHotbar(mace); charge = 0; }
+            // Up there: the pearl took it (a jump of over 8 blocks in a tick). The wind-charge smash's air part from here.
+            if (a.y() > pcY + 8) {
+                pcAt = -1000; windAt = ticks; windStruck = false; windDashed = true;
+                dev.agentnet.AgentNet.LOG.info("[{}] pearl catch: up {} blocks, {} below", a.name(), String.format("%.1f", a.y() - pcY), enemy.name());
+                a.log("§cpearl catch: up " + Math.round(a.y() - pcY) + " blocks over " + enemy.name());
+                return false;
+            }
+            if (since < 45) { if (a.isNavigating()) a.stopNavigation(); a.faceWhileMoving(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z); tactic = "pearl catch: waiting for the pearl"; return true; }
+            pcAt = -1000;
+            dev.agentnet.AgentNet.LOG.info("[{}] pearl catch: the charge missed the pearl", a.name());
+            return false;
+        }
+        if (mace < 0 || wind < 0 || pearl < 0 || pcCd > 0 || a.airborne() || a.riding() || air.active() || ElytraMace.ready(a) || ticks - windAt < 100) return false;
+        if (!enemy.player() || enemy.distance() > 9 || Math.abs(enemy.pos().y - a.y()) > 3 || !ElytraMace.openAbove(a, new net.minecraft.world.phys.Vec3(a.x(), a.y(), a.z()))) return false;
+        float hp = a.health(), max = Math.max(1f, a.maxHealth());
+        if (!Float.isNaN(hp) && hp < max * 0.5f) return false; // the pearl costs 5 (less in Feather Falling boots)
+        if (a.isNavigating()) a.stopNavigation();
+        lower(a);
+        a.useItemWith(pearl, a.yaw(), -90f);
+        pcAt = ticks; pcY = a.y(); pcCd = 200;
+        tactic = "pearl catch: a pearl straight up";
+        dev.agentnet.AgentNet.LOG.info("[{}] pearl catch: pearl up, {} is {} off", a.name(), enemy.name(), String.format("%.1f", enemy.distance()));
+        return true;
+    }
+
     /** On your own world: what the server itself has for this agent right now (fall distance, height, on the ground). For the logs of a test. */
     static String serverSide(AgentHandle a) {
         try {
@@ -643,6 +692,7 @@ final class Fight {
         }
         // Crystal PvP: with end crystals in the pack, against a player in reach (CrystalPvp).
         if (enemy.player() && CrystalPvp.ready(a) && !a.airborne()) { lower(a); if (crystal.tick(a, enemy)) { tactic = crystal.tactic; charge = 0; return; } }
+        if (pearlCatch(a, enemy)) return; // step 9a+: pearl and wind charge up, then the mace from 20 blocks
         if (windSmash(a, enemy)) return; // step 9a
         if (enemy.name().equals("enderman") && enemy.vehicle() < 0 && boatTrap(a, enemy)) return; // step 9b
         if (enemy.name().equals("creeper") && creeper(a, enemy)) return; // step 6
