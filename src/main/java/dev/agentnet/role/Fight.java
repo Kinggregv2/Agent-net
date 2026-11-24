@@ -556,7 +556,7 @@ final class Fight {
         if (cart.cooldown > 0) cart.cooldown--;
         if (cart.active()) { tactic = cart.tactic; if (cart.tick(a, enemy)) return; }
         if (enemy.player() && !cart.active() && ticks % 100 == 0 && (CartPvp.railSlot(a) >= 0 || CartPvp.cartSlot(a) >= 0))
-            dev.agentnet.AgentNet.LOG.info("[{}] cart check: cooldown {}, airborne {}, distance {}, ready {}, raining {}, rail {}, cart {}, crossbow {}, flint {}, flame bow {}", a.name(), cart.cooldown, a.airborne(), String.format("%.1f", enemy.distance()), CartPvp.ready(a), a.raining(), CartPvp.railSlot(a), CartPvp.cartSlot(a), CartPvp.crossbowSlot(a), CartPvp.flintSlot(a), CartPvp.flameBow(a));
+            dev.agentnet.AgentNet.LOG.info("[{}] cart check: cooldown {}, airborne {}, distance {}, ready {}, raining {}, rail {}, cart {}, crossbow {}, flint {}, flame bow {}, arrows {}, pack {}", a.name(), cart.cooldown, a.airborne(), String.format("%.1f", enemy.distance()), CartPvp.ready(a), a.raining(), CartPvp.railSlot(a), CartPvp.cartSlot(a), CartPvp.crossbowSlot(a), CartPvp.flintSlot(a), CartPvp.flameBow(a), War.have(a, "minecraft:arrow"), a.inventory().stream().filter(s -> !s.isEmpty()).map(s -> Gear.id(s).replace("minecraft:", "") + "x" + s.getCount()).toList());
         if (enemy.player() && cart.cooldown == 0 && !a.airborne() && !air.active() && enemy.distance() <= 20 && CartPvp.ready(a)) {
             lower(a);
             if (drawing >= 0) { a.releaseUse(); drawing = -1; }
