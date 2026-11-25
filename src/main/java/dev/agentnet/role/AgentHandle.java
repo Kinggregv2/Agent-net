@@ -251,6 +251,8 @@ public interface AgentHandle {
     default net.minecraft.world.phys.Vec3[] ownPearl(long withinMs) { return null; }
     /** Up in the air with no speed (a pearl teleport): its own air physics from here, so it falls and can steer. */
     default void startFall() {}
+    /** How long ago (ms) the server last showed this entity taking damage (Long.MAX_VALUE: never). */
+    default long hurtAgoMs(int entityId) { return Long.MAX_VALUE; }
     /** Sprinting (the server is told, and its walking goes at sprint speed): for chasing; off for critical hits. */
     default void setSprinting(boolean on) {}
     /** A push it gives itself (vanilla does a Riptide throw on the thrower's own side): into its air physics. */

@@ -876,6 +876,10 @@ final class Fight {
         // Only when the jump is over and it stands again (a low roof, a ledge) does it swing from the ground.
         boolean falling = a.airborne() && a.verticalSpeed() < -0.1;
         if (!falling && ticks - jumpedAt <= 12 && (a.airborne() || ticks - jumpedAt <= 3)) { tactic = "in the air over " + enemy.name(); return; }
+        // Not inside its invulnerability time (10 ticks after it was last hurt, as the server shows it): a hit then only does
+        // what it has over the last one. The attack goes out behind its queued moves, so swings 13 ticks apart here landed
+        // under 10 apart there, and 52 of 160 sword hits did 0.7 instead of 1.7 (bench 2026-11-25).
+        if (a.hurtAgoMs(enemy.id()) < 520) { tactic = "waiting out " + enemy.name() + "'s hurt time"; return; }
         boolean crit = falling;
         lower(a); // no swinging with the shield up
         hpBefore = a.healthOf(enemy.id());

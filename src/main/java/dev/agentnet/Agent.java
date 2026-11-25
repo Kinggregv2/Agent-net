@@ -1238,6 +1238,8 @@ public final class Agent implements AgentHandle {
     @Override public void holdFall(int ticks) { fallHold = ticks; }
 
     @Override public void startFall() { airVel = null; launch(Vec3.ZERO); }
+    private final Map<Integer, Long> hurtAt = new java.util.concurrent.ConcurrentHashMap<>();
+    @Override public long hurtAgoMs(int entityId) { Long t = hurtAt.get(entityId); return t == null ? Long.MAX_VALUE : System.currentTimeMillis() - t; }
     private volatile boolean sprinting;
     @Override public void setSprinting(boolean on) {
         if (sprinting == on || food < 7 && on) return;
@@ -3823,6 +3825,7 @@ public final class Agent implements AgentHandle {
             } else if (packet instanceof ClientboundUpdateAttributesPacket p) {
                 if (p.getEntityId() == myEntityId) updateMaxHealth(p);
             } else if (packet instanceof ClientboundDamageEventPacket p) {
+                hurtAt.put(p.entityId(), System.currentTimeMillis()); // any entity: its invulnerability time starts now
                 if (p.entityId() == myEntityId) {
                     // sourceCauseId is the responsible entity: the shooter for arrows, etc.
                     UUID uuid = playerEntities.get(p.sourceCauseId());
