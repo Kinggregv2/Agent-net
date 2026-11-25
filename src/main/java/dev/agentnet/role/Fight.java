@@ -438,6 +438,92 @@ final class Fight {
         return true;
     }
 
+    // ------------------------------------------------------------------ step 9a+++: the trident elytra
+    //
+    // The user, 2026-11-23: "trident elytra". In rain, with an elytra and a Riptide trident and no rockets: the elytra on (it
+    // swaps with the worn chestplate), a Riptide throw up toward the target (its own push, as in TridentItem), the elytra
+    // open at the top, a glide over the target (another Riptide throw for speed when it slows), then over it the
+    // chestplate back on and the mace: the wind-charge smash's air part steers the fall and swings. For a far target or one
+    // up in the air (VexBot flew about on its trident and stayed out of reach, bench 2026-11-25); near ones get riptideSmash.
+    private int tgState = 0, tgAt, tgCd;
+    private boolean tridentGlide(AgentHandle a, Seen enemy) {
+        if (tgCd > 0) tgCd--;
+        List<ItemStack> inv = a.inventory();
+        int mace = -1, tri = -1, ely = -1, chest = -1;
+        for (int i = 0; i < 36 && i < inv.size(); i++) {
+            ItemStack s = inv.get(i);
+            if (s.getItem() == net.minecraft.world.item.Items.MACE && mace < 0 && i < 9) mace = i;
+            if (s.getItem() == net.minecraft.world.item.Items.TRIDENT && Gear.level(s, net.minecraft.world.item.enchantment.Enchantments.RIPTIDE) > 0 && tri < 0 && i < 9) tri = i;
+            if (s.getItem() == net.minecraft.world.item.Items.ELYTRA && ely < 0) ely = i;
+            if (Gear.id(s).endsWith("_chestplate") && chest < 0) chest = i;
+        }
+        boolean wearsElytra = a.armor().size() > 1 && a.armor().get(1).getItem() == net.minecraft.world.item.Items.ELYTRA;
+        int t = ticks - tgAt;
+        float yaw = (float) Math.toDegrees(Math.atan2(-(enemy.pos().x - a.x()), enemy.pos().z - a.z()));
+        double hz = Math.hypot(enemy.pos().x - a.x(), enemy.pos().z - a.z()), up = a.y() - enemy.pos().y;
+        switch (tgState) {
+            case 0 -> {
+                if (tri < 0 || mace < 0 || (ely < 0 && !wearsElytra) || tgCd > 0 || a.airborne() || a.riding() || air.active() || ElytraMace.ready(a)) return false;
+                if (!a.raining() && !inWater(a)) return false;
+                boolean high = enemy.pos().y - a.y() > 4;
+                if (!enemy.player() || !(enemy.distance() > 10 || high) || enemy.distance() > 48) return false;
+                if (a.isNavigating()) a.stopNavigation();
+                lower(a);
+                tgState = 1; tgAt = ticks; tgCd = 120;
+                a.log("§ctrident elytra at " + enemy.name() + String.format(" (%.0f off, %.0f up)", enemy.distance(), enemy.pos().y - a.y()));
+                return true;
+            }
+            case 1 -> { // the elytra on
+                if (wearsElytra) { a.selectHotbar(tri); a.useItem(); tgState = 2; tgAt = ticks; return true; }
+                if (t > 30 || ely < 0) { tgState = 0; return false; }
+                if (t % 6 == 1) { int hb = ely < 9 ? ely : 7; if (ely >= 9) a.moveToHotbar(ely, hb); a.selectHotbar(hb); a.useItem(); }
+                tactic = "trident elytra: the elytra on"; return true;
+            }
+            case 2 -> { // charging the throw
+                a.look(yaw, -60f);
+                if (t < 11) { tactic = "trident elytra: charging the riptide"; return true; }
+                a.releaseUse();
+                ripPush(a, inv.get(tri), yaw, -60f);
+                tgState = 3; tgAt = ticks; return true;
+            }
+            case 3 -> { // up: the elytra open
+                a.faceWhileMoving(enemy.pos().x, enemy.pos().y + 3, enemy.pos().z);
+                if (!a.airborne() && t > 6) { tgState = 0; return false; }
+                if (t >= 4 && a.verticalSpeed() < 0.6 && a.startGliding()) { tgState = 4; tgAt = ticks; }
+                tactic = "trident elytra: up"; return true;
+            }
+            case 4 -> { // gliding over
+                if (!a.airborne() || t > 200) { tgState = 0; if (a.gliding()) a.stopGliding(); return false; }
+                // Aim at a point 6 above it: the glide comes in from above, the mace from there.
+                double dy = enemy.pos().y + 6 - (a.y() + 1.62);
+                float pitch = (float) -Math.toDegrees(Math.atan2(dy, Math.max(1, hz)));
+                a.look(yaw, Math.max(-50f, Math.min(40f, pitch)));
+                double sp = Math.hypot(a.horizontalSpeed(), a.verticalSpeed());
+                if (sp < 0.6 && hz > 8 && tgBoostAt < 0) { a.selectHotbar(tri); a.useItem(); tgBoostAt = ticks; }
+                if (tgBoostAt >= 0 && ticks - tgBoostAt >= 11) { a.releaseUse(); ripPush(a, inv.get(tri), yaw, a.pitch()); tgBoostAt = -1; }
+                if (hz < 4 && up > 3) { // over it: the chestplate, the mace, down
+                    if (tgBoostAt >= 0) { a.releaseUse(); tgBoostAt = -1; }
+                    a.stopGliding();
+                    if (chest >= 0) { int hb = chest < 9 ? chest : 7; if (chest >= 9) a.moveToHotbar(chest, hb); a.selectHotbar(hb); a.useItem(); }
+                    a.selectHotbar(mace); // (the glide's speed carries on into the fall: no startFall, that would stop it dead)
+                    windAt = ticks; windStruck = false; windDashed = true; windPeak = a.y(); charge = 0;
+                    tgState = 0;
+                    dev.agentnet.AgentNet.LOG.info("[{}] trident elytra: over {} ({} up), the mace down", a.name(), enemy.name(), String.format("%.1f", up));
+                    return false;
+                }
+                tactic = String.format("trident elytra: gliding to %s (%.0f across, %.0f up)", enemy.name(), hz, up); return true;
+            }
+            default -> { tgState = 0; return false; }
+        }
+    }
+    private int tgBoostAt = -1;
+    /** Vanilla TridentItem.releaseUsing: the Riptide push the thrower gives itself, along the look. */
+    private void ripPush(AgentHandle a, ItemStack trident, float yaw, float pitch) {
+        int lvl = Gear.level(trident, net.minecraft.world.item.enchantment.Enchantments.RIPTIDE);
+        double sp = 3.0 * (1 + lvl) / 4.0, yr = Math.toRadians(yaw), pr = Math.toRadians(pitch);
+        a.selfPush(-Math.sin(yr) * Math.cos(pr) * sp, -Math.sin(pr) * sp + (a.airborne() ? 0 : 0.5), Math.cos(yr) * Math.cos(pr) * sp);
+    }
+
     // ------------------------------------------------------------------ step 9a++: the trident mace
     //
     // Vanilla (TridentItem): a Riptide trident held for 10 ticks and let go, in rain or in water, throws its holder the way
@@ -804,6 +890,7 @@ final class Fight {
         }
         // Crystal PvP: with end crystals in the pack, against a player in reach (CrystalPvp).
         if (enemy.player() && CrystalPvp.ready(a) && !a.airborne()) { lower(a); if (crystal.tick(a, enemy)) { tactic = crystal.tactic; charge = 0; return; } }
+        if (tridentGlide(a, enemy)) return; // step 9a+++: Riptide up, the elytra open, glide over, the mace down
         if (riptideSmash(a, enemy)) return; // step 9a++: a Riptide trident up, then the mace
         if (pearlCatch(a, enemy)) return; // step 9a+: pearl and wind charge up, then the mace from 20 blocks
         if (windSmash(a, enemy)) return; // step 9a
