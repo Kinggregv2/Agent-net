@@ -501,7 +501,10 @@ final class Fight {
                 double sp = Math.hypot(a.horizontalSpeed(), a.verticalSpeed());
                 if (sp < 0.6 && hz > 8 && tgBoostAt < 0) { a.selectHotbar(tri); a.useItem(); tgBoostAt = ticks; }
                 if (tgBoostAt >= 0 && ticks - tgBoostAt >= 11) { a.releaseUse(); ripPush(a, inv.get(tri), yaw, a.pitch()); tgBoostAt = -1; }
-                if (hz < 4 && up > 3) { // over it: the chestplate, the mace, down
+                // Let go a coast short of it: in the air its speed across falls by 9% a tick, so it still goes about 10 times its
+                // speed across. Letting go right over it, the glide carried it 4 blocks past and the mace never reached (2026-11-25).
+                double coast = a.horizontalSpeed() * 10;
+                if (hz < Math.max(1.5, coast) && up > 3) { // over it: the chestplate, the mace, down
                     if (tgBoostAt >= 0) { a.releaseUse(); tgBoostAt = -1; }
                     a.stopGliding();
                     if (chest >= 0) { int hb = chest < 9 ? chest : 7; if (chest >= 9) a.moveToHotbar(chest, hb); a.selectHotbar(hb); a.useItem(); }
