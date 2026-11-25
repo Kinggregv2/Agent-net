@@ -196,7 +196,7 @@ final class Fight {
     private final ElytraMace air = new ElytraMace();
 
     /** In the middle of a move that must not be cut short (the elytra mace): the warrior keeps its hands off and keeps the target. */
-    boolean busy() { return air.active() || cart.active(); }
+    boolean busy() { return air.active() || cart.active() || tgState != 0; } // (the trident elytra: the warrior's equip step took its elytra off while it charged)
     int targetId() { return target; }
     boolean blocksClutch(AgentHandle a) { return air.active() && air.blocksClutch(a); }
 
@@ -858,7 +858,7 @@ final class Fight {
         }
         if (windCd > 0) windCd--; // every tick (only in windSmash it stood still while dodging, and the dodge never fired)
         // Not while a pearl catch is under way: the dodge moved it off its throw and the catch never came back (spear mace, 2026-11-24).
-        if (!air.active() && ticks - pcAt > 45 && dodge(a, enemy)) return; // a mace coming down on it: out from under
+        if (!air.active() && tgState == 0 && ticks - pcAt > 45 && dodge(a, enemy)) return; // a mace coming down on it: out from under
         if (!air.active() && heal(a, enemy)) return; // step 8
 
         // Step 7, the mace from the air. Vanilla (MaceItem): a smash needs a fall of over 1.5 blocks and no gliding; it adds
