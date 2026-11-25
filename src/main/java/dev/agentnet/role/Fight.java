@@ -572,6 +572,21 @@ final class Fight {
     }
 
     /** On your own world: what the server itself has for this agent right now (fall distance, height, on the ground). For the logs of a test. */
+    /** The target on the server (own world): its armor, effects, blocking, hurt time. */
+    static String targetSide(String name) {
+        try {
+            var srv = net.minecraft.client.Minecraft.getInstance().getSingleplayerServer();
+            var p = srv == null ? null : srv.getPlayerList().getPlayerByName(name);
+            if (p == null) return "(not a player here)";
+            StringBuilder sb = new StringBuilder();
+            for (var s : new net.minecraft.world.entity.EquipmentSlot[]{net.minecraft.world.entity.EquipmentSlot.HEAD, net.minecraft.world.entity.EquipmentSlot.CHEST, net.minecraft.world.entity.EquipmentSlot.LEGS, net.minecraft.world.entity.EquipmentSlot.FEET, net.minecraft.world.entity.EquipmentSlot.MAINHAND, net.minecraft.world.entity.EquipmentSlot.OFFHAND})
+                sb.append(Gear.id(p.getItemBySlot(s)).replace("minecraft:", "")).append(" ");
+            sb.append("| effects ").append(p.getActiveEffects().stream().map(e -> e.getEffect().unwrapKey().map(k -> k.identifier().getPath()).orElse("?") + e.getAmplifier()).toList());
+            sb.append(String.format(" | blocking %s, hurt time %d, absorption %.1f, armor %d", p.isBlocking(), p.hurtTime, p.getAbsorptionAmount(), p.getArmorValue()));
+            return sb.toString();
+        } catch (RuntimeException e) { return "(" + e + ")"; }
+    }
+
     static String serverSide(AgentHandle a) {
         try {
             var srv = net.minecraft.client.Minecraft.getInstance().getSingleplayerServer();
@@ -734,6 +749,7 @@ final class Fight {
             if (a.hitRecently(enemy.id(), 600)) landed++;
             float now = a.healthOf(enemy.id());
             if (!Float.isNaN(hpBefore) && !Float.isNaN(now)) dev.agentnet.AgentNet.LOG.info("[{}] that swing took {} off {} ({} -> {})", a.name(), String.format("%.1f", hpBefore - now), enemy.name(), String.format("%.1f", hpBefore), String.format("%.1f", now));
+            if (!Float.isNaN(hpBefore) && !Float.isNaN(now) && hpBefore - now > 0.3 && hpBefore - now < 1.0) dev.agentnet.AgentNet.LOG.info("[{}] a weak hit; {} on the server: {}", a.name(), enemy.name(), targetSide(enemy.name()));
             checkAt = -1;
         }
 
@@ -879,7 +895,6 @@ final class Fight {
         // Not inside its invulnerability time (10 ticks after it was last hurt, as the server shows it): a hit then only does
         // what it has over the last one. The attack goes out behind its queued moves, so swings 13 ticks apart here landed
         // under 10 apart there, and 52 of 160 sword hits did 0.7 instead of 1.7 (bench 2026-11-25).
-        if (a.hurtAgoMs(enemy.id()) < 520) { tactic = "waiting out " + enemy.name() + "'s hurt time"; return; }
         boolean crit = falling;
         lower(a); // no swinging with the shield up
         hpBefore = a.healthOf(enemy.id());
