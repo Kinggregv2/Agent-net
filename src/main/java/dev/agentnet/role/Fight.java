@@ -279,6 +279,7 @@ final class Fight {
     public static final boolean TRACE_PEARLS = true;
     static final boolean TRACE_ENEMY = Boolean.parseBoolean(System.getProperty("agentnet.traceEnemy", "true"));
     private int dodgeUntil = -1;
+    private int windDodgeAt = -1000;
     private boolean dodge(AgentHandle a, Seen e) {
         double up = e.pos().y - a.y(), hz = Math.hypot(e.pos().x - a.x(), e.pos().z - a.z());
         boolean mace = e.mainHand().getItem() == net.minecraft.world.item.Items.MACE;
@@ -302,7 +303,7 @@ final class Fight {
                 // 45 degrees down: the charge bursts on the ground about 1.6 blocks off, level with its legs, and the push is mostly
                 // sideways. At 70 it burst at its feet and threw it straight up (1.0 up, 0.2 across) into the dive.
                 a.useItemWith(wc, yaw, 45f);
-                windCd = 30; dodgeUntil = ticks;
+                windCd = 30; dodgeUntil = ticks; windDodgeAt = ticks;
                 tactic = "wind charge away from " + e.name() + "'s mace";
                 dev.agentnet.AgentNet.LOG.info("[{}] wind-charge dodge: {} is {} up, {} over", a.name(), e.name(), String.format("%.1f", up), String.format("%.1f", hz));
                 return true;
@@ -553,6 +554,8 @@ final class Fight {
             dev.agentnet.AgentNet.LOG.info("[{}] pearl catch: the charge missed the pearl", a.name());
             return false;
         }
+        // Not right after a wind-charge dodge: the charge is on its item cooldown (10 ticks) and the catch's own charge would not go.
+        if (ticks - windDodgeAt < 12) return false;
         if (mace < 0 || wind < 0 || pearl < 0 || pcCd > 0 || a.airborne() || a.riding() || air.active() || ElytraMace.ready(a) || ticks - windAt < 100) return false;
         if (!enemy.player() || enemy.distance() > 9 || Math.abs(enemy.pos().y - a.y()) > 3 || !ElytraMace.openAbove(a, new net.minecraft.world.phys.Vec3(a.x(), a.y(), a.z()))) return false;
         float hp = a.health(), max = Math.max(1f, a.maxHealth());
@@ -749,7 +752,8 @@ final class Fight {
             dev.agentnet.AgentNet.LOG.info("[{}] trace {}: y {} over us, vy {}, holding {}{}", a.name(), enemy.name(), String.format("%.1f", enemy.pos().y - a.y()), String.format("%.2f", enemyVel.y), Gear.id(enemy.mainHand()).replace("minecraft:", ""), sb);
         }
         if (windCd > 0) windCd--; // every tick (only in windSmash it stood still while dodging, and the dodge never fired)
-        if (!air.active() && dodge(a, enemy)) return; // a mace coming down on it: out from under
+        // Not while a pearl catch is under way: the dodge moved it off its throw and the catch never came back (spear mace, 2026-11-24).
+        if (!air.active() && ticks - pcAt > 45 && dodge(a, enemy)) return; // a mace coming down on it: out from under
         if (!air.active() && heal(a, enemy)) return; // step 8
 
         // Step 7, the mace from the air. Vanilla (MaceItem): a smash needs a fall of over 1.5 blocks and no gliding; it adds
