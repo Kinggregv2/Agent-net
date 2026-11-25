@@ -239,7 +239,7 @@ final class Fight {
         // own knockback hit or ours): ordinary food now, eaten on the way back, so regeneration keeps running. Against VexBot
         // with swords the agent had it at 5.9 HP while it had 11.4; VexBot ate its steak in the gaps and came back to 11,
         // the agent never ate and lost (bench 2026-11-23, round 1). Steak gives 12.8 saturation: a heart a second for 12 s.
-        if (!retreating && a.food() < 20 && hp < max - 3f && enemy.distance() > 3.6 && ticks - topUpAt > 50) {
+        if (!retreating && a.food() < 20 && hp < max - 2f && enemy.distance() > 3.3 && ticks - topUpAt > 45) {
             int f = -1;
             for (int i = 0; i < inv.size() && i < 36; i++) {
                 ItemStack s = inv.get(i);
@@ -259,7 +259,9 @@ final class Fight {
         if (ticks - fleeAt >= 40 || !a.isNavigating()) { fleeAt = ticks; away(a, enemy, 14); }
         // Out of its reach is enough (a zombie reaches about 2 blocks, and walks slower than an agent): waiting for 6 blocks,
         // it never got to eat with three husks behind it.
-        if (enemy.distance() > 3.5) {
+        // Eating at once on the way back, not only once out of reach: it backed off at 5 HP with VexBot on its heels and first
+        // ate at 1 HP (sword bench 2026-11-25, lost round 1).
+        if (enemy.distance() > 3.5 || a.food() < 20) {
             lower(a);
             int f = -1;
             for (int i = 0; i < inv.size() && i < 36; i++) if (Gear.isFood(inv.get(i)) && (f < 0 || Gear.nutrition(inv.get(i)) > Gear.nutrition(inv.get(f)))) f = i;
