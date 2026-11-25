@@ -705,6 +705,7 @@ final class Fight {
     // ------------------------------------------------------------------ the fight
 
     void idle(AgentHandle a) {
+        a.setSprinting(false);
         lower(a);
         retreating = false; busyTicks = 0;
         if (drawing >= 0) { a.releaseUse(); drawing = -1; }
@@ -824,9 +825,11 @@ final class Fight {
             a.faceWhileMoving(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z);
             // Step 3: the shield up on the way in, against arrows from any distance and against a melee enemy about to reach it.
             if (enemy.aiming() || reach <= 4.5) raise(a); else lower(a);
+            a.setSprinting(reach > REACH + 1.0); // catching up: at sprint speed (VexBot backed off to eat faster than the agent walked)
             chase(a, enemy, walled ? 0 : 1);
             return;
         }
+        a.setSprinting(false); // a sprinting hit is never critical
         // In reach: stand and wait for the full charge, then swing. A swing before that does a fraction and starts the wait over.
         if (a.isNavigating()) a.stopNavigation(); // in reach: it stands (and jumps) here; out of reach again, it walks again
         if (!a.isNavigating() && !a.airborne()) a.lookAt(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z); else a.faceWhileMoving(enemy.pos().x, enemy.pos().y + 1.0, enemy.pos().z);

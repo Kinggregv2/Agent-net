@@ -1238,6 +1238,12 @@ public final class Agent implements AgentHandle {
     @Override public void holdFall(int ticks) { fallHold = ticks; }
 
     @Override public void startFall() { airVel = null; launch(Vec3.ZERO); }
+    private volatile boolean sprinting;
+    @Override public void setSprinting(boolean on) {
+        if (sprinting == on || food < 7 && on) return;
+        sprinting = on;
+        send(playerCommand(on ? net.minecraft.network.protocol.game.ServerboundPlayerCommandPacket.Action.START_SPRINTING : net.minecraft.network.protocol.game.ServerboundPlayerCommandPacket.Action.STOP_SPRINTING));
+    }
     @Override public void selfPush(double x, double y, double z) { launch(new Vec3(x, y, z)); }
 
     void launch(Vec3 push) {
@@ -3181,7 +3187,7 @@ public final class Agent implements AgentHandle {
             return false;
         }
 
-        public double speed() { return sneaking ? 0.3 : feetInWater() ? 0.45 : 1; } // swimming: about a player's swim speed
+        public double speed() { return sneaking ? 0.3 : feetInWater() ? 0.45 : sprinting ? 1.12 : 1; } // sprinting: 5.6 against 5 blocks a second // swimming: about a player's swim speed
 
         @Override
         public boolean openDoorAt(int x, int y, int z) {
